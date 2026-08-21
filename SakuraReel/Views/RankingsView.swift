@@ -1,8 +1,11 @@
 import SwiftUI
-import SwiftData
 
 struct RankingsView: View {
-    @Query(sort: [SortDescriptor<MediaItem>(\.rating, order: .reverse)]) private var items: [MediaItem]
+    @Environment(MediaRepository.self) private var repository
+
+    private var items: [MediaItem] {
+        MediaSort.rankingSorted(repository.items)
+    }
 
     var body: some View {
         NavigationStack {
@@ -16,5 +19,5 @@ struct RankingsView: View {
 
 #Preview {
     RankingsView()
-        .modelContainer(for: MediaItem.self, inMemory: true)
+        .environment(MediaRepository(seedItems: PreviewSampleData.sampleItems))
 }

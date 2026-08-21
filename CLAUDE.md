@@ -9,7 +9,7 @@ SakuraReel 是一款 **Personal Media Library** 应用，用于：
 - 记录个人评分（0–10）
 - 保存个人短评
 - 保存播放入口
-- 在 Apple 设备间通过 iCloud 同步
+- 数据以本地文件形式保存在 App 的 Documents 目录，可在系统「文件」App 中直接查看 / 备份
 
 它不是影视资讯 App，也不是影视社区。第一阶段所有内容均由用户手动添加，不接入 TMDB、Bangumi、豆瓣等外部数据源。
 
@@ -25,12 +25,14 @@ SakuraReel 是一款 **Personal Media Library** 应用，用于：
 
 - **语言**：Swift 6.3+
 - **UI**：SwiftUI
-- **数据持久化与同步**：SwiftData + CloudKit
+- **数据持久化**：本地 JSON 文件（App 沙盒 Documents 目录，可在「文件」App 中查看、备份）
+- **海报存储**：单独图片文件（`Documents/Posters/<id>.jpg`），不写入 JSON
 - **图片选择**：PhotosPicker
 - **外部链接**：UIApplication.shared.open
-- **最低系统版本**：iOS 17+
+- **最低系统版本**：iOS 17+（`@Observable` 依赖 Observation 框架）
 - **无第三方 UI 框架**
 - **无第三方影视数据库 API**
+- **无 iCloud / CloudKit 同步**：数据只存在本机
 
 ## 项目目录
 
@@ -48,13 +50,12 @@ SakuraReel
 
 | 文件 | 职责 |
 |------|------|
-| `Models/MediaItem.swift` | 核心数据模型 |
+| `Models/MediaItem.swift` | 核心数据模型（Codable 结构体） |
 | `Models/MediaStatus.swift` | 观看状态枚举 |
 | `Utilities/RatingColor.swift` | 评分颜色唯一来源 |
 | `Utilities/MediaSort.swift` | 排序与拖动分组逻辑唯一来源 |
-| `Services/MediaRepository.swift` | SwiftData CRUD 与排序索引维护 |
+| `Services/MediaRepository.swift` | 本地 JSON 文件读写、海报文件管理、CRUD 与排序索引维护 |
 | `Services/PosterResizer.swift` | 海报裁剪、缩放、压缩 |
-| `Services/CloudKitConfiguration.swift` | CloudKit 容器与可用性检查 |
 | `Views/HomeView.swift` | 首页 |
 | `Views/RankingsView.swift` | 排行榜 |
 | `Views/AddEditMediaView.swift` | 添加 / 编辑页 |
@@ -63,8 +64,9 @@ SakuraReel
 
 ## 数据模型要点
 
-- `MediaItem` 是唯一的 `@Model`
-- `poster` 使用 `@Attribute(.externalStorage)`，让 SwiftData 自动映射为 CloudKit CKAsset
+- `MediaItem` 是 `Codable` 结构体（同时 `Identifiable, Hashable`），**不是** `@Model`
+- 元数据写入 `Documents/SakuraReelLibrary.json`（`.prettyPrinted`，日期 `.iso8601`）
+- `poster` 只在内存中使用，不参与 JSON 编解码；海报单独存为 `Documents/Posters/<id>.jpg`
 - `rating` 为整数 0–10，`0` 表示未评分
 - `sortIndex` 用于同组内手动排序
 - `watchYear` / `watchMonth` 单独存储，便于按年月分组排序
@@ -128,16 +130,20 @@ SakuraReel
 - 不要把排序逻辑散落在多个 View 中
 - 不要在不同页面重复硬编码评分颜色
 - 不要默认接入外部影视数据源
+- 不要重新引入 SwiftData / CloudKit / iCloud 同步
 - 不要在大面积使用粉色
 - 不要添加复杂动画
 - 保持 Light Mode，不考虑深色模式
 
-## iCloud
+## 本地文件存储
 
-- 使用 CloudKit private database
-- 不建立 SakuraReel 自己的账号体系
-- 需要同步：海报、片名、分类、观看年月、评分、短评、播放链接、排序信息
-- 处理无 iCloud 账户的软提示
+- 数据保存在 App 沙盒的 `Documents` 目录，用户可在「文件」App 的 **我的 iPhone > SakuraReel** 中直接查看
+- 目录结构：
+  - `SakuraReelLibrary.json`：所有条目的元数据（片名、分类、年月、评分、短评、链接、排序）
+  - `Posters/`：海报图片，按 `<条目 id>.jpg` 命名
+- `Info.plist` 已开启 `UIFileSharingEnabled` 与 `LSSupportsOpeningDocumentsInPlace`，用于暴露 Documents 目录
+- 读写走 `MediaRepository`（`@MainActor @Observable`），不直接操作 FileManager
+- 不建立 SakuraReel 自己的账号体系，不接入 iCloud / CloudKit
 
 ## 开发节奏
 

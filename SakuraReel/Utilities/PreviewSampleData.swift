@@ -1,18 +1,6 @@
-import SwiftData
 import UIKit
 
 enum PreviewSampleData {
-    static var container: ModelContainer {
-        let container = try! ModelContainer(
-            for: MediaItem.self,
-            configurations: ModelConfiguration(isStoredInMemoryOnly: true)
-        )
-        let context = ModelContext(container)
-        sampleItems.forEach { context.insert($0) }
-        try? context.save()
-        return container
-    }
-
     static var sampleItems: [MediaItem] {
         let poster = generatePosterData()
         return [

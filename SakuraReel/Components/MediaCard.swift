@@ -39,12 +39,10 @@ struct MediaCard: View {
     MediaCard(item: PreviewSampleData.sampleItems[0])
         .frame(width: 160)
         .padding()
-        .modelContainer(PreviewSampleData.container)
 }
 
 #Preview("无海报") {
     MediaCard(item: PreviewSampleData.sampleItems[3])
         .frame(width: 160)
         .padding()
-        .modelContainer(PreviewSampleData.container)
 }

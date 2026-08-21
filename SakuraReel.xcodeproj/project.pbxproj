@@ -9,27 +9,27 @@
 /* Begin PBXBuildFile section */
 		235F027AB4EF737B29874C0E /* Preview Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = D60804694D5950BD8FBE602F /* Preview Assets.xcassets */; };
 		342DED78FBE5B8AAEDED4C16 /* MediaItem.swift in Sources */ = {isa = PBXBuildFile; fileRef = 74A0E8ABFC086F75310982ED /* MediaItem.swift */; };
-		35D2CEBD57833A7DA8AD4A57 /* CloudKitConfiguration.swift in Sources */ = {isa = PBXBuildFile; fileRef = D42BDFC860E48A7DB3A6987F /* CloudKitConfiguration.swift */; };
+		AB00000000000000000000A1 /* MediaRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB00000000000000000000A2 /* MediaRepository.swift */; };
 		43A85D0E3AF458F17A7313E1 /* RatingColor.swift in Sources */ = {isa = PBXBuildFile; fileRef = F651AA1A59A340CFB062233B /* RatingColor.swift */; };
 		6DFE416B3D2F3AD9A327E44E /* MediaSort.swift in Sources */ = {isa = PBXBuildFile; fileRef = 36EB550CEF5EA0AE0572B35C /* MediaSort.swift */; };
 		8B96736E24EBD17CC2CD2F29 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9727B9EED8ACD2EE46E136A0 /* ContentView.swift */; };
 		A0FF94152F6E67BA771F377E /* HomeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8265846BDA676FDF2546716E /* HomeView.swift */; };
 		A4AC6D4A3DD10D7676008263 /* Constants.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6096A8F38D9D17B076388D91 /* Constants.swift */; };
+		AA1111111111111111111111 /* PreviewSampleData.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB1111111111111111111111 /* PreviewSampleData.swift */; };
+		AA2222222222222222222222 /* MediaCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB2222222222222222222222 /* MediaCard.swift */; };
+		AA3333333333333333333333 /* EmptyStateView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB3333333333333333333333 /* EmptyStateView.swift */; };
+		AA4444444444444444444444 /* AddButton.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB4444444444444444444444 /* AddButton.swift */; };
+		AA5555555555555555555555 /* PosterPlaceholderView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB5555555555555555555555 /* PosterPlaceholderView.swift */; };
+		AA6666666666666666666666 /* PosterView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB6666666666666666666666 /* PosterView.swift */; };
+		AA7777777777777777777777 /* RatingLabel.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB7777777777777777777777 /* RatingLabel.swift */; };
+		AA8888888888888888888888 /* PlayButtonOverlay.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB8888888888888888888888 /* PlayButtonOverlay.swift */; };
+		AA9999999999999999999999 /* AdaptiveGridLayout.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB9999999999999999999999 /* AdaptiveGridLayout.swift */; };
+		AAAAAAAAAAAAAAAAAAAAAAAA /* CategorySegmentedControl.swift in Sources */ = {isa = PBXBuildFile; fileRef = BBBBBBBBBBBBBBBBBBBBBBBB /* CategorySegmentedControl.swift */; };
 		AB448BACB6278B84EC78240E /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 86BE5228102BBE430BCEEA46 /* Assets.xcassets */; };
+		DF48E7EC65844006AB0873BB /* SakuraGlassBackground.swift in Sources */ = {isa = PBXBuildFile; fileRef = 93C9173A08BB446293DBC6D6 /* SakuraGlassBackground.swift */; };
 		F0C9BEF2D681280ECC2288C8 /* RankingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8FE433B0FD1839B6C4F14616 /* RankingsView.swift */; };
 		F2DA491367BB531FA535BF01 /* MediaStatus.swift in Sources */ = {isa = PBXBuildFile; fileRef = ED7C9DD3E66F11289ED0C209 /* MediaStatus.swift */; };
 		FCF3A1E56779405E035B8346 /* SakuraReelApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CFE60C3A03F04198D9B12B2 /* SakuraReelApp.swift */; };
-			AA1111111111111111111111 /* PreviewSampleData.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB1111111111111111111111 /* PreviewSampleData.swift */; };
-			AA2222222222222222222222 /* MediaCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB2222222222222222222222 /* MediaCard.swift */; };
-			AA3333333333333333333333 /* EmptyStateView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB3333333333333333333333 /* EmptyStateView.swift */; };
-			AA4444444444444444444444 /* AddButton.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB4444444444444444444444 /* AddButton.swift */; };
-			AA5555555555555555555555 /* PosterPlaceholderView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB5555555555555555555555 /* PosterPlaceholderView.swift */; };
-			AA6666666666666666666666 /* PosterView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB6666666666666666666666 /* PosterView.swift */; };
-			AA7777777777777777777777 /* RatingLabel.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB7777777777777777777777 /* RatingLabel.swift */; };
-			AA8888888888888888888888 /* PlayButtonOverlay.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB8888888888888888888888 /* PlayButtonOverlay.swift */; };
-			AA9999999999999999999999 /* AdaptiveGridLayout.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB9999999999999999999999 /* AdaptiveGridLayout.swift */; };
-			AAAAAAAAAAAAAAAAAAAAAAAA /* CategorySegmentedControl.swift in Sources */ = {isa = PBXBuildFile; fileRef = BBBBBBBBBBBBBBBBBBBBBBBB /* CategorySegmentedControl.swift */; };
-			DF48E7EC65844006AB0873BB /* SakuraGlassBackground.swift in Sources */ = {isa = PBXBuildFile; fileRef = 93C9173A08BB446293DBC6D6 /* SakuraGlassBackground.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -37,17 +37,14 @@
 		36EB550CEF5EA0AE0572B35C /* MediaSort.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MediaSort.swift; sourceTree = "<group>"; };
 		6096A8F38D9D17B076388D91 /* Constants.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Constants.swift; sourceTree = "<group>"; };
 		74A0E8ABFC086F75310982ED /* MediaItem.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MediaItem.swift; sourceTree = "<group>"; };
+		AB00000000000000000000A2 /* MediaRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MediaRepository.swift; sourceTree = "<group>"; };
 		7B594B6DB375E1BF3F23CDD6 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		8265846BDA676FDF2546716E /* HomeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HomeView.swift; sourceTree = "<group>"; };
 		85673086EF6CFD3A1F8591AF /* SakuraReel.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = SakuraReel.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		86BE5228102BBE430BCEEA46 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		8FE433B0FD1839B6C4F14616 /* RankingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RankingsView.swift; sourceTree = "<group>"; };
+		93C9173A08BB446293DBC6D6 /* SakuraGlassBackground.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SakuraGlassBackground.swift; sourceTree = "<group>"; };
 		9727B9EED8ACD2EE46E136A0 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
-		D42BDFC860E48A7DB3A6987F /* CloudKitConfiguration.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CloudKitConfiguration.swift; sourceTree = "<group>"; };
-		D60804694D5950BD8FBE602F /* Preview Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = "Preview Assets.xcassets"; sourceTree = "<group>"; };
-		ED7C9DD3E66F11289ED0C209 /* MediaStatus.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MediaStatus.swift; sourceTree = "<group>"; };
-		F0D0C990897D06B703CED37B /* SakuraReel.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = SakuraReel.entitlements; sourceTree = "<group>"; };
-		F651AA1A59A340CFB062233B /* RatingColor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RatingColor.swift; sourceTree = "<group>"; };
 		BB1111111111111111111111 /* PreviewSampleData.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PreviewSampleData.swift; sourceTree = "<group>"; };
 		BB2222222222222222222222 /* MediaCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MediaCard.swift; sourceTree = "<group>"; };
 		BB3333333333333333333333 /* EmptyStateView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EmptyStateView.swift; sourceTree = "<group>"; };
@@ -58,7 +55,9 @@
 		BB8888888888888888888888 /* PlayButtonOverlay.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlayButtonOverlay.swift; sourceTree = "<group>"; };
 		BB9999999999999999999999 /* AdaptiveGridLayout.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AdaptiveGridLayout.swift; sourceTree = "<group>"; };
 		BBBBBBBBBBBBBBBBBBBBBBBB /* CategorySegmentedControl.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CategorySegmentedControl.swift; sourceTree = "<group>"; };
-			93C9173A08BB446293DBC6D6 /* SakuraGlassBackground.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SakuraGlassBackground.swift; sourceTree = "<group>"; };
+		D60804694D5950BD8FBE602F /* Preview Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = "Preview Assets.xcassets"; sourceTree = "<group>"; };
+		ED7C9DD3E66F11289ED0C209 /* MediaStatus.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MediaStatus.swift; sourceTree = "<group>"; };
+		F651AA1A59A340CFB062233B /* RatingColor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RatingColor.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -129,7 +128,6 @@
 			isa = PBXGroup;
 			children = (
 				0CFE60C3A03F04198D9B12B2 /* SakuraReelApp.swift */,
-				F0D0C990897D06B703CED37B /* SakuraReel.entitlements */,
 				7B594B6DB375E1BF3F23CDD6 /* Info.plist */,
 			);
 			path = App;
@@ -161,7 +159,7 @@
 		CF8103D677B5245E50F32976 /* Services */ = {
 			isa = PBXGroup;
 			children = (
-				D42BDFC860E48A7DB3A6987F /* CloudKitConfiguration.swift */,
+				AB00000000000000000000A2 /* MediaRepository.swift */,
 			);
 			path = Services;
 			sourceTree = "<group>";
@@ -218,7 +216,7 @@
 				};
 			};
 			buildConfigurationList = 975598BD38FD2DF491B0A4D7 /* Build configuration list for PBXProject "SakuraReel" */;
-			compatibilityVersion = "Xcode 16.0";
+			compatibilityVersion = "Xcode 16.0.Superseded.1";
 			developmentRegion = en;
 			hasScannedForEncodings = 0;
 			knownRegions = (
@@ -258,7 +256,7 @@
 				F0C9BEF2D681280ECC2288C8 /* RankingsView.swift in Sources */,
 				342DED78FBE5B8AAEDED4C16 /* MediaItem.swift in Sources */,
 				F2DA491367BB531FA535BF01 /* MediaStatus.swift in Sources */,
-				35D2CEBD57833A7DA8AD4A57 /* CloudKitConfiguration.swift in Sources */,
+				AB00000000000000000000A1 /* MediaRepository.swift in Sources */,
 				43A85D0E3AF458F17A7313E1 /* RatingColor.swift in Sources */,
 				6DFE416B3D2F3AD9A327E44E /* MediaSort.swift in Sources */,
 				A4AC6D4A3DD10D7676008263 /* Constants.swift in Sources */,
@@ -320,7 +318,10 @@
 				GCC_DYNAMIC_NO_PIC = NO;
 				GCC_NO_COMMON_BLOCKS = YES;
 				GCC_OPTIMIZATION_LEVEL = 0;
-				GCC_PREPROCESSOR_DEFINITIONS = "DEBUG=1 $(inherited)";
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"DEBUG=1",
+					"$(inherited)",
+				);
 				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
 				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
 				GCC_WARN_UNDECLARED_SELECTOR = YES;
@@ -343,10 +344,10 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
-				CODE_SIGN_ENTITLEMENTS = SakuraReel/App/SakuraReel.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_ASSET_PATHS = "\"SakuraReel/Preview Content\"";
+				DEVELOPMENT_TEAM = M78JP4X862;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = SakuraReel/App/Info.plist;
@@ -356,7 +357,10 @@
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
 				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
-				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
 				MARKETING_VERSION = 1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.yourdomain.SakuraReel;
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -374,10 +378,10 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
-				CODE_SIGN_ENTITLEMENTS = SakuraReel/App/SakuraReel.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_ASSET_PATHS = "\"SakuraReel/Preview Content\"";
+				DEVELOPMENT_TEAM = M78JP4X862;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = SakuraReel/App/Info.plist;
@@ -387,7 +391,10 @@
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
 				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
-				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
 				MARKETING_VERSION = 1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.yourdomain.SakuraReel;
 				PRODUCT_NAME = "$(TARGET_NAME)";

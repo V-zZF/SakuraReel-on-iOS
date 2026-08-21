@@ -5,13 +5,15 @@
 - [x] 创建 Xcode 项目（iOS 17+，SakuraReel 名称）
 - [x] 建立目录结构：App / Models / Views / Components / Services / Utilities
 - [x] 创建 `Models/MediaStatus.swift`
-- [x] 创建 `Models/MediaItem.swift`（含 `@Attribute(.externalStorage) poster`）
+- [x] 创建 `Models/MediaItem.swift`（Codable 结构体；`poster` 不入 JSON，单独存为 `Documents/Posters/<id>.jpg`）
 - [x] 创建 `Utilities/RatingColor.swift`（评分颜色唯一来源）
 - [x] 创建 `Utilities/MediaSort.swift`（排序与拖动分组逻辑）
 - [x] 创建 `Utilities/Constants.swift`（樱花粉、圆角、间距等常量）
-- [x] 创建 `Services/CloudKitConfiguration.swift`
-- [x] 配置 `App/SakuraReel.entitlements` 与 iCloud / CloudKit capability
-- [x] 配置 `App/SakuraReelApp.swift` 的 `ModelContainer`
+- [x] 创建 `Services/MediaRepository.swift`（本地 JSON 文件读写 + 海报文件管理，替代 SwiftData / CloudKit）
+- [x] ~~创建 `Services/CloudKitConfiguration.swift`~~（2026-08-22 移除）
+- [x] ~~配置 `App/SakuraReel.entitlements` 与 iCloud / CloudKit capability~~（2026-08-22 移除）
+- [x] ~~配置 `App/SakuraReelApp.swift` 的 `ModelContainer`~~（2026-08-22 改为 `MediaRepository` + `.environment` 注入）
+- [x] 开启文件共享：Info.plist 配置 `UIFileSharingEnabled`、`LSSupportsOpeningDocumentsInPlace`，数据可在「文件」App 查看
 - [x] 创建空壳 `Views/ContentView.swift`、`HomeView.swift`、`RankingsView.swift`
 - [x] 编译通过并在 iPhone 模拟器运行
 
@@ -56,7 +58,7 @@
 
 ## Phase 3 — 添加 / 编辑
 
-- [ ] 创建 `Services/MediaRepository.swift`（CRUD 与排序索引维护）
+- [x] 创建 `Services/MediaRepository.swift`（本地 JSON 文件 CRUD 与海报文件管理；排序索引维护在 Phase 4）
 - [ ] 创建 `Services/PosterResizer.swift`（裁剪为 2:3、压缩 JPEG）
 - [ ] 创建 `Components/PosterImagePicker.swift`（PhotosPicker 封装）
 - [ ] 创建 `Components/YearMonthPickers.swift`
@@ -94,15 +96,7 @@
 - [ ] 搜索结果复用 `MediaCard` 与 adaptive 网格
 - [ ] 处理空搜索状态与取消恢复
 
-## Phase 7 — iCloud
-
-- [ ] 确认 entitlements 与 CloudKit container ID
-- [ ] 切换到非内存 `ModelContainer`
-- [ ] 在两台设备/模拟器登录同一 iCloud 账号测试同步
-- [ ] 验证片名、海报、分类、年月、评分、短评、链接、排序同步
-- [ ] 处理无 iCloud 账户软提示
-
-## Phase 8 — UI Polish
+## Phase 7 — UI Polish
 
 - [ ] 统一 Light Mode 配色与樱花粉强调
 - [ ] 卡片点击轻微缩放动画
@@ -137,3 +131,13 @@
 - 选择器行移到标题下方内容区，保留导航栏标题
 - 搜索框弹簧滑入动画、工具栏内 tint 修复
 - 模拟器运行验证通过
+
+### 2026-08-22 存储方案调整：移除 iCloud，改用本地文件存储
+- 需求调整：先移除 iCloud 云同步；数据保存在本地文件中，并可在系统「文件」App 中查看 / 备份
+- `MediaItem` 由 `@Model` 改为 Codable 结构体；`poster` 不入 JSON，单独存为 `Documents/Posters/<id>.jpg`
+- 新增 `Services/MediaRepository.swift`（`@MainActor @Observable`）：读写 `Documents/SakuraReelLibrary.json`，提供 upsert / delete / save
+- 移除 `Services/CloudKitConfiguration.swift` 与 `App/SakuraReel.entitlements`，清理 pbxproj 中 CloudKit 引用与 `CODE_SIGN_ENTITLEMENTS`
+- `Info.plist` 开启 `UIFileSharingEnabled`、`LSSupportsOpeningDocumentsInPlace`，数据在「文件」App 可见
+- 视图从 `@Query` 改为读取 `@Environment(MediaRepository.self)`；`MediaSort` 改为数组排序
+- 更新 `CLAUDE.md`、`CodingPlan.md`、`DEVLOG.md`
+- 编译通过（iOS Simulator）

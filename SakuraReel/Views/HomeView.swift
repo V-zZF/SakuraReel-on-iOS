@@ -1,14 +1,17 @@
 import SwiftUI
-import SwiftData
 
 struct HomeView: View {
-    @Query(sort: MediaSort.homeDescriptors(mode: .default)) private var allItems: [MediaItem]
+    @Environment(MediaRepository.self) private var repository
 
     @State private var selectedStatus: MediaStatus? = .watched
     @State private var isSearchActive: Bool = false
     @State private var searchText: String = ""
     @State private var isSortMode: Bool = false
     @State private var showAddSheet: Bool = false
+
+    private var allItems: [MediaItem] {
+        MediaSort.homeSorted(repository.items, mode: .default)
+    }
 
     private var filteredItems: [MediaItem] {
         if isSearchActive && !searchText.isEmpty {
@@ -148,15 +151,15 @@ struct HomeView: View {
 
 #Preview("有数据") {
     HomeView()
-        .modelContainer(PreviewSampleData.container)
+        .environment(MediaRepository(seedItems: PreviewSampleData.sampleItems))
 }
 
 #Preview("空状态") {
     HomeView()
-        .modelContainer(for: MediaItem.self, inMemory: true)
+        .environment(MediaRepository(seedItems: []))
 }
 
 #Preview("iPad", traits: .landscapeLeft) {
     HomeView()
-        .modelContainer(PreviewSampleData.container)
+        .environment(MediaRepository(seedItems: PreviewSampleData.sampleItems))
 }

@@ -1,0 +1,7 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(xcodebuild -project SakuraReel.xcodeproj -scheme SakuraReel -destination 'platform=iOS Simulator,name=iPhone 17 Pro' -sdk iphonesimulator build CODE_SIGNING_ALLOWED=NO)"
+    ]
+  }
+}

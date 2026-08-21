@@ -1,0 +1,144 @@
+# SakuraReel — Claude 工作记忆
+
+## 项目定位
+
+SakuraReel 是一款 **Personal Media Library** 应用，用于：
+- 收藏影视作品
+- 记录观看状态（看过 / 在看 / 想看）
+- 记录观看年月
+- 记录个人评分（0–10）
+- 保存个人短评
+- 保存播放入口
+- 在 Apple 设备间通过 iCloud 同步
+
+它不是影视资讯 App，也不是影视社区。第一阶段所有内容均由用户手动添加，不接入 TMDB、Bangumi、豆瓣等外部数据源。
+
+## 核心原则
+
+1. **数据正确 > 视觉效果**
+2. **优先原生 SwiftUI，不自己模拟系统组件**
+3. **不擅自增加产品功能**
+4. **不改变已定规则**：评分范围、评分颜色、首页排序、排行榜排序、同组拖动限制、卡片布局、浅色樱花粉视觉方向
+5. **发现技术冲突时**：先指出问题，给出最符合 Apple 原生设计的方案，再修改代码
+
+## 技术栈
+
+- **语言**：Swift 6.3+
+- **UI**：SwiftUI
+- **数据持久化与同步**：SwiftData + CloudKit
+- **图片选择**：PhotosPicker
+- **外部链接**：UIApplication.shared.open
+- **最低系统版本**：iOS 17+
+- **无第三方 UI 框架**
+- **无第三方影视数据库 API**
+
+## 项目目录
+
+```
+SakuraReel
+├── App/
+├── Models/
+├── Views/
+├── Components/
+├── Services/
+└── Utilities/
+```
+
+## 关键文件
+
+| 文件 | 职责 |
+|------|------|
+| `Models/MediaItem.swift` | 核心数据模型 |
+| `Models/MediaStatus.swift` | 观看状态枚举 |
+| `Utilities/RatingColor.swift` | 评分颜色唯一来源 |
+| `Utilities/MediaSort.swift` | 排序与拖动分组逻辑唯一来源 |
+| `Services/MediaRepository.swift` | SwiftData CRUD 与排序索引维护 |
+| `Services/PosterResizer.swift` | 海报裁剪、缩放、压缩 |
+| `Services/CloudKitConfiguration.swift` | CloudKit 容器与可用性检查 |
+| `Views/HomeView.swift` | 首页 |
+| `Views/RankingsView.swift` | 排行榜 |
+| `Views/AddEditMediaView.swift` | 添加 / 编辑页 |
+| `Components/MediaCard.swift` | 影视卡片 |
+| `Components/AdaptiveGridLayout.swift` | iPhone / iPad 自适应网格 |
+
+## 数据模型要点
+
+- `MediaItem` 是唯一的 `@Model`
+- `poster` 使用 `@Attribute(.externalStorage)`，让 SwiftData 自动映射为 CloudKit CKAsset
+- `rating` 为整数 0–10，`0` 表示未评分
+- `sortIndex` 用于同组内手动排序
+- `watchYear` / `watchMonth` 单独存储，便于按年月分组排序
+
+## 评分颜色规范
+
+评分颜色必须唯一来自 `RatingColor.color(for:)`：
+
+| 分数 | Hex | 视觉 |
+|------|-----|------|
+| 0 未评分 | `#E5E5EA` | 浅灰 |
+| 1–3 | `#C7C7CC` | 浅灰 |
+| 4–5 | `#F8A5B6` | 浅粉 |
+| 6–7 | `#F08080` | 珊瑚粉 |
+| 8–9 | `#E88398` | 深粉 |
+| 10 | `#E2556B` | 红粉 / 满分特殊色 |
+
+## 排序规则
+
+### 首页默认排序
+1. 观看年份从新到旧
+2. 观看月份从新到旧
+3. `sortIndex`
+
+### 首页手动排序
+- 只能在**同年同月**内拖动
+- 跨年月拖动显示提示：「无法移动 只能调整相同观看年月内的作品顺序。」
+
+### 排行榜排序
+1. 评分从高到低
+2. 观看时间从新到旧
+3. `sortIndex`
+
+### 排行榜手动排序
+- 只能在**同评分**内拖动
+- 跨评分拖动显示提示：「无法移动 只能调整相同评分内的作品顺序。」
+
+## 视觉方向
+
+- **主背景**：白色、极浅灰、极浅暖灰
+- **卡片**：白色、柔和圆角、极轻阴影
+- **主文字**：深灰 / 近黑
+- **次级文字**：系统灰
+- **品牌强调**：樱花粉，仅用于选中态、按钮、评分高区间，不作为大面积背景
+- **海报**：2:3 比例，卡片视觉中心
+- **信息层级**：海报 > 片名 > 评分 > 观看年月 > 播放入口
+
+## 交互要点
+
+- 首页分类胶囊：看过 / 在看 / 想看 / 搜索
+- 搜索胶囊点击后变为可编辑搜索栏，实时按片名过滤
+- 添加 / 编辑为 Sheet，表单顺序固定：海报 → 片名 → 分类 → 观看年月 → 评分 → 短评 → 播放链接
+- 播放链接存在时才显示播放按钮，点击用 `UIApplication.shared.open` 打开外部目标
+- 删除需要二次确认 Alert
+- 未保存内容时，用户点击取消 / 遮罩 / 返回需提示确认
+
+## 注意事项
+
+- 不要为了简单而引入第三方 UI Framework
+- 不要把整个 App 写在一个巨大 View 文件中
+- 不要把排序逻辑散落在多个 View 中
+- 不要在不同页面重复硬编码评分颜色
+- 不要默认接入外部影视数据源
+- 不要在大面积使用粉色
+- 不要添加复杂动画
+- 保持 Light Mode，不考虑深色模式
+
+## iCloud
+
+- 使用 CloudKit private database
+- 不建立 SakuraReel 自己的账号体系
+- 需要同步：海报、片名、分类、观看年月、评分、短评、播放链接、排序信息
+- 处理无 iCloud 账户的软提示
+
+## 开发节奏
+
+按 Phase 推进，每完成一个小里程碑更新 `DEVLOG.md`。先保证数据正确，再做视觉效果。

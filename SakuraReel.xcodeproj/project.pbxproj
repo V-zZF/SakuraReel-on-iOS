@@ -30,6 +30,10 @@
 		F0C9BEF2D681280ECC2288C8 /* RankingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8FE433B0FD1839B6C4F14616 /* RankingsView.swift */; };
 		F2DA491367BB531FA535BF01 /* MediaStatus.swift in Sources */ = {isa = PBXBuildFile; fileRef = ED7C9DD3E66F11289ED0C209 /* MediaStatus.swift */; };
 		FCF3A1E56779405E035B8346 /* SakuraReelApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CFE60C3A03F04198D9B12B2 /* SakuraReelApp.swift */; };
+		AB00000000000000000000B1 /* PosterResizer.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB00000000000000000000B2 /* PosterResizer.swift */; };
+		AB00000000000000000000C1 /* PosterImagePicker.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB00000000000000000000C2 /* PosterImagePicker.swift */; };
+		AB00000000000000000000D1 /* YearMonthPickers.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB00000000000000000000D2 /* YearMonthPickers.swift */; };
+		AB00000000000000000000E1 /* AddEditMediaView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB00000000000000000000E2 /* AddEditMediaView.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -58,6 +62,10 @@
 		D60804694D5950BD8FBE602F /* Preview Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = "Preview Assets.xcassets"; sourceTree = "<group>"; };
 		ED7C9DD3E66F11289ED0C209 /* MediaStatus.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MediaStatus.swift; sourceTree = "<group>"; };
 		F651AA1A59A340CFB062233B /* RatingColor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RatingColor.swift; sourceTree = "<group>"; };
+		AB00000000000000000000B2 /* PosterResizer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PosterResizer.swift; sourceTree = "<group>"; };
+		AB00000000000000000000C2 /* PosterImagePicker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PosterImagePicker.swift; sourceTree = "<group>"; };
+		AB00000000000000000000D2 /* YearMonthPickers.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = YearMonthPickers.swift; sourceTree = "<group>"; };
+		AB00000000000000000000E2 /* AddEditMediaView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AddEditMediaView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -93,6 +101,7 @@
 				9727B9EED8ACD2EE46E136A0 /* ContentView.swift */,
 				8265846BDA676FDF2546716E /* HomeView.swift */,
 				8FE433B0FD1839B6C4F14616 /* RankingsView.swift */,
+				AB00000000000000000000E2 /* AddEditMediaView.swift */,
 			);
 			path = Views;
 			sourceTree = "<group>";
@@ -152,6 +161,8 @@
 				BB9999999999999999999999 /* AdaptiveGridLayout.swift */,
 				BB3333333333333333333333 /* EmptyStateView.swift */,
 				BB4444444444444444444444 /* AddButton.swift */,
+				AB00000000000000000000C2 /* PosterImagePicker.swift */,
+				AB00000000000000000000D2 /* YearMonthPickers.swift */,
 			);
 			path = Components;
 			sourceTree = "<group>";
@@ -160,6 +171,7 @@
 			isa = PBXGroup;
 			children = (
 				AB00000000000000000000A2 /* MediaRepository.swift */,
+				AB00000000000000000000B2 /* PosterResizer.swift */,
 			);
 			path = Services;
 			sourceTree = "<group>";
@@ -271,6 +283,10 @@
 				AA9999999999999999999999 /* AdaptiveGridLayout.swift in Sources */,
 				AAAAAAAAAAAAAAAAAAAAAAAA /* CategorySegmentedControl.swift in Sources */,
 				DF48E7EC65844006AB0873BB /* SakuraGlassBackground.swift in Sources */,
+				AB00000000000000000000B1 /* PosterResizer.swift in Sources */,
+				AB00000000000000000000C1 /* PosterImagePicker.swift in Sources */,
+				AB00000000000000000000D1 /* YearMonthPickers.swift in Sources */,
+				AB00000000000000000000E1 /* AddEditMediaView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

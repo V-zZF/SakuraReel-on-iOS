@@ -1,0 +1,269 @@
+import SwiftUI
+
+/// 添加 / 编辑表单 Sheet。
+///
+/// `initialItem` 为 nil 时是添加模式，非 nil 时是编辑模式。
+/// 通过 `onSave` / `onDelete` 与上层（HomeView）交互，由上层调用 `MediaRepository` 完成持久化。
+struct AddEditMediaView: View {
+    @Environment(\.dismiss) private var dismiss
+
+    let initialItem: MediaItem?
+    var onSave: (MediaItem) -> Void
+    var onDelete: (() -> Void)?
+
+    // 表单状态
+    @State private var title: String = ""
+    @State private var status: MediaStatus = .watched
+    @State private var watchYear: Int? = nil
+    @State private var watchMonth: Int? = nil
+    @State private var rating: Int = 0
+    @State private var review: String = ""
+    @State private var playURL: String = ""
+    @State private var posterData: Data? = nil
+
+    // 弹窗状态
+    @State private var showDeleteAlert = false
+    @State private var showUnsavedAlert = false
+    @State private var showEmptyTitleAlert = false
+
+    private var isEditMode: Bool { initialItem != nil }
+
+    /// 是否有未保存修改。
+    ///
+    /// 海报直接比较压缩后的 `Data?`（两侧字节可比），避免重编码 JPEG 字节漂移
+    /// 导致「编辑但未改海报」也被判定为有修改。
+    private var isDirty: Bool {
+        if isEditMode {
+            let base = initialItem
+            return title != (base?.title ?? "")
+                || status != (base?.status ?? .watched)
+                || watchYear != base?.watchYear
+                || watchMonth != base?.watchMonth
+                || rating != (base?.rating ?? 0)
+                || review != (base?.review ?? "")
+                || playURL != (base?.playURL ?? "")
+                || posterData != (base?.poster ?? nil)
+        } else {
+            return !title.isEmpty || !review.isEmpty || !playURL.isEmpty
+                || posterData != nil
+                || status != .watched
+                || rating != 0
+                || watchYear != nil || watchMonth != nil
+        }
+    }
+
+    var body: some View {
+        NavigationStack {
+            Form {
+                // MARK: - 海报
+                Section(header: Text("影片海报")) {
+                    PosterImagePicker(posterData: $posterData)
+                }
+
+                // MARK: - 基本信息
+                Section(header: Text("基本信息")) {
+                    TextField("片名 (必填)", text: $title)
+
+                    Picker("分类", selection: $status) {
+                        ForEach(MediaStatus.allCases, id: \.id) { s in
+                            Text(s.displayName).tag(s)
+                        }
+                    }
+
+                    YearMonthPickers(year: $watchYear, month: $watchMonth)
+                }
+
+                // MARK: - 评价与链接
+                Section(header: Text("评价与链接")) {
+                    VStack(alignment: .leading, spacing: 8) {
+                        HStack {
+                            Text("评分")
+                            Spacer()
+                            if rating > 0 {
+                                Text("\(rating) 分")
+                                    .bold()
+                                    .foregroundStyle(RatingColor.color(for: rating))
+                            } else {
+                                Text("未评分")
+                                    .foregroundStyle(.secondary)
+                            }
+                        }
+                        Slider(
+                            value: Binding(
+                                get: { Double(rating) },
+                                set: { rating = Int($0.rounded()) }
+                            ),
+                            in: 0...10,
+                            step: 1
+                        )
+                    }
+
+                    VStack(alignment: .leading, spacing: 6) {
+                        Text("短评")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                        TextEditor(text: $review)
+                            .frame(height: 80)
+                    }
+
+                    TextField("播放链接 (https://)", text: $playURL)
+                        .keyboardType(.URL)
+                        .textInputAutocapitalization(.never)
+                }
+            }
+            .navigationTitle(isEditMode ? "编辑内容" : "添加内容")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button {
+                        attemptClose()
+                    } label: {
+                        Image(systemName: "xmark.circle.fill")
+                            .foregroundStyle(.secondary)
+                    }
+                }
+            }
+            .safeAreaInset(edge: .bottom) {
+                bottomActionBar
+            }
+            .tint(Constants.accentPink)
+            .alert("放弃修改？", isPresented: $showUnsavedAlert) {
+                Button("放弃修改", role: .destructive) { dismiss() }
+                Button("继续编辑", role: .cancel) {}
+            } message: {
+                Text("您有未保存的内容，离开后修改将丢失。")
+            }
+            .alert("确认删除", isPresented: $showDeleteAlert) {
+                Button("删除", role: .destructive) {
+                    onDelete?()
+                    dismiss()
+                }
+                Button("取消", role: .cancel) {}
+            } message: {
+                Text("删除后不可恢复，确定要删除吗？")
+            }
+            .alert("请填写片名", isPresented: $showEmptyTitleAlert) {
+                Button("好的", role: .cancel) {}
+            } message: {
+                Text("保存前需要先填写片名。")
+            }
+            .onAppear(perform: populateFields)
+            .interactiveDismissDisabled(isDirty)
+        }
+    }
+
+    // MARK: - iOS 原生底部按钮栏
+
+    private var bottomActionBar: some View {
+        HStack(spacing: 12) {
+            // [删除按钮] - 仅编辑模式显示，系统破坏性样式
+            if isEditMode {
+                Button(role: .destructive) {
+                    showDeleteAlert = true
+                } label: {
+                    Text("删除")
+                        .font(.body.weight(.semibold))
+                        .frame(maxWidth: .infinity)
+                }
+                .buttonStyle(.bordered)
+                .controlSize(.large)
+            }
+
+            // [取消按钮] - 系统 Bordered 原生外观
+            Button {
+                attemptClose()
+            } label: {
+                Text("取消")
+                    .font(.body.weight(.semibold))
+                    .frame(maxWidth: .infinity)
+            }
+            .buttonStyle(.bordered)
+            .controlSize(.large)
+            .tint(.primary)
+
+            // [保存按钮] - BorderedProminent 突出样式 + 樱花粉 Theme Tint
+            Button {
+                handleSave()
+            } label: {
+                Text("保存")
+                    .font(.body.weight(.semibold))
+                    .frame(maxWidth: .infinity)
+            }
+            .buttonStyle(.borderedProminent)
+            .controlSize(.large)
+            .tint(Constants.accentPink)
+        }
+        .padding(.horizontal)
+        .padding(.vertical, 12)
+        .background(.regularMaterial) // 原生毛玻璃底部衬底
+    }
+
+    // MARK: - 行为
+
+    private func populateFields() {
+        guard let item = initialItem else { return }
+        title = item.title
+        status = item.status
+        watchYear = item.watchYear
+        watchMonth = item.watchMonth
+        rating = item.rating
+        review = item.review ?? ""
+        playURL = item.playURL ?? ""
+        posterData = item.poster
+        // 数据一致性兜底：有年无月时补当前月
+        if watchYear != nil, watchMonth == nil {
+            watchMonth = Calendar.current.component(.month, from: Date())
+        }
+    }
+
+    private func attemptClose() {
+        if isDirty {
+            showUnsavedAlert = true
+        } else {
+            dismiss()
+        }
+    }
+
+    private func handleSave() {
+        let trimmedTitle = title.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmedTitle.isEmpty else {
+            showEmptyTitleAlert = true
+            return
+        }
+        let trimmedReview = review.trimmingCharacters(in: .whitespacesAndNewlines)
+        let trimmedURL = playURL.trimmingCharacters(in: .whitespacesAndNewlines)
+
+        let item = MediaItem(
+            id: initialItem?.id ?? UUID(),
+            title: trimmedTitle,
+            poster: posterData,
+            status: status,
+            watchYear: watchYear,
+            watchMonth: watchMonth,
+            rating: rating,
+            review: trimmedReview.isEmpty ? nil : trimmedReview,
+            playURL: trimmedURL.isEmpty ? nil : trimmedURL,
+            sortIndex: initialItem?.sortIndex ?? 0,
+            createdAt: initialItem?.createdAt ?? Date(),
+            updatedAt: Date()
+        )
+        onSave(item)
+        dismiss()
+    }
+}
+
+#Preview("添加") {
+    AddEditMediaView(
+        initialItem: nil,
+        onSave: { _ in },
+        onDelete: nil
+    )
+}
+
+#Preview("编辑") {
+    AddEditMediaView(
+        initialItem: PreviewSampleData.sampleItems[0],
+        onSave: { _ in },
+        onDelete: {}
+    )
+}

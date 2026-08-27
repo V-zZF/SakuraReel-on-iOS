@@ -59,17 +59,17 @@
 ## Phase 3 — 添加 / 编辑
 
 - [x] 创建 `Services/MediaRepository.swift`（本地 JSON 文件 CRUD 与海报文件管理；排序索引维护在 Phase 4）
-- [ ] 创建 `Services/PosterResizer.swift`（裁剪为 2:3、压缩 JPEG）
-- [ ] 创建 `Components/PosterImagePicker.swift`（PhotosPicker 封装）
-- [ ] 创建 `Components/YearMonthPickers.swift`
-- [ ] 实现 `AddEditMediaView` Sheet 骨架
-- [ ] 实现表单字段：片名、分类、观看年月、评分、短评、播放链接
-- [ ] 实现添加模式底部按钮：[取消] [保存]
-- [ ] 实现编辑模式底部按钮：[删除] [取消] [保存]
-- [ ] 实现删除二次确认 Alert
-- [ ] 实现未保存内容提示
-- [ ] 实现保存 / 删除后自动关闭 Sheet
-- [ ] 实现点击遮罩关闭与 ✕ 关闭P
+- [x] 创建 `Services/PosterResizer.swift`（居中裁剪为 2:3、缩放到 ≤900px、JPEG 0.85 压缩）
+- [x] 创建 `Components/PosterImagePicker.swift`（PhotosPicker 封装，选中即压缩写入）
+- [x] 创建 `Components/YearMonthPickers.swift`（年 + 月原生 Picker，未设年份时隐藏月份）
+- [x] 实现 `AddEditMediaView` Sheet 骨架
+- [x] 实现表单字段：片名、分类、观看年月、评分、短评、播放链接
+- [x] 实现添加模式底部按钮：[取消] [保存]
+- [x] 实现编辑模式底部按钮：[删除] [取消] [保存]
+- [x] 实现删除二次确认 Alert
+- [x] 实现未保存内容提示
+- [x] 实现保存 / 删除后自动关闭 Sheet
+- [x] 实现 ✕ 关闭 / 下滑关闭（有未保存内容时拦截）
 
 ## Phase 4 — 排序
 
@@ -141,3 +141,19 @@
 - 视图从 `@Query` 改为读取 `@Environment(MediaRepository.self)`；`MediaSort` 改为数组排序
 - 更新 `CLAUDE.md`、`CodingPlan.md`、`DEVLOG.md`
 - 编译通过（iOS Simulator）
+
+### 2026-08-27 v0.3 — 添加 / 编辑 与首页卡片微调
+- 完成 Phase 3 添加 / 编辑：
+  - `PosterResizer`：海报居中裁剪为 2:3、≤900px 高、JPEG 0.85 压缩，控制海报文件体积
+  - `PosterImagePicker`：PhotosPicker 封装，选中后立即裁剪压缩并写入绑定
+  - `YearMonthPickers`：年 + 月两个原生 Picker；未设年份时隐藏月份，选定年后默认当前月
+  - `AddEditMediaView`：添加 / 编辑 Sheet，表单顺序固定为 海报→片名→分类→观看年月→评分→短评→播放链接
+  - 底部原生按钮栏：添加模式 [取消][保存]；编辑模式 [删除][取消][保存]
+  - 删除二次确认 Alert、未保存内容拦截提示、空片名校验、保存 / 删除后自动关闭
+  - `HomeView` 接入 Sheet：FAB 打开添加、点击卡片进入编辑；经 `MediaRepository` 的 upsert / delete 持久化
+- 首页卡片微调：
+  - 海报贴紧卡片顶部（`VStack(spacing: 0)`、`PosterView(cornerRadius: 0)`），顶部圆角由卡片外层 `clipShape` 统一裁剪
+  - 播放按钮移入「评分 + 日期」同一行、日期右侧行末，改为粉底白心（粉色圆形底 + 白色播放图标）
+  - 评分区域可点击，弹出短评 Alert；评分数字加大为 30pt，两位数字（10）保证单行（`lineLimit(1)` + `minimumScaleFactor`）
+  - `PosterView` 重构：`Color.clear` 撑满 2:3 区域 + `scaledToFill` 裁剪溢出
+- 编译通过，模拟器运行验证

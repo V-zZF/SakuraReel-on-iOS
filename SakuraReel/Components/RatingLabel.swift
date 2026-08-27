@@ -7,7 +7,9 @@ struct RatingLabel: View {
         HStack(alignment: .lastTextBaseline, spacing: 2) {
             if rating > 0 {
                 Text("\(rating)")
-                    .font(.system(size: 22, weight: .bold, design: .rounded))
+                    .font(.system(size: 30, weight: .bold, design: .rounded))
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.5)
                     .foregroundStyle(RatingColor.color(for: rating))
                 Text("分")
                     .font(.caption)

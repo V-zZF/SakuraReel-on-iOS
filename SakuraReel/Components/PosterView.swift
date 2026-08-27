@@ -7,13 +7,19 @@ struct PosterView: View {
     var body: some View {
         Group {
             if let data = imageData, let uiImage = UIImage(data: data) {
-                Image(uiImage: uiImage)
-                    .resizable()
-                    .aspectRatio(contentMode: .fill)
+                // Color.clear 撑满整个 2:3 区域，图片 scaledToFill 填满并裁剪溢出
+                Color.clear
+                    .overlay {
+                        Image(uiImage: uiImage)
+                            .resizable()
+                            .scaledToFill()
+                    }
+                    .clipped()
             } else {
                 PosterPlaceholderView()
             }
         }
+        .aspectRatio(Constants.posterAspectRatio, contentMode: .fit)
         .clipShape(RoundedRectangle(cornerRadius: cornerRadius))
     }
 }

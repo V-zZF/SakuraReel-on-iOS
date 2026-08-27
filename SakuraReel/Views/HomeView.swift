@@ -7,7 +7,20 @@ struct HomeView: View {
     @State private var isSearchActive: Bool = false
     @State private var searchText: String = ""
     @State private var isSortMode: Bool = false
-    @State private var showAddSheet: Bool = false
+    @State private var sheetTarget: SheetTarget?
+
+    /// 添加 / 编辑 Sheet 目标（nil = 关闭）
+    enum SheetTarget: Identifiable {
+        case add
+        case edit(MediaItem)
+
+        var id: String {
+            switch self {
+            case .add: return "add"
+            case .edit(let item): return item.id.uuidString
+            }
+        }
+    }
 
     private var allItems: [MediaItem] {
         MediaSort.homeSorted(repository.items, mode: .default)
@@ -43,7 +56,7 @@ struct HomeView: View {
 
                         if filteredItems.isEmpty {
                             EmptyStateView(status: isSearchActive ? nil : selectedStatus) {
-                                showAddSheet = true
+                                sheetTarget = .add
                             }
                             .padding(.top, 80)
                         } else {
@@ -54,7 +67,7 @@ struct HomeView: View {
                 }
 
                 AddButton {
-                    showAddSheet = true
+                    sheetTarget = .add
                 }
                 .padding(24)
             }
@@ -101,9 +114,21 @@ struct HomeView: View {
             }
             .navigationBarTitleDisplayMode(.inline)
             .toolbarBackground(.visible, for: .navigationBar)
-            .sheet(isPresented: $showAddSheet) {
-                Text("添加作品（Phase 3 实现）")
-                    .presentationDetents([.medium, .large])
+            .sheet(item: $sheetTarget) { target in
+                switch target {
+                case .add:
+                    AddEditMediaView(
+                        initialItem: nil,
+                        onSave: { repository.upsert($0) },
+                        onDelete: nil
+                    )
+                case .edit(let item):
+                    AddEditMediaView(
+                        initialItem: item,
+                        onSave: { repository.upsert($0) },
+                        onDelete: { repository.delete(item) }
+                    )
+                }
             }
         }
     }
@@ -144,6 +169,7 @@ struct HomeView: View {
         AdaptiveGridLayout {
             ForEach(filteredItems) { item in
                 MediaCard(item: item)
+                    .onTapGesture { sheetTarget = .edit(item) }
             }
         }
     }

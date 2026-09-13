@@ -73,11 +73,11 @@
 
 ## Phase 4 — 排序
 
-- [ ] 首页默认排序：观看年月从新到旧
-- [ ] 进入排序模式后卡片可拖动
-- [ ] 实现同年同月内拖动重排并持久化 `sortIndex`
-- [ ] 实现跨年月拖动时显示提示并阻止移动
-- [ ] 点击「完成」退出排序模式
+- [x] 首页默认排序：观看年月从新到旧
+- [x] 进入排序模式后卡片可拖动
+- [x] 实现同年同月内拖动重排并持久化 `sortIndex`
+- [x] 实现跨年月拖动时显示提示并阻止移动
+- [x] 点击「完成」退出排序模式
 
 ## Phase 5 — 排行榜
 
@@ -157,3 +157,17 @@
   - 评分区域可点击，弹出短评 Alert；评分数字加大为 30pt，两位数字（10）保证单行（`lineLimit(1)` + `minimumScaleFactor`）
   - `PosterView` 重构：`Color.clear` 撑满 2:3 区域 + `scaledToFill` 裁剪溢出
 - 编译通过，模拟器运行验证
+
+### 2026-09-13 v0.4 — Phase 4 排序
+- 新增 `Components/HomeReorderDropDelegate.swift`：`DropDelegate` 只在「同年同月」组内重排，跨组时 `performDrop` 拒绝落点并上报提示文案。分组键复用 `MediaSort.groupKey(of:)`，不新增分组逻辑
+- `HomeView`：
+  - 新增 `draftItems` 草稿顺序、`draggedItemID`、`blockedMessage` 三个状态
+  - 排序模式复用 `AdaptiveGridLayout`（列数唯一来源）挂 `onDrag` / `onDrop`，卡片改为 `MediaCard(item:isInteractive:false)` 避免评分 / 播放按钮与拖动抢触摸
+  - 排序模式隐藏分类胶囊、搜索栏、空态与 FAB，显示全部条目 —— 保证每个观看年月组完整，`sortIndex` 重编才不会与未显示条目撞车
+  - 进入排序模式先退出搜索；「完成」调 `applyHomeReorder(draftItems.map(\.id))` 落盘，「✕」直接丢弃草稿即回滚
+  - 跨年月提示用系统 `.alert`，与项目其它 4 处 alert 一致
+- `MediaCard` 新增带默认值的 `isInteractive` 参数（`.allowsHitTesting`），现有调用点与预览行为不变
+- 关键决策：排序模式必须沿用 `.default` 排序（年倒序 → 月倒序 → `sortIndex`），**不能**用 `MediaSort.homeSorted(mode: .manual)` —— 手动顺序是按组各自重编 `0…n-1` 的，全局按 `sortIndex` 排会让不同年月组交错、同组不再连续
+- 数据层沿用工作区已有的 `MediaRepository.applyHomeReorder` / `upsert` 的 `sortIndex` 分配，未改动
+- 编译通过（Swift 6 语言模式，无警告）；模拟器安装启动、正常模式渲染验证通过
+- **未验证**：排序模式的拖动重排、跨组提示弹窗、落盘结果 —— 需要在模拟器 / 真机上手动拖一遍确认

@@ -6,7 +6,12 @@ struct AdaptiveGridLayout<Content: View>: View {
 
     @ViewBuilder let content: () -> Content
 
-    private var columnCount: Int {
+    /// 列数唯一来源：紧凑竖屏 3 列、Regular 横屏 5 列、其余 2 列。
+    /// 正常模式网格与排序模式网格共用，保证两套布局永不漂移。
+    static func columnCount(
+        horizontalSizeClass: UserInterfaceSizeClass?,
+        verticalSizeClass: UserInterfaceSizeClass?
+    ) -> Int {
         if verticalSizeClass == .compact {
             return 3
         }
@@ -14,6 +19,10 @@ struct AdaptiveGridLayout<Content: View>: View {
             return 5
         }
         return 2
+    }
+
+    private var columnCount: Int {
+        Self.columnCount(horizontalSizeClass: horizontalSizeClass, verticalSizeClass: verticalSizeClass)
     }
 
     var body: some View {

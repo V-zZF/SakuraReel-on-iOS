@@ -34,6 +34,7 @@
 		AB00000000000000000000C1 /* PosterImagePicker.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB00000000000000000000C2 /* PosterImagePicker.swift */; };
 		AB00000000000000000000D1 /* YearMonthPickers.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB00000000000000000000D2 /* YearMonthPickers.swift */; };
 		AB00000000000000000000E1 /* AddEditMediaView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB00000000000000000000E2 /* AddEditMediaView.swift */; };
+		AB00000000000000000000F1 /* HomeReorderDropDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB00000000000000000000F2 /* HomeReorderDropDelegate.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -66,6 +67,7 @@
 		AB00000000000000000000C2 /* PosterImagePicker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PosterImagePicker.swift; sourceTree = "<group>"; };
 		AB00000000000000000000D2 /* YearMonthPickers.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = YearMonthPickers.swift; sourceTree = "<group>"; };
 		AB00000000000000000000E2 /* AddEditMediaView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AddEditMediaView.swift; sourceTree = "<group>"; };
+		AB00000000000000000000F2 /* HomeReorderDropDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HomeReorderDropDelegate.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -163,6 +165,7 @@
 				BB4444444444444444444444 /* AddButton.swift */,
 				AB00000000000000000000C2 /* PosterImagePicker.swift */,
 				AB00000000000000000000D2 /* YearMonthPickers.swift */,
+				AB00000000000000000000F2 /* HomeReorderDropDelegate.swift */,
 			);
 			path = Components;
 			sourceTree = "<group>";
@@ -287,6 +290,7 @@
 				AB00000000000000000000C1 /* PosterImagePicker.swift in Sources */,
 				AB00000000000000000000D1 /* YearMonthPickers.swift in Sources */,
 				AB00000000000000000000E1 /* AddEditMediaView.swift in Sources */,
+				AB00000000000000000000F1 /* HomeReorderDropDelegate.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

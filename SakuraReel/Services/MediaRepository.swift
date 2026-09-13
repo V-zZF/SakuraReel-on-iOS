@@ -72,11 +72,31 @@ final class MediaRepository {
     // MARK: - CRUD（Phase 3 使用）
 
     /// 新增或更新一个条目，并落盘。
+    ///
+    /// 新增时分配 `sortIndex = 全局最大 + 1`（Phase 4），保证新条目落在其观看年月组的末尾；
+    /// 编辑（已存在）保留原 `sortIndex`，不因字段修改而改变组内顺序。
     func upsert(_ item: MediaItem) {
         if let index = items.firstIndex(where: { $0.id == item.id }) {
             items[index] = item
         } else {
-            items.append(item)
+            var newItem = item
+            newItem.sortIndex = (items.map(\.sortIndex).max() ?? -1) + 1
+            items.append(newItem)
+        }
+        save()
+    }
+
+    /// 持久化某个观看年月组的手动重排（Phase 4）。
+    ///
+    /// `orderedGroupIDs` 须为该组条目按新顺序排列的全部 id；这些条目被重编为连续的
+    /// `0…n-1` sortIndex，其它条目一律不动。写入后立即落盘。
+    func applyHomeReorder(_ orderedGroupIDs: [UUID]) {
+        let rank = Dictionary(uniqueKeysWithValues: orderedGroupIDs.enumerated().map { ($0.element, $0.offset) })
+        items = items.map { item in
+            guard let r = rank[item.id] else { return item }
+            var copy = item
+            copy.sortIndex = r
+            return copy
         }
         save()
     }

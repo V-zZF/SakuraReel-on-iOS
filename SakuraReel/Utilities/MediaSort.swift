@@ -39,6 +39,11 @@ enum MediaSort {
         return year * 100 + month
     }
 
+    /// 首页拖动分组的条目便捷版（Phase 4 拖动逻辑使用）。
+    static func groupKey(of item: MediaItem) -> Int {
+        homeGroupKey(year: item.watchYear, month: item.watchMonth)
+    }
+
     /// 排行榜拖动分组：相同评分为一组。
     static func rankingGroupKey(rating: Int) -> Int {
         rating

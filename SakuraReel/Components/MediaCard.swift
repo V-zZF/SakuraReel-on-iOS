@@ -3,6 +3,10 @@ import SwiftUI
 struct MediaCard: View {
     let item: MediaItem
 
+    /// 卡片内部交互（评分弹短评、播放入口）是否响应触摸。
+    /// 排序模式下设为 false，避免与拖动重排的手势抢触摸。
+    var isInteractive: Bool = true
+
     @State private var showReviewAlert = false
 
     var body: some View {
@@ -39,6 +43,7 @@ struct MediaCard: View {
 
                     PlayButtonOverlay(playURL: item.playURL)
                 }
+                .allowsHitTesting(isInteractive)
             }
             .padding(12)
         }

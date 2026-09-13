@@ -14,7 +14,14 @@ struct MediaItem: Codable, Identifiable, Hashable {
     var rating: Int        // 0 = 未评分
     var review: String?
     var playURL: String?
+    /// 首页手动顺序：所属「观看年月」组内的序号，由 `MediaRepository.applyHomeReorder` 重编。
     var sortIndex: Int
+    /// 排行榜手动顺序：所属「评分」组内的序号，由 `MediaRepository.applyRankingReorder` 重编。
+    ///
+    /// `nil` = 该评分组从未手动排过，比较时按 0 处理，排序退化为 评分 → 观看时间 → `sortIndex`。
+    /// 用可选类型而非 `Int = 0`：合成的 `init(from:)` 不会对缺失的 key 取属性默认值，
+    /// 非可选属性会让旧库文件直接解码失败；可选属性走 `decodeIfPresent`，旧文件自然得到 `nil`。
+    var rankIndex: Int?
     var createdAt: Date
     var updatedAt: Date
 
@@ -22,7 +29,7 @@ struct MediaItem: Codable, Identifiable, Hashable {
     var poster: Data?
 
     private enum CodingKeys: String, CodingKey {
-        case id, title, status, watchYear, watchMonth, rating, review, playURL, sortIndex, createdAt, updatedAt
+        case id, title, status, watchYear, watchMonth, rating, review, playURL, sortIndex, rankIndex, createdAt, updatedAt
     }
 
     init(
@@ -36,6 +43,7 @@ struct MediaItem: Codable, Identifiable, Hashable {
         review: String? = nil,
         playURL: String? = nil,
         sortIndex: Int = 0,
+        rankIndex: Int? = nil,
         createdAt: Date = Date(),
         updatedAt: Date = Date()
     ) {
@@ -49,6 +57,7 @@ struct MediaItem: Codable, Identifiable, Hashable {
         self.review = review
         self.playURL = playURL
         self.sortIndex = sortIndex
+        self.rankIndex = rankIndex
         self.createdAt = createdAt
         self.updatedAt = updatedAt
     }

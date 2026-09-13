@@ -1,8 +1,10 @@
 #!/bin/zsh
-# 跑 Phase 4 排序模式的 UI 测试。
+# 跑 UI 测试：Phase 4 首页排序模式 + Phase 5 排行榜。
 #
-# SakuraReelUITests 依赖首页存在一组固定的测试数据，这个脚本先写进模拟器的
-# Documents 目录，再执行 xcodebuild test。每次运行都会重置数据，保证可重复。
+# 两个测试类依赖**不同**的库数据，所以分两轮各写各的 fixture：
+# - Phase 4 断言 2024.03 组三条的顺序，且靠库里唯一的「10」定位评分按钮
+# - Phase 5 需要同一评分横跨不同观看年月的条目，会引入额外的 10 分条目
+# 合成一份会让 Phase 4 的「10」变成多匹配、网格变高导致卡片不可点。
 #
 #   ./Scripts/run-ui-tests.sh [模拟器名称]
 #
@@ -37,38 +39,94 @@ xcodebuild build-for-testing \
 
 xcrun simctl install "$UDID" "$DERIVED/Build/Products/Debug-iphonesimulator/SakuraReel.app"
 
-# 3. 写入测试数据：2024.03 三条（可组内拖动）、2024.01 一条（跨组落点）、
-#    未设年份一条（验证排序模式显示全部条目）
-CONTAINER=$(xcrun simctl get_app_container "$UDID" "$BUNDLE_ID" data)
-mkdir -p "$CONTAINER/Documents/Posters"
-python3 - "$CONTAINER" <<'PY'
+# 3. 写 fixture（每次运行都重置，保证可重复）
+#
+# 容器路径必须每次现取：test-without-building 会重装 App，重装后数据容器的 UUID
+# 会变，开机时取的那份就失效了（表现为 FileNotFoundError）。
+write_fixture() {
+  local container
+  container="$(xcrun simctl get_app_container "$UDID" "$BUNDLE_ID" data)"
+  mkdir -p "$container/Documents/Posters"
+  python3 - "$container" "$1" <<'PY'
 import json, sys, uuid, os
-c = sys.argv[1]
+c, phase = sys.argv[1], sys.argv[2]
 now = "2026-09-13T12:00:00Z"
 
 def mk(title, status, year, month, rating, sort_index):
+    # 刻意不写 rankIndex：旧库文件就是这个样子，顺带验证向后兼容能正常解码
     return {"id": str(uuid.uuid4()).upper(), "title": title, "status": status,
             "watchYear": year, "watchMonth": month, "rating": rating,
             "review": None, "playURL": None, "sortIndex": sort_index,
             "createdAt": now, "updatedAt": now}
 
-items = [
-    mk("千与千寻", "watched", 2024, 3, 10, 0),
-    mk("星际穿越", "watched", 2024, 3, 9, 1),
-    mk("你想活出怎样的人生", "watched", 2024, 3, 8, 2),
-    mk("沙丘2", "watched", 2024, 1, 7, 0),
-    mk("阿诺拉", "wantToWatch", None, None, 0, 0),
-]
+if phase == "home":
+    # 2024.03 三条（组内可拖动）、2024.01 一条（跨组落点）、未设年份一条
+    items = [
+        mk("千与千寻", "watched", 2024, 3, 10, 0),
+        mk("星际穿越", "watched", 2024, 3, 9, 1),
+        mk("你想活出怎样的人生", "watched", 2024, 3, 8, 2),
+        mk("沙丘2", "watched", 2024, 1, 7, 0),
+        mk("阿诺拉", "wantToWatch", None, None, 0, 0),
+    ]
+else:
+    # 10 分组三条横跨两个观看年月：同评分跨年月拖动是 Phase 5 的关键场景
+    items = [
+        mk("千与千寻", "watched", 2024, 3, 10, 0),
+        mk("星际穿越", "watched", 2024, 3, 9, 1),
+        mk("你想活出怎样的人生", "watched", 2024, 3, 8, 2),
+        mk("沙丘2", "watched", 2024, 1, 7, 0),
+        mk("阿诺拉", "wantToWatch", None, None, 0, 0),
+        mk("攻壳机动队", "watched", 2024, 5, 10, 0),
+        mk("千年女优", "watched", 2024, 5, 10, 1),
+    ]
+
 path = os.path.join(c, "Documents", "SakuraReelLibrary.json")
 with open(path, "w") as f:
     json.dump(items, f, ensure_ascii=False, indent=2, sort_keys=True)
-print("已写入测试数据：%s" % path)
+print("已写入 %s fixture（%d 条）：%s" % (phase, len(items), path))
 PY
+}
 
-# 4. 跑测试
-xcodebuild test-without-building \
-  -project "$PROJECT" -scheme "$SCHEME" \
-  -destination "platform=iOS Simulator,id=$UDID" \
-  -derivedDataPath "$DERIVED" \
-  -only-testing:SakuraReelUITests/HomeSortModeUITests \
-  | grep -E "Test Case .* (passed|failed)|Executed .* tests|TEST (EXECUTE )?(SUCCEEDED|FAILED)|error:"
+# 跑一个测试类，返回 xcodebuild 的退出码（失败会让脚本以非零退出）
+run_test_class() {
+  # 变量不能叫 status：zsh 里 $status 是只读的特殊变量
+  local only="$1" log exit_code=0
+  log="$(mktemp)"
+  xcodebuild test-without-building \
+    -project "$PROJECT" -scheme "$SCHEME" \
+    -destination "platform=iOS Simulator,id=$UDID" \
+    -derivedDataPath "$DERIVED" \
+    -only-testing:"$only" > "$log" 2>&1 || exit_code=$?
+  grep -E "Test Case .* (passed|failed)|Executed .* tests|TEST (EXECUTE )?(SUCCEEDED|FAILED)|error:" "$log" || true
+  rm -f "$log"
+  return $exit_code
+}
+
+HOME_OK=0
+RANK_OK=0
+
+# 4. Phase 4 — 首页排序模式
+write_fixture home
+if run_test_class "SakuraReelUITests/HomeSortModeUITests"; then
+  echo "✅ Phase 4 首页排序模式：全部通过"
+  HOME_OK=1
+else
+  echo "❌ Phase 4 首页排序模式：有失败用例"
+fi
+
+# 5. Phase 5 — 排行榜
+write_fixture ranking
+if run_test_class "SakuraReelUITests/RankingsUITests"; then
+  echo "✅ Phase 5 排行榜：全部通过"
+  RANK_OK=1
+else
+  echo "❌ Phase 5 排行榜：有失败用例"
+fi
+
+if [ "$HOME_OK" = 1 ] && [ "$RANK_OK" = 1 ]; then
+  echo "全部通过"
+  exit 0
+else
+  echo "有失败用例"
+  exit 1
+fi

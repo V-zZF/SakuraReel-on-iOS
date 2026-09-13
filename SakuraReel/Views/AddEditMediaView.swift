@@ -244,6 +244,7 @@ struct AddEditMediaView: View {
             review: trimmedReview.isEmpty ? nil : trimmedReview,
             playURL: trimmedURL.isEmpty ? nil : trimmedURL,
             sortIndex: initialItem?.sortIndex ?? 0,
+            rankIndex: initialItem?.rankIndex,
             createdAt: initialItem?.createdAt ?? Date(),
             updatedAt: Date()
         )

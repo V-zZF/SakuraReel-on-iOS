@@ -36,6 +36,12 @@
 		AB00000000000000000000E1 /* AddEditMediaView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB00000000000000000000E2 /* AddEditMediaView.swift */; };
 		AB00000000000000000000F1 /* HomeReorderDropDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB00000000000000000000F2 /* HomeReorderDropDelegate.swift */; };
 		AC00000000000000000000A5 /* HomeSortModeUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AC00000000000000000000A4 /* HomeSortModeUITests.swift */; };
+		AD00000000000000000000A1 /* RankingRow.swift in Sources */ = {isa = PBXBuildFile; fileRef = AD00000000000000000000A2 /* RankingRow.swift */; };
+		AD00000000000000000000B1 /* RankingReorderDropDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = AD00000000000000000000B2 /* RankingReorderDropDelegate.swift */; };
+		AE00000000000000000000A1 /* RankingsUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AE00000000000000000000A2 /* RankingsUITests.swift */; };
+		AF00000000000000000000A1 /* LibraryArchive.swift in Sources */ = {isa = PBXBuildFile; fileRef = AF00000000000000000000A2 /* LibraryArchive.swift */; };
+		AF00000000000000000000B1 /* SyncFolder.swift in Sources */ = {isa = PBXBuildFile; fileRef = AF00000000000000000000B2 /* SyncFolder.swift */; };
+		AF00000000000000000000C1 /* RankingMetrics.swift in Sources */ = {isa = PBXBuildFile; fileRef = AF00000000000000000000C2 /* RankingMetrics.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -81,6 +87,12 @@
 		AB00000000000000000000F2 /* HomeReorderDropDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HomeReorderDropDelegate.swift; sourceTree = "<group>"; };
 		AC00000000000000000000A2 /* SakuraReelUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = SakuraReelUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		AC00000000000000000000A4 /* HomeSortModeUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HomeSortModeUITests.swift; sourceTree = "<group>"; };
+		AD00000000000000000000A2 /* RankingRow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RankingRow.swift; sourceTree = "<group>"; };
+		AD00000000000000000000B2 /* RankingReorderDropDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RankingReorderDropDelegate.swift; sourceTree = "<group>"; };
+		AE00000000000000000000A2 /* RankingsUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RankingsUITests.swift; sourceTree = "<group>"; };
+		AF00000000000000000000A2 /* LibraryArchive.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LibraryArchive.swift; sourceTree = "<group>"; };
+		AF00000000000000000000B2 /* SyncFolder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SyncFolder.swift; sourceTree = "<group>"; };
+		AF00000000000000000000C2 /* RankingMetrics.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RankingMetrics.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -122,6 +134,7 @@
 			isa = PBXGroup;
 			children = (
 				AC00000000000000000000A4 /* HomeSortModeUITests.swift */,
+				AE00000000000000000000A2 /* RankingsUITests.swift */,
 			);
 			path = SakuraReelUITests;
 			sourceTree = "<group>";
@@ -158,6 +171,7 @@
 				F651AA1A59A340CFB062233B /* RatingColor.swift */,
 				36EB550CEF5EA0AE0572B35C /* MediaSort.swift */,
 				6096A8F38D9D17B076388D91 /* Constants.swift */,
+				AF00000000000000000000C2 /* RankingMetrics.swift */,
 				BB1111111111111111111111 /* PreviewSampleData.swift */,
 				93C9173A08BB446293DBC6D6 /* SakuraGlassBackground.swift */,
 			);
@@ -195,6 +209,8 @@
 				AB00000000000000000000C2 /* PosterImagePicker.swift */,
 				AB00000000000000000000D2 /* YearMonthPickers.swift */,
 				AB00000000000000000000F2 /* HomeReorderDropDelegate.swift */,
+				AD00000000000000000000A2 /* RankingRow.swift */,
+				AD00000000000000000000B2 /* RankingReorderDropDelegate.swift */,
 			);
 			path = Components;
 			sourceTree = "<group>";
@@ -204,6 +220,8 @@
 			children = (
 				AB00000000000000000000A2 /* MediaRepository.swift */,
 				AB00000000000000000000B2 /* PosterResizer.swift */,
+				AF00000000000000000000A2 /* LibraryArchive.swift */,
+				AF00000000000000000000B2 /* SyncFolder.swift */,
 			);
 			path = Services;
 			sourceTree = "<group>";
@@ -351,6 +369,11 @@
 				AB00000000000000000000D1 /* YearMonthPickers.swift in Sources */,
 				AB00000000000000000000E1 /* AddEditMediaView.swift in Sources */,
 				AB00000000000000000000F1 /* HomeReorderDropDelegate.swift in Sources */,
+				AD00000000000000000000A1 /* RankingRow.swift in Sources */,
+				AD00000000000000000000B1 /* RankingReorderDropDelegate.swift in Sources */,
+				AF00000000000000000000A1 /* LibraryArchive.swift in Sources */,
+				AF00000000000000000000B1 /* SyncFolder.swift in Sources */,
+				AF00000000000000000000C1 /* RankingMetrics.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -359,6 +382,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				AC00000000000000000000A5 /* HomeSortModeUITests.swift in Sources */,
+				AE00000000000000000000A1 /* RankingsUITests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

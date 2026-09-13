@@ -1,4 +1,4 @@
-# SakuraReel — Claude 工作记忆
+# SakuraReel — Codex 工作记忆
 
 ## 项目定位
 

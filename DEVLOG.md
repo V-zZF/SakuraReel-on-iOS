@@ -169,5 +169,6 @@
 - `MediaCard` 新增带默认值的 `isInteractive` 参数（`.allowsHitTesting`），现有调用点与预览行为不变
 - 关键决策：排序模式必须沿用 `.default` 排序（年倒序 → 月倒序 → `sortIndex`），**不能**用 `MediaSort.homeSorted(mode: .manual)` —— 手动顺序是按组各自重编 `0…n-1` 的，全局按 `sortIndex` 排会让不同年月组交错、同组不再连续
 - 数据层沿用工作区已有的 `MediaRepository.applyHomeReorder` / `upsert` 的 `sortIndex` 分配，未改动
-- 编译通过（Swift 6 语言模式，无警告）；模拟器安装启动、正常模式渲染验证通过
-- **未验证**：排序模式的拖动重排、跨组提示弹窗、落盘结果 —— 需要在模拟器 / 真机上手动拖一遍确认
+- 新增 `SakuraReelUITests/HomeSortModeUITests.swift`（UI 测试 target）+ `Scripts/run-ui-tests.sh`（写入测试数据并跑测试），5 个用例覆盖：排序模式隐藏筛选/FAB、组内拖动重排 + 完成落盘 + 重启保持、跨年月阻止 + 提示文案、✕ 回滚、排序模式下评分按钮不响应
+- **验证中发现的真实缺陷**：跨年月拖动被拒绝时，卡片在拖向禁用目标的途中会依次经过本组其它卡片，每次都触发合法的组内重排，结果「一次被拒绝的拖动」顺带把卡片挪到了本组末尾。修复：`onDrag` 开始时快照草稿顺序，`performDrop` 判定跨组被拒时整体回滚到快照
+- 编译通过（Swift 6 语言模式，无警告）；5 个 UI 测试全部通过（`./Scripts/run-ui-tests.sh`），模拟器截图确认排序模式布局正常

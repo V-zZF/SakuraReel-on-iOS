@@ -13,6 +13,8 @@ struct HomeView: View {
     /// 排序模式的草稿顺序：拖动只改这里，点「完成」才落盘，点「✕」直接丢弃即回滚
     @State private var draftItems: [MediaItem] = []
     @State private var draggedItemID: UUID?
+    /// 本次拖动开始前的草稿顺序快照，用于跨年月被拒时回滚
+    @State private var dragStartSnapshot: [MediaItem] = []
     /// 跨年月拖动被阻止时的提示文案（nil = 不提示）
     @State private var blockedMessage: String?
 
@@ -194,6 +196,7 @@ struct HomeView: View {
         isSortMode = false
         draftItems = []
         draggedItemID = nil
+        dragStartSnapshot = []
         blockedMessage = nil
     }
 
@@ -245,6 +248,7 @@ struct HomeView: View {
             ForEach(draftItems) { item in
                 MediaCard(item: item, isInteractive: false)
                     .onDrag {
+                        dragStartSnapshot = draftItems
                         draggedItemID = item.id
                         return NSItemProvider(object: item.id.uuidString as NSString)
                     }
@@ -254,6 +258,7 @@ struct HomeView: View {
                             targetItem: item,
                             items: $draftItems,
                             draggedItemID: $draggedItemID,
+                            dragStartSnapshot: $dragStartSnapshot,
                             blockedMessage: $blockedMessage
                         )
                     )

@@ -11,6 +11,8 @@ struct HomeReorderDropDelegate: DropDelegate {
     @Binding var items: [MediaItem]
     /// 正在被拖动的条目 id
     @Binding var draggedItemID: UUID?
+    /// 本次拖动开始前的草稿顺序快照，用于跨组被拒时回滚
+    @Binding var dragStartSnapshot: [MediaItem]
     /// 跨组被阻止时写入的提示文案（nil = 不提示）
     @Binding var blockedMessage: String?
 
@@ -35,14 +37,19 @@ struct HomeReorderDropDelegate: DropDelegate {
     }
 
     func performDrop(info: DropInfo) -> Bool {
-        defer { draggedItemID = nil }
+        defer {
+            draggedItemID = nil
+            dragStartSnapshot = []
+        }
 
         guard let draggedID = draggedItemID,
               let from = items.firstIndex(where: { $0.id == draggedID }),
               MediaSort.groupKey(of: items[from]) != MediaSort.groupKey(of: targetItem)
         else { return true }
 
-        // 跨年月：拒绝落点并提示
+        // 跨年月：拒绝落点。拖动途中经过同组卡片时已经发生过重排，这里必须整体回滚，
+        // 否则一次被拒绝的跨组拖动会顺带把卡片挪到本组的另一处。
+        items = dragStartSnapshot
         blockedMessage = Self.blockedText
         return false
     }

@@ -94,4 +94,14 @@ func runRankingMetricsTests() {
     // 7. 可用高度退化成 0（首帧、被收起的容器）也不能算出 0 或负的卡高 —— 负尺寸会让布局报错
     let degenerate = RankingMetrics(availableSize: CGSize(width: 0, height: 0), isPad: false)
     expect(degenerate.cardHeight > 0, "可用高度为 0 时卡高仍须为正数，实际 \(degenerate.cardHeight)")
+
+    // 8. iPad 分栏（Split View 2/3，约 556pt 宽）下卡高由**宽度**摊分 —— 那是「竖屏用宽度做预算」
+    //    这条既定规则的自然结果。加个「窄栏当作 iPhone」的门槛试过，已回退：
+    //    门槛两侧卡高会从 172pt 跳到 103pt，拖动分栏分隔线经过门槛时卡片会瞬间跳一下，
+    //    而分栏本来就只在 2/3 档才是 regular 宽度，不会窄到撑不住
+    let splitNarrow = RankingMetrics(availableSize: CGSize(width: 556, height: 1100), isPad: true)
+    expectClose(splitNarrow.cardHeight, 556 / RankingMetrics.heightBudgetSlots,
+                "iPad 分栏（regular 宽度）卡高仍应由宽度摊分")
+    expect(splitNarrow.cardHeight >= RankingMetrics.baseCardHeight,
+           "分栏下卡高不该比基准卡高还小，实际 \(splitNarrow.cardHeight)")
 }

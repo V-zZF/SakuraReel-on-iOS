@@ -17,6 +17,7 @@ struct PlayButtonOverlay: View {
                         .clipShape(Circle())
                         .shadow(color: .black.opacity(0.12), radius: 4, x: 0, y: 2)
                 }
+                .buttonStyle(LibraryPressStyle())
                 .accessibilityLabel("播放")
             }
         }

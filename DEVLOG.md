@@ -104,16 +104,19 @@
 
 ## Phase 7 — UI Polish
 
-- [ ] 统一 Light Mode 配色与樱花粉强调
-- [ ] 卡片点击轻微缩放动画
-- [ ] 分类切换平滑布局变化
-- [ ] 排序拖动抬起、缩放、阴影、触觉反馈
-- [ ] 图片加载后轻微淡入
-- [ ] 删除平滑淡出
-- [ ] Sheet 原生过渡
-- [ ] iPad Split View / Slide Over 适配
-- [ ] Dynamic Type 与 VoiceOver 检查
-- [ ] 最终运行验证 iPhone + iPad
+- [x] 统一 Light Mode 配色与樱花粉强调
+- [x] 卡片点击轻微缩放动画
+- [x] 分类切换平滑布局变化
+- [x] 排序拖动抬起、缩放、阴影、触觉反馈 —— 触觉与「抬起」（源卡片变淡）在 App 侧实现；
+      跟随手指的**缩放与阴影由系统 `.onDrag` 拖影自带**，未在源卡片上重复叠加
+- [x] 图片加载后轻微淡入
+- [x] 删除平滑淡出
+- [x] Sheet 原生过渡（本来就是原生 `.sheet`，未自造转场）
+- [x] iPad Split View / Slide Over 适配
+- [x] Dynamic Type 与 VoiceOver 检查
+- [ ] 最终运行验证 iPhone + iPad —— **由用户手动完成**
+
+> 详见图下方「2026-09-15 v0.7 — Phase 7 UI Polish」一节。
 
 ## 记录
 
@@ -254,3 +257,132 @@
   - **构建失败现在会当场中止**。原来写的是 `xcodebuild build-for-testing ... | tail -1` 配 `set -e` —— 管道的退出码取自 `tail`，**永远是 0**，构建挂了脚本照样往下跑，用上一次的旧测试包跑完并报「全部通过」。这次就中招了：`SearchUITests` 编译不过（`waitForExpectations` 在 Swift 6 下会把 `self` 送过隔离边界），脚本却拿旧包跑出「Phase 4 全部通过」，而旧包里那个临时截图用例还「复活」了一次。真实错误被掩盖了一整轮
 - 验证：Swift 6 语言模式编译零警告；`./Scripts/run-ui-tests.sh` 15 个用例全绿（Phase 4 五个 + Phase 6 四个 + Phase 5 六个）
 - 视觉验证由用户自行负责，本次未截图入库
+
+### 2026-09-14 Phase 7 UI Polish（第一次落地）：按压态 / 统一卡片表面 / 触觉反馈
+- 本轮由 Codex 完成，**未新增任何产品功能**，只把散落各处的「视觉 / 交互细节」收敛成共用件，并把几处「像原生但不是原生」的写法换掉
+- **`Constants.swift` 扩出三个共用件**（此前只有颜色 / 圆角 / 间距常量）。这与 `RankingMetrics` 的思路一致：凡是「多处各写各的、必须一致」的东西，收成一个唯一来源：
+  - `LibraryCardSurface`：白底 + `continuous` 圆角 + 0.5pt 极细描边（黑 3.5%）+ **双层阴影**（大：黑 7% / 半径 10 / y 5；小：黑 3.5% / 半径 1 / y 1），带 `scale` 参数供排行榜按卡高传。此前首页卡与排行榜行**各写各的**（都是 `0.06 / 4 / y2` 单层），排行榜用的还是 `Color(.systemBackground)`，阴影偏「贴边」不像浮起
+  - `cardShadowRadius` 4 → 10，配合双层阴影
+  - `libraryBackground = #F5F4F3`（极浅暖灰）：首页此前是系统默认背景、排行榜是 `Color(.systemGroupedBackground)`，现在同源
+  - `LibraryPressStyle`：原生 `ButtonStyle`，按下 0.975 缩放 + 0.88 透明度，尊重 Reduce Motion。此前只有搜索按钮挂 `.buttonStyle(.plain)`（等于没有按压态），卡片干脆用 `.onTapGesture`
+  - `LibraryInteractionFeedback`：把散在两页的 `sensoryFeedback` 收成一个 `ViewModifier` —— 进出排序模式（selection）、打开编辑 Sheet（light impact）、拖动开始（medium impact）、跨组被拒（warning）、组内重排成功（selection，条件 = 数量不变 + 顺序变了 + 正在拖）
+- `SakuraReelApp.swift` 加 `.preferredColorScheme(.light)`：把 CLAUDE.md 的「保持 Light Mode，不考虑深色模式」从约定落成代码（此前系统切深色时卡片 / 背景会跟着变）
+- **卡片点击从 `.onTapGesture` 换成真正的 `Button`**：`MediaCard` 新增 `onOpen: (() -> Void)?`，海报区与片名各自成为 Button（`HomeView` 传 `{ sheetTarget = .edit(item) }`），`RankingsView` 的行同样换掉；`.allowsHitTesting(isInteractive && onOpen != nil)` 保持排序模式下不抢拖动的手势。理由：`.onTapGesture` 没有按压反馈，也不参与 VoiceOver 的「按钮」语义
+- 拖动重排动画 `.easeInOut(0.2)` → `.snappy(0.25)`；两个 `DropDelegate` 新增 `reduceMotion` 参数，开启「减弱动态效果」时不做动画（此前无条件动画，与首页其它动画的处理不一致）
+- `HomeView`：
+  - 「···」资料库文件菜单从导航栏（挤在「排序」右边）挪到**分类行左端**，与右端放大镜分列两侧，导航栏回归「排序 / SakuraReel / 排行」各一个操作；菜单补 `.accessibilityLabel("资料库文件")`
+  - 标题字号 26 → 20，并加 `lineLimit(1)` + `minimumScaleFactor(0.85)`（`.inline` 模式下 26pt 会被挤压）
+  - `gridContent` 加 `.transition(.opacity)`，分类切换加 `.smooth(0.25)` 动画；搜索栏弹簧 `0.38/0.86` → `0.32/0.9`
+  - 删除条目（首页与排行榜）包进 `withAnimation` 并尊重 `reduceMotion`
+- `CategorySegmentedControl`：去掉片名尾部用来撑宽滑块的空格占位（`"     "`），搜索按钮补 44×44 热区 + `LibraryPressStyle()`
+- **追加改动（用户要求）：「···」按钮内部改为主题粉**。这里有个坑值得记下来 —— 该按钮原本写的是 `.foregroundStyle(.primary)`，实际却渲染成**系统蓝**：`Menu` 的 label 由系统 button style 在**外层**套 `.foregroundStyle(.tint)`，标签内部自己写的 `foregroundStyle` 因为语义环境更靠内而被盖掉（截图实测确认，不是猜测）。**所以只把颜色常量换成 `Constants.accentPink` 不会生效**，必须同时在 `Menu` 上补 `.tint(Constants.accentPink)`。两处都保留：`.foregroundStyle` 是语义声明，`.tint` 才是真正生效的那条
+- 上一条的取舍：`.tint` 加在 `Menu` 上会**一并染进弹层**，菜单项的三个图标（文件夹 / 导出 / 导入）跟着变粉，不再是系统蓝。已截图核对。若要保持弹层图标为系统蓝，得把标签换成烘焙好颜色的 `.alwaysOriginal` `UIImage`（不参与 tint），代价是引入 UIKit 图像代码 —— 当前按「品牌色一致」保留 tint 方案，此取舍待用户裁决
+- **追加改动（用户要求）：导航栏左右两个按钮改成一样宽**。实测「排序」胶囊 178px、「排行」胶囊 142px（均为 3x，即 59.3pt vs 47.3pt），差 12pt。逐项排除后，根因不在容器而在**构造方式**：
+  - 先怀疑左侧套的那层 `HStack(spacing: 18)`（当初是为了让同一 placement 上的多个 ToolbarItem 顺序可控）—— 拆掉后两张截图**逐像素完全一致**，不是它。该容器确实已成多余（菜单移到分类行后只剩一个 item），顺手删掉，注释同步改准确
+  - 再把「排行」从 `NavigationLink` 临时换成 `Button` 做对照：左右都变成 178px。**根因是工具栏里的 `NavigationLink` 每侧比 `Button` 少 6pt 内边距**
+  - 修法：「排行」改为 `Button` + 编程式跳转（新增 `@State showsRankings` + `.navigationDestination(isPresented:)`），仍然复用首页的 `NavigationStack`、不自建栈。修后实测 178px vs 178px，差 0
+  - 为什么不用「给两边写死同一个宽度」：那是拿魔法数字盖住差异，系统改一次内边距就又错位；让两个按钮走同一种构造才是根上对齐
+  - 已验证 Push 仍正常（临时用例点「排行」→ 断言 `navigationBars["评分排行榜"]` 出现，通过后已删除）
+  - 注意：**这是 iOS 26 工具栏的行为，无文档说明**，结论来自实测对照（同一份代码只改构造方式，其余不动）
+  - 排序模式下的「✕ / 完成」**没有**对齐：前者是纯图标按钮，两者内容本就不同宽，强行拉齐反而不像系统
+- ⚠️ **本轮引入的真实回归：UI 测试由 15 绿变成 15 红**（`./Scripts/run-ui-tests.sh` 实测：第一轮 9 个用例 9 失败，第二轮 6 个 6 失败）。原因是**片名被包进了 `Button`** —— SwiftUI 的 `Button` 会把子元素合并成一个无障碍元素，片名不再作为 `staticText` 暴露，而全部用例都在用 `app.staticTexts["千与千寻"]` 定位卡片。已用探针用例确认：`staticTexts["千与千寻"] = false`、`buttons["千与千寻"] = true`、`buttons["编辑千与千寻"] = true`
+  - 附带后果：**失败信息会误导人**。所有用例都停在 setUp 那句 `XCTAssertTrue(app.staticTexts["千与千寻"].waitForExistence(...), "首页没加载出测试数据")`，报出来是「首页没加载出测试数据 / 请先写入 JSON」—— 而数据其实好好地在那儿（同一张卡片的 `buttons["编辑千与千寻"]` 能查到）。排查时会把人往 fixture、容器路径那条错路上带
+  - 待办：要么把用例的查询从 `staticTexts` 改成 `buttons`（并修掉断言文案），要么在 App 侧让步（例如给片名 Button 加 `.accessibilityElement(children: .contain)`）。**尚未处理**
+- 另一处待商量的设计：一张卡片现在有**两个**指向同一动作的 Button（海报 + 片名），VoiceOver 会连读两次（「编辑千与千寻」/「千与千寻」）。更原生的做法是整张卡片一个按钮元素、内部控件单独成元素，但那样会和卡片内已有的评分按钮、以及排序模式的 `.onDrag` 抢手势
+- 代码风格小瑕疵（未改）：`RankingsView` 里新增的 `.modifier(LibraryInteractionFeedback(...))` 与 `reduceMotion: reduceMotion` 两处缩进与上下文不齐
+
+### 2026-09-15 v0.7 — Phase 7 UI Polish（第二次落地）：回归修复 / 宽度感知列数 / 淡入淡出 / 无障碍
+
+本轮把 Phase 7 清单做完，并修掉上一轮留下的 UI 测试回归。**未新增任何产品功能**，未改已定规则
+（评分范围与颜色、首页与排行榜排序、同组拖动限制、卡片布局、浅色樱花粉方向全部不动）。
+
+#### 1. 修掉上一轮的回归：卡片合并成**一个** Button
+
+- 上一轮把片名包进 `Button` 后，15 个 UI 用例全红。**探针实测**（临时用例打印无障碍树，跑完即删）才看清机制：
+  - Button 的 label 是**单个 `Text`** 时，SwiftUI 把它合并进按钮，片名不再作为 `staticText` 暴露 → 旧写法全挂
+  - Button 的 label 是 **`VStack`（海报 + 片名）** 时，SwiftUI 会**同时**暴露按钮和内部 Text
+- 于是把海报与片名合并成**一个** Button（它们本来就是同一个动作：打开编辑），显式写
+  `.accessibilityLabel(item.title)`。结果：`app.buttons["片名"]` 与 `app.staticTexts["片名"]` **都能命中**，
+  **15 个用例一行都不用改就全绿**
+- 顺带修掉 DEVLOG 里记的「一张卡片两个 Button、VoiceOver 连读两次」：现在一张卡片只有一个「打开编辑」按钮
+- 卡片布局逐字不变（原文字区 `VStack(spacing: 8).padding(12)` 拆成「片名上方 12 / 左右 12 / 与评分行之间 8 / 评分行下 12」）。
+  **实测核对过几何**：卡片宽 177（iPhone 17 Pro 屏宽 402，2 列），海报 177×265.5 正好 2:3 且贴卡片顶部，
+  片名在其下 12pt、高 18pt，评分行再隔 8pt，卡片横坐标 16 / 209（间距 16）——与既定布局完全一致
+- **踩到的坑**：给合并后的 Button 加 `.accessibilityIdentifier(片名)` 会让 `staticTexts[片名]` 变成**多匹配**
+  （`XCUIElementQuery` 的 `.frame` 会直接抛 "Multiple matching elements"）。定位靠 label 就够，identifier 已删
+- 另一处试过但**无效**的写法：`.accessibilityElement(children: .ignore)` 加在 `Button` 上不生效
+  （实测 `buttons["评分 10 分"] = false`，标签没落上去）；加在**非 Button** 的容器上才生效。已按实测结论取舍，不留无效代码
+
+#### 2. iPad Split View / Slide Over：按可用宽度动态减列
+
+- 新增 `Utilities/GridColumns.swift`（**只 import CoreGraphics**，与 `RankingMetrics` 同构，
+  能被 `Scripts/run-model-tests.sh` 单独 `swiftc` 编译跑断言）。`minCardWidth = 110pt`：
+  列数先由尺寸类给上限（紧凑竖屏 3 / Regular 5 / 其余 2），再按可用宽度收窄
+- `Constants.gridSpacing` 改为引用 `GridColumns.spacing` —— 间距的唯一来源挪进这个不依赖 SwiftUI 的文件，
+  模型测试才读得到，两边也不会各写一个数
+- 宽度测量放在 `HomeView`（`@State gridWidth` + `ZStack` 的 `.background { GeometryReader }` +
+  `.onPreferenceChange`），**不能**放进 `AdaptiveGridLayout` —— 那里面存了一个非 `@Sendable` 的
+  `content` 闭包，`onPreferenceChange` 的 `@Sendable` 闭包捕获它会过不了 Swift 6 隔离检查。
+  不会死循环：所有 `GridItem` 都是 `.flexible()`，网格宽度由容器决定、与列数无关；宽度未知时退回尺寸类的答案，
+  首帧与从前逐帧相同
+- `GridWidthPreferenceKey.defaultValue` 必须是 `static let` —— `static var` 在 Swift 6 下是可变全局状态，编译不过
+- **主动回退了一处计划内的改动**：原计划给 `RankingMetrics` 加「窄栏（< 600pt）当作 iPhone」的门槛。
+  实现后发现门槛两侧卡高会从 **599pt → 172pt 跳到 600pt → 103pt**（拖动分栏分隔线经过门槛时卡片会瞬间跳 69pt），
+  而且当初的理由（「320pt 宽会摊出 55pt 迷你卡」）**不成立** —— Slide Over 与 1/2 分栏都是 compact 宽度，
+  `isPad` 本来就是 false；只有 2/3 档才是 regular，而那一档并不过窄。故**回退**，`RankingMetrics` 保持原样、
+  64 项断言一条未动，改为在模型断言里把「分栏下卡高由宽度摊分」这个既定行为钉住
+
+#### 3. 淡入 / 淡出 / 抬起态
+
+- **海报淡入**（`PosterView`）：动画挂在「数据从无到有」这一刻，**不能**挂 `.onAppear` ——
+  海报是同步解码的，卡片一重建就已经有 `Data`，而 `LazyVGrid` 回收单元格时会丢掉 `@State`，
+  挂 `onAppear` 的话滚回来的卡片会先空一帧再淡入，那就是闪烁。动画值用 `Bool`（`imageData == nil`）
+  而不是 `Data`，否则每次比较都要比整个 JPEG。0.22s，尊重 Reduce Motion
+- **删除淡出**：排行榜的行**根本没有 `.transition`**，补上；首页的接线本来就是对的，
+  但**看不见** —— `AddEditMediaView` 调完 `onDelete?()` 紧接着 `dismiss()`，0.25s 的淡出全程被 Sheet 的消失动画盖住。
+  两个页面都改成「只记下 id，落盘推迟到 `.sheet(onDismiss:)`」，淡出才真的可见
+- **拖动抬起态**：源卡片留在原位变淡（`.opacity(0.4)`），拖影跟着手指走。
+  `.opacity` **必须挂在 `.onDrag` 之外** —— 拖影是 `.onDrag` 那一层的快照，挂在里面会把「变淡」一起烤进拖影
+- **顺带修掉一个既有 bug**：`draggedItemID` 只在 DropDelegate 的 `performDrop` 里清空，
+  手指在卡片空隙或最后一行下方空白处松开时没有任何卡片的 `.onDrop` 会被触发，状态就永远留着。
+  加了变淡之后这会表现为**卡片一直挂着半透明幽灵态**。修法：给 `HomeView` 与 `RankingsView` 的 `ScrollView`
+  各挂一个兜底 `.onDrop(of:[.text], isTargeted:nil) { _ in draggedItemID = nil; return false }`（返回 false 不抢内层落点）
+  - 注意 `.onDrop(of:)` 的尾随闭包会解析到 `delegate:` 重载而编译报错，`isTargeted:` 必须显式写
+
+#### 4. Dynamic Type 与 VoiceOver
+
+- 网格封顶 `.dynamicTypeSize(...DynamicTypeSize.xxxLarge)`，加在 `AdaptiveGridLayout.body`：
+  两个首页网格都走它。**不能**加在 `NavigationStack` 上 —— `.sheet` 会继承呈现者的环境，
+  那样会连 `AddEditMediaView` 一起封顶，而表单恰恰是最需要大字号的地方
+- 卡片里日期那行加 `.lineLimit(1).minimumScaleFactor(0.8)`：卡片评分行在默认字号下已接近占满
+  （卡宽 172.5 − 24 内边距 ≈ 148pt，而评分数字 30pt 与播放按钮 32pt 都不跟随动态字体，只有 `.caption` 日期会涨）
+- **排行榜一行都没动**：`RankingRow` 用的是 `.system(size: 15 * scale)` 这类绝对字号，本就不跟随动态字体 ——
+  那正是「一屏 5 张」的既定代价
+- 排行榜整行合成**一句**朗读文本（「第 3 名，千与千寻，2024 年 3 月观看，10 分」/「未设置观看年月，未评分」），
+  两种模式都合成同一个元素 —— 不写的话，正常模式下系统会把 `# 序号 / 片名 / 年月 / 评分` 拼成一串碎片读出来
+
+#### 5. 验证与遗留
+
+- 编译：Swift 6 语言模式 **0 error**。`PosterImagePicker.swift:42` 有一条
+  「main actor-isolated property 'posterData' can not be referenced from a Sendable closure」的警告，
+  已用「stash 掉全部改动、在 HEAD 上构建」**A/B 验证过是 HEAD 本来就有的**，非本轮引入（此前 DEVLOG 里
+  「零警告」的说法只统计了被重新编译的文件，不准确）
+- 模型层：`./Scripts/run-model-tests.sh` **89 项断言全过**（原 64 + 新增 25 项 `GridColumns` 与分栏断言）
+- UI 层：本轮修复后 15 个用例**全绿**（含两次全量跑）
+- ⚠️ **已知遗留：首页排序模式的两个拖动用例变得 flaky**。`testReorderWithinGroupThenCommitPersists` 与
+  `testCancelRollsBackReorder` 做的是**同一个拖动**，失败信息都是「拖动后草稿顺序应已改变」，即顺序完全没动
+  （`dropEntered` 没触发）。特征是**时序性**的：全量跑时两个都挂，单独跑该测试类时三轮里挂 1～2 轮且交替出现。
+  - 已排除：新加的兜底 `.onDrop`（摘掉后照样 flaky）、拖动抬起态的 `.opacity`（摘掉后照样 flaky）
+  - **对照实验**：把全部改动 stash 掉、在 HEAD（v0.6）上重复跑 3 轮 → **15/15 全过，一次没挂**。
+    所以这个 flakiness **是本轮（或上一轮 Phase 7）引入的**，不是既有的
+  - **用户手动验证：拖动重排功能本身正常工作**，因此判定为 XCUITest 的时序问题而非功能缺陷
+  - **处置：按用户决定，删除 UI 测试**（见下），此遗留不再跟踪
+- **按用户决定删除 UI 测试**：删掉 `SakuraReelUITests/`（3 个文件 / 15 个用例）与 `Scripts/run-ui-tests.sh`，
+  并从 `project.pbxproj`（11 个块 + 10 条散行）与 `SakuraReel.xcscheme`（BuildActionEntry + TestableReference）
+  中摘掉 `SakuraReelUITests` target。**模型层断言保留** —— 它们是唯一能脱离模拟器验证列数、合并、索引修正的手段
+  - 手术用脚本按 ID 前缀（`AC…` / `AE…`）做**花括号配对**整块删除，而不是逐处手改。
+    第一版脚本的正则写死了「两 tab 缩进」，漏掉了更深缩进的块（`targets = (…)` 里那个），只删掉了首行、
+    留下悬空的方法体，`xcodebuild` 直接报 `Unable to read project`。改为**不限缩进**的配对删除 + `plutil -lint` 校验后通过
+  - 删除后 `xcodebuild -list` 只剩 `SakuraReel` 一个 target，构建通过
+- **UI 测试删掉后，本轮新增的 `GridColumns` 算术仍由模型层 25 项断言守着**；但**UI 层从此没有自动化回归网** ——
+  这是明确接受的代价

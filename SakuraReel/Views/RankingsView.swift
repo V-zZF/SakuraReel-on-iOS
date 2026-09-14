@@ -4,6 +4,7 @@ import UniformTypeIdentifiers
 /// 评分排行榜。由首页工具栏的「排行」Push 进入，复用首页的 `NavigationStack`，不自建栈。
 struct RankingsView: View {
     @Environment(MediaRepository.self) private var repository
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.horizontalSizeClass) private var horizontalSizeClass
     @Environment(\.verticalSizeClass) private var verticalSizeClass
 
@@ -13,6 +14,8 @@ struct RankingsView: View {
     /// 排序模式的草稿顺序：拖动只改这里，点「完成」才落盘，点「✕」直接丢弃即回滚
     @State private var draftItems: [MediaItem] = []
     @State private var draggedItemID: UUID?
+    /// 已确认删除、但等 Sheet 关完再落盘的条目。见 `onDelete` 处的说明
+    @State private var pendingDeleteID: UUID?
     /// 本次拖动开始前的草稿顺序快照，用于跨评分被拒时回滚
     @State private var dragStartSnapshot: [MediaItem] = []
     /// 跨评分拖动被阻止时的提示文案（nil = 不提示）
@@ -55,8 +58,13 @@ struct RankingsView: View {
                 }
             }
         }
-        .background(Color(.systemGroupedBackground))
-        .navigationTitle("评分排行榜")
+        .background(Constants.libraryBackground)
+        .modifier(LibraryInteractionFeedback(
+                isSorting: isSortMode, editingID: sheetTarget?.id,
+                draggedID: draggedItemID, blockedMessage: blockedMessage,
+                draftIDs: draftItems.map(\.id)
+            ))
+            .navigationTitle("评分排行榜")
         .navigationBarTitleDisplayMode(.inline)
         .toolbarBackground(.visible, for: .navigationBar)
         .navigationBarBackButtonHidden(isSortMode)
@@ -89,13 +97,15 @@ struct RankingsView: View {
                 }
             }
         }
-        .sheet(item: $sheetTarget) { target in
+        .sheet(item: $sheetTarget, onDismiss: commitPendingDelete) { target in
             switch target {
             case .edit(let item):
                 AddEditMediaView(
                     initialItem: item,
                     onSave: { repository.upsert($0) },
-                    onDelete: { repository.delete(item) }
+                    // 删除只记下 id，真正的落盘与淡出留到 Sheet 关完之后 ——
+                    // 在这里直接删的话，0.25s 的淡出全程被 Sheet 的消失动画盖住，等于没有
+                    onDelete: { pendingDeleteID = item.id }
                 )
             }
         }
@@ -103,6 +113,17 @@ struct RankingsView: View {
             Button("好", role: .cancel) { blockedMessage = nil }
         } message: {
             Text(blockedMessage ?? "")
+        }
+    }
+
+    /// Sheet 关完之后才真正删：这时淡出才看得见。`sheetTarget` 已经是 nil，
+    /// 所以只能靠 id 去库里找那一条 —— 找不到就当没发生过。
+    private func commitPendingDelete() {
+        guard let id = pendingDeleteID else { return }
+        pendingDeleteID = nil
+        guard let item = repository.items.first(where: { $0.id == id }) else { return }
+        withAnimation(reduceMotion ? nil : .smooth(duration: 0.25)) {
+            repository.delete(item)
         }
     }
 
@@ -170,12 +191,21 @@ struct RankingsView: View {
                 Spacer(minLength: 0)
                 LazyVStack(spacing: metrics.gap) {
                     ForEach(displayItems) { item in
+                        // 没有 transition 的话，删除时这一行是「瞬间消失」，其余行再补位
                         row(item, rank: ranks[item.id] ?? 0, cardHeight: metrics.cardHeight)
+                            .transition(.opacity)
                     }
                 }
                 .padding(metrics.listPadding)
                 .frame(width: metrics.listWidth)
                 Spacer(minLength: 0)
+            }
+            // 兜底：手指在行与行之间、或列表下方空白处松开时，没有任何行的 `.onDrop` 会触发，
+            // `draggedItemID` 就永远留着，那一行会一直挂着「抬起」的透明态。
+            // 返回 false，不抢内层行的落点
+            .onDrop(of: [.text], isTargeted: nil) { _ in
+                draggedItemID = nil
+                return false
             }
         }
     }
@@ -189,10 +219,31 @@ struct RankingsView: View {
         return result
     }
 
+    /// 整行的 VoiceOver 朗读文本。
+    ///
+    /// 不写这一句的话，正常模式下整行是一个 Button，系统会把 `# 序号 / 片名 / 年月 / 评分`
+    /// 拼成一串碎片读出来。写成一整句更像系统列表该有的样子。
+    private func rowAccessibilityLabel(rank: Int, item: MediaItem) -> String {
+        var parts = ["第 \(rank) 名", item.title]
+        if let year = item.watchYear, let month = item.watchMonth {
+            parts.append("\(year) 年 \(month) 月观看")
+        } else {
+            parts.append("未设置观看年月")
+        }
+        parts.append(item.rating > 0 ? "\(item.rating) 分" : "未评分")
+        return parts.joined(separator: "，")
+    }
+
     @ViewBuilder
     private func row(_ item: MediaItem, rank: Int, cardHeight: CGFloat) -> some View {
         if isSortMode {
             RankingRow(rank: rank, item: item, cardHeight: cardHeight)
+                // 排序模式下整行不是 Button，不写这一句就会把 `# / 序号 / 片名 / 年月 / 评分`
+                // 拆成五个元素逐个朗读。与正常模式合成同一句话，两种模式读起来才一致；
+                // identifier 同时给 UI 测试一个与元素类型无关的定位点
+                .accessibilityElement(children: .ignore)
+                .accessibilityLabel(rowAccessibilityLabel(rank: rank, item: item))
+                .accessibilityIdentifier(item.title)
                 .onDrag {
                     dragStartSnapshot = draftItems
                     draggedItemID = item.id
@@ -205,13 +256,23 @@ struct RankingsView: View {
                         items: $draftItems,
                         draggedItemID: $draggedItemID,
                         dragStartSnapshot: $dragStartSnapshot,
-                        blockedMessage: $blockedMessage
+                        blockedMessage: $blockedMessage,
+                        reduceMotion: reduceMotion
                     )
                 )
+                // 抬起态：源行留在原位变淡。**必须挂在 `.onDrag` 之外** ——
+                // 拖影是 `.onDrag` 那一层的快照，挂在里面会把「变淡」一起烤进拖影
+                .opacity(draggedItemID == item.id ? Constants.draggedCardOpacity : 1)
         } else {
-            RankingRow(rank: rank, item: item, cardHeight: cardHeight)
-                .contentShape(Rectangle())
-                .onTapGesture { sheetTarget = .edit(item) }
+            Button { sheetTarget = .edit(item) } label: {
+                RankingRow(rank: rank, item: item, cardHeight: cardHeight)
+                    .contentShape(Rectangle())
+            }
+            .buttonStyle(LibraryPressStyle())
+            .accessibilityLabel(rowAccessibilityLabel(rank: rank, item: item))
+            .accessibilityHint("编辑")
+            // 与排序模式同名：两种模式下「整行」都是同一个定位点，与元素类型无关
+            .accessibilityIdentifier(item.title)
         }
     }
 

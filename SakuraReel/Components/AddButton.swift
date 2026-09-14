@@ -13,6 +13,7 @@ struct AddButton: View {
                 .clipShape(Circle())
                 .shadow(color: Constants.accentPink.opacity(0.35), radius: 8, x: 0, y: 4)
         }
+        .buttonStyle(LibraryPressStyle())
         .accessibilityLabel("添加作品")
     }
 }

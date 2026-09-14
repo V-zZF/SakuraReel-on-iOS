@@ -8,6 +8,7 @@ struct SakuraReelApp: App {
         WindowGroup {
             ContentView()
                 .environment(repository)
+                .preferredColorScheme(.light)
         }
     }
 }

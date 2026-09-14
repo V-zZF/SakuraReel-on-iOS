@@ -19,9 +19,11 @@ swiftc -O -o "$OUT" \
   SakuraReel/Models/MediaStatus.swift \
   SakuraReel/Utilities/MediaSort.swift \
   SakuraReel/Utilities/RankingMetrics.swift \
+  SakuraReel/Utilities/GridColumns.swift \
   SakuraReel/Services/LibraryArchive.swift \
   Tests/ModelTests/main.swift \
   Tests/ModelTests/LibraryArchiveTests.swift \
-  Tests/ModelTests/RankingMetricsTests.swift
+  Tests/ModelTests/RankingMetricsTests.swift \
+  Tests/ModelTests/GridColumnsTests.swift
 
 "$OUT"

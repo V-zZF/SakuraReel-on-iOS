@@ -3,12 +3,24 @@ import UniformTypeIdentifiers
 
 struct HomeView: View {
     @Environment(MediaRepository.self) private var repository
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     @State private var selectedStatus: MediaStatus? = .watched
     @State private var isSearchActive: Bool = false
     @State private var searchText: String = ""
     @State private var isSortMode: Bool = false
     @State private var sheetTarget: SheetTarget?
+    /// 是否已 Push 进排行榜。用「按钮 + 编程式跳转」而不是 NavigationLink：
+    /// 工具栏里的 NavigationLink 会少一圈内边距，胶囊宽度和左侧「排序」对不齐
+    @State private var showsRankings = false
+
+    /// 网格容器的可用宽度（含两侧留白）。`0` = 还没量到。
+    /// 量在这里而不是 `AdaptiveGridLayout` 里：`onPreferenceChange` 的闭包是 `@Sendable`，
+    /// 而 `AdaptiveGridLayout` 存了一个非 `@Sendable` 的 `content` 闭包，捕获它会过不了 Swift 6 隔离检查
+    @State private var gridWidth: CGFloat = 0
+
+    /// 已确认删除、但等 Sheet 关完再落盘的条目。见 `onDelete` 处的说明
+    @State private var pendingDeleteID: UUID?
 
     /// 排序模式的草稿顺序：拖动只改这里，点「完成」才落盘，点「✕」直接丢弃即回滚
     @State private var draftItems: [MediaItem] = []
@@ -78,7 +90,12 @@ struct HomeView: View {
                     } else {
                         VStack(spacing: 0) {
                             // 分类选择器 + 搜索按钮，位于标题下方
-                            CategorySegmentedControl(selectedStatus: $selectedStatus, isSearchActive: $isSearchActive)
+                            HStack(spacing: 8) {
+                                syncMenu
+                                    .frame(width: 44, height: 44)
+                                CategorySegmentedControl(selectedStatus: $selectedStatus, isSearchActive: $isSearchActive)
+                            }
+                            .frame(maxWidth: .infinity)
                                 .padding(.horizontal, 16)
                                 .padding(.vertical, 8)
 
@@ -99,8 +116,15 @@ struct HomeView: View {
                                 gridContent
                             }
                         }
-                        .animation(.spring(response: 0.38, dampingFraction: 0.86), value: isSearchActive)
+                        .animation(reduceMotion ? nil : .spring(response: 0.32, dampingFraction: 0.9), value: isSearchActive)
                     }
+                }
+                // 兜底：手指在卡片之间的空隙、或最后一行下方的空白处松开时，没有任何卡片的
+                // `.onDrop` 会被触发，`draggedItemID` 就永远留着 —— 卡片会一直挂着「抬起」的透明态。
+                // 返回 false，不抢内层卡片的落点
+                .onDrop(of: [.text], isTargeted: nil) { _ in
+                    draggedItemID = nil
+                    return false
                 }
 
                 if !isSortMode {
@@ -110,6 +134,16 @@ struct HomeView: View {
                     .padding(24)
                 }
             }
+            .background {
+                // 量网格容器的宽度，交给 GridColumns 决定列数（iPad 分栏变窄时自动减列）
+                GeometryReader { proxy in
+                    Color.clear.preference(key: GridWidthPreferenceKey.self, value: proxy.size.width)
+                }
+            }
+            .onPreferenceChange(GridWidthPreferenceKey.self) { gridWidth = $0 }
+            .background(Constants.libraryBackground)
+            .sensoryFeedback(.selection, trigger: selectedStatus)
+            .sensoryFeedback(.selection, trigger: isSearchActive)
             // 同步相关的弹窗挂在这一层，与 NavigationStack 上那个「无法移动」分属不同节点，
             // 免得两个 presentation 抢同一条通道
             .fileImporter(
@@ -136,33 +170,32 @@ struct HomeView: View {
             }
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
-                    // 「排序」与「···」包在同一个 ToolbarItem 里：同一 placement 上的多个
-                    // ToolbarItem，先后顺序不保证与声明顺序一致，套一层 HStack 才可控
-                    HStack(spacing: 18) {
-                        if isSortMode {
-                            Button {
-                                cancelSortMode()
-                            } label: {
-                                Image(systemName: "xmark")
-                                    .font(.system(size: 15, weight: .semibold))
-                                    .foregroundStyle(.primary)
-                            }
-                        } else {
-                            Button("排序") {
-                                enterSortMode()
-                            }
-                            .font(.subheadline.weight(.medium))
-                            .foregroundStyle(.primary)
-
-                            syncMenu
+                    // 导航栏两侧各保留一个操作，文件菜单移到分类行。
+                    // 这里不再套 HStack 容器：当初套它是为了让同一 placement 上的多个
+                    // ToolbarItem 顺序可控，菜单移走后只剩一个，容器已是多余
+                    if isSortMode {
+                        Button {
+                            cancelSortMode()
+                        } label: {
+                            Image(systemName: "xmark")
+                                .font(.system(size: 15, weight: .semibold))
+                                .foregroundStyle(.primary)
                         }
+                    } else {
+                        Button("排序") {
+                            enterSortMode()
+                        }
+                        .font(.subheadline.weight(.medium))
+                        .foregroundStyle(.primary)
                     }
                 }
 
                 ToolbarItem(placement: .principal) {
                     Text("SakuraReel")
-                        .font(.system(size: 26, weight: .bold, design: .rounded))
+                        .font(.system(size: 20, weight: .bold, design: .rounded))
                         .foregroundStyle(Constants.accentPink)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.85)
                 }
 
                 ToolbarItem(placement: .topBarTrailing) {
@@ -173,18 +206,28 @@ struct HomeView: View {
                         .font(.subheadline.weight(.semibold))
                         .foregroundStyle(.primary)
                     } else {
-                        NavigationLink(destination: RankingsView()) {
-                            Text("排行")
-                                .font(.subheadline.weight(.medium))
-                                .foregroundStyle(.primary)
+                        // 必须是 Button 而不是 NavigationLink：工具栏里的 NavigationLink
+                        // 每侧比 Button 少 6pt 内边距，胶囊会比左边的「排序」窄一圈（实测 142px vs 178px）
+                        Button("排行") {
+                            showsRankings = true
                         }
+                        .font(.subheadline.weight(.medium))
+                        .foregroundStyle(.primary)
                     }
                 }
             }
+            .modifier(LibraryInteractionFeedback(
+                isSorting: isSortMode, editingID: sheetTarget?.id,
+                draggedID: draggedItemID, blockedMessage: blockedMessage,
+                draftIDs: draftItems.map(\.id)
+            ))
             .navigationTitle("SakuraReel")
             .navigationBarTitleDisplayMode(.inline)
+            .navigationDestination(isPresented: $showsRankings) {
+                RankingsView()
+            }
             .toolbarBackground(.visible, for: .navigationBar)
-            .sheet(item: $sheetTarget) { target in
+            .sheet(item: $sheetTarget, onDismiss: commitPendingDelete) { target in
                 switch target {
                 case .add:
                     AddEditMediaView(
@@ -196,7 +239,9 @@ struct HomeView: View {
                     AddEditMediaView(
                         initialItem: item,
                         onSave: { repository.upsert($0) },
-                        onDelete: { repository.delete(item) }
+                        // 删除只记下 id，真正的落盘与淡出留到 Sheet 关完之后 ——
+                        // 在这里直接删的话，0.25s 的淡出全程被 Sheet 的消失动画盖住，等于没有
+                        onDelete: { pendingDeleteID = item.id }
                     )
                 }
             }
@@ -205,6 +250,17 @@ struct HomeView: View {
             } message: {
                 Text(blockedMessage ?? "")
             }
+        }
+    }
+
+    /// Sheet 关完之后才真正删：这时淡出才看得见。`sheetTarget` 已经是 nil，
+    /// 所以只能靠 id 去库里找那一条 —— 找不到（例如中途被撤销）就当没发生过。
+    private func commitPendingDelete() {
+        guard let id = pendingDeleteID else { return }
+        pendingDeleteID = nil
+        guard let item = repository.items.first(where: { $0.id == id }) else { return }
+        withAnimation(reduceMotion ? nil : .smooth(duration: 0.25)) {
+            repository.delete(item)
         }
     }
 
@@ -251,10 +307,12 @@ struct HomeView: View {
             } else {
                 Image(systemName: "ellipsis.circle")
                     .font(.system(size: 17))
-                    .foregroundStyle(.primary)
+                    .foregroundStyle(Constants.accentPink)
             }
         }
+        .tint(Constants.accentPink)
         .accessibilityIdentifier("syncMenu")
+        .accessibilityLabel("资料库文件")
     }
 
     /// 菜单里带上文件夹名，让用户能确认导出 / 导入的到底是哪儿
@@ -427,18 +485,19 @@ struct HomeView: View {
     }
 
     private var gridContent: some View {
-        AdaptiveGridLayout {
+        AdaptiveGridLayout(availableWidth: gridWidth) {
             ForEach(filteredItems) { item in
-                MediaCard(item: item)
-                    .onTapGesture { sheetTarget = .edit(item) }
+                MediaCard(item: item, onOpen: { sheetTarget = .edit(item) })
+                    .transition(.opacity)
             }
         }
+        .animation(reduceMotion ? nil : .smooth(duration: 0.25), value: selectedStatus)
     }
 
     /// 排序模式网格：与正常网格共用 `AdaptiveGridLayout`（列数唯一来源），
     /// 卡片在组内可拖动重排，跨观看年月拖动由 `HomeReorderDropDelegate` 阻止。
     private var sortGrid: some View {
-        AdaptiveGridLayout {
+        AdaptiveGridLayout(availableWidth: gridWidth) {
             ForEach(draftItems) { item in
                 MediaCard(item: item, isInteractive: false)
                     .onDrag {
@@ -453,9 +512,14 @@ struct HomeView: View {
                             items: $draftItems,
                             draggedItemID: $draggedItemID,
                             dragStartSnapshot: $dragStartSnapshot,
-                            blockedMessage: $blockedMessage
+                            blockedMessage: $blockedMessage,
+                            reduceMotion: reduceMotion
                         )
                     )
+                    // 抬起态：源卡片留在原位变淡，系统的拖影跟着手指走。
+                    // **必须挂在 `.onDrag` 之外** —— 拖影是 `.onDrag` 那一层的快照，
+                    // 挂在里面会把「变淡」一起烤进拖影
+                    .opacity(draggedItemID == item.id ? Constants.draggedCardOpacity : 1)
             }
         }
     }

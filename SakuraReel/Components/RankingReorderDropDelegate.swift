@@ -15,6 +15,7 @@ struct RankingReorderDropDelegate: DropDelegate {
     @Binding var dragStartSnapshot: [MediaItem]
     /// 跨组被阻止时写入的提示文案（nil = 不提示）
     @Binding var blockedMessage: String?
+    var reduceMotion: Bool = false
 
     /// 跨评分拖动时显示的提示文案（配合 alert 标题「无法移动」）
     static let blockedText = "只能调整相同评分内的作品顺序。"
@@ -27,7 +28,7 @@ struct RankingReorderDropDelegate: DropDelegate {
               MediaSort.rankingGroupKey(of: items[from]) == MediaSort.rankingGroupKey(of: targetItem)
         else { return } // 跨组悬停：不做任何移动
 
-        withAnimation(.easeInOut(duration: 0.2)) {
+        withAnimation(reduceMotion ? nil : .snappy(duration: 0.25)) {
             items.move(fromOffsets: IndexSet(integer: from), toOffset: to > from ? to + 1 : to)
         }
     }

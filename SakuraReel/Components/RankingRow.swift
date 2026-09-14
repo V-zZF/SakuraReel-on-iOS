@@ -55,11 +55,7 @@ struct RankingRow: View {
             RatingLabel(rating: item.rating, size: 22 * scale, captionSize: 12 * scale)
                 .padding(.trailing, 14 * scale)
         }
-        .background(Color(.systemBackground))
-        .clipShape(RoundedRectangle(cornerRadius: Constants.cardCornerRadius * scale))
-        .shadow(color: .black.opacity(0.06),
-                radius: Constants.cardShadowRadius * scale,
-                x: 0, y: 2 * scale)
+        .modifier(LibraryCardSurface(scale: scale))
     }
 
     /// 观看年月。未设置时保留日历图标，文字以「未设置」占位，保证行内元素位置固定。

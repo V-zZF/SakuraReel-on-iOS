@@ -34,7 +34,7 @@ struct CategorySegmentedControl: View {
             Picker("", selection: $selectedStatus) {
                 ForEach(statuses, id: \.id) { status in
                     // 尾部空格占位，撑大滑块、拉开段间距
-                    Text(status.displayName + "     ")
+                    Text(status.displayName)
                         .tag(Optional(status))
                 }
             }
@@ -52,7 +52,8 @@ struct CategorySegmentedControl: View {
                     .font(.system(size: 16, weight: .bold))
                     .foregroundStyle(Constants.accentPink)
             }
-            .buttonStyle(.plain)
+            .frame(width: 44, height: 44)
+            .buttonStyle(LibraryPressStyle())
             .accessibilityLabel("搜索")
         }
     }

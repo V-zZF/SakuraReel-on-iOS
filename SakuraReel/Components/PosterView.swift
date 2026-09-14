@@ -4,6 +4,8 @@ struct PosterView: View {
     let imageData: Data?
     var cornerRadius: CGFloat = Constants.cardCornerRadius
 
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
     var body: some View {
         Group {
             if let data = imageData, let uiImage = UIImage(data: data) {
@@ -21,6 +23,14 @@ struct PosterView: View {
         }
         .aspectRatio(Constants.posterAspectRatio, contentMode: .fit)
         .clipShape(RoundedRectangle(cornerRadius: cornerRadius))
+        // 淡入挂在「数据从无到有」这一刻，**不能**挂 `.onAppear`：海报是同步解码的，
+        // 卡片一重建就已经有 Data，而 `LazyVGrid` 回收单元格时会丢掉 `@State` ——
+        // 挂 onAppear 的话，滚回来的卡片会先空一帧再淡入，那就是闪烁。
+        // 动画值用 Bool 而不是 Data：`Data` 的 `==` 是比较整个 JPEG
+        .animation(
+            reduceMotion ? nil : .easeOut(duration: Constants.posterFadeInDuration),
+            value: imageData == nil
+        )
     }
 }
 

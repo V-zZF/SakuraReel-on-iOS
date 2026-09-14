@@ -25,6 +25,7 @@ runExportTests()
 runMergeTests()
 runNormalizeTests()
 runRankingMetricsTests()
+runGridColumnsTests()
 
 print("")
 if failureCount == 0 {

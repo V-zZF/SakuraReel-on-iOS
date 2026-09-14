@@ -61,7 +61,10 @@ SakuraReel
 | `Views/AddEditMediaView.swift` | 添加 / 编辑页 |
 | `Components/MediaCard.swift` | 影视卡片 |
 | `Components/AdaptiveGridLayout.swift` | iPhone / iPad 自适应网格 |
+| `Utilities/GridColumns.swift` | 首页网格列数唯一来源（尺寸类给上限 → 按可用宽度收窄） |
 | `Utilities/RankingMetrics.swift` | 排行榜卡片尺寸唯一来源（一屏几张 → 卡高 → 卡内等比缩放） |
+| `Utilities/Constants.swift` | 颜色 / 圆角 / 间距常量 + 共用件（卡片表面、按压态、触觉反馈） |
+| `Utilities/SakuraGlassBackground.swift` | 胶囊 / 圆形的玻璃质感背景（iOS 26+ 用 `glassEffect`，以下退回纯色） |
 
 ## 数据模型要点
 
@@ -107,6 +110,21 @@ SakuraReel
 - 只能在**同评分**内拖动
 - 跨评分拖动显示提示：「无法移动 只能调整相同评分内的作品顺序。」
 
+## 首页网格列数
+
+列数唯一来自 `GridColumns.count(maxColumns:availableWidth:spacing:)`：
+
+- **尺寸类给上限**：紧凑竖屏 3 列、Regular 5 列、其余 2 列
+- **再按可用宽度收窄**：卡片窄于 `minCardWidth`（110pt）就少排一列。整屏 iPhone 与整屏 iPad
+  算出来与尺寸类的答案一致，所以这条**只对 iPad 分栏**（Split View / Slide Over）这类
+  「尺寸类仍是 regular、实际并不宽」的场合生效
+- 宽度还没量到（`availableWidth <= 0`）时**原样返回尺寸类的答案**，首帧与从前逐帧相同，不会先画窄一帧再跳
+- 宽度在 `HomeView` 用 `GridWidthPreferenceKey` 量出后传入；**不要**把测量挪进 `AdaptiveGridLayout`
+  （它存了非 `@Sendable` 的 `content` 闭包，`onPreferenceChange` 的 `@Sendable` 闭包捕获它会过不了 Swift 6 检查）
+- `Constants.gridSpacing` 引用 `GridColumns.spacing` —— 间距的唯一来源在不依赖 SwiftUI 的那一侧，
+  模型层测试才读得到
+- 模型层断言：`Tests/ModelTests/GridColumnsTests.swift`（`./Scripts/run-model-tests.sh`）
+
 ## 排行榜卡片尺寸
 
 卡片大小不写死成 pt，而是量化成「**一屏放几张**」：
@@ -121,6 +139,9 @@ SakuraReel
 - 居中靠整列两侧各垫一个 `Spacer`：`ScrollView` 会把内容按 leading 摆放，**只给固定宽度并不会居中**
 - iPad 判定与 `AdaptiveGridLayout` 同一套：`horizontalSizeClass == .regular && verticalSizeClass != .compact`；竖横判定直接比 `availableSize` 的宽高
 - 卡内字号由卡高算出，**不跟随系统动态字体** —— 这是「一屏几张」的代价
+- **不要**再给「窄栏」加门槛（例如「宽度 < 600pt 就当作 iPhone」）。试过，已回退：门槛两侧卡高会从
+  599pt → 172pt 跳到 600pt → 103pt，拖动分栏分隔线经过门槛时卡片会瞬间跳一下；而且分栏本来就只在
+  2/3 档才是 regular 宽度，窄不到撑不住的程度。分栏下卡高由宽度摊分是**预期行为**，已写成模型断言钉住
 
 ## 视觉方向
 
@@ -140,8 +161,17 @@ SakuraReel
 - 点分类胶囊会退出搜索；进排序模式前先退出搜索（排序模式必须显示全部条目）
 - 添加 / 编辑为 Sheet，表单顺序固定：海报 → 片名 → 分类 → 观看年月 → 评分 → 短评 → 播放链接
 - 播放链接存在时才显示播放按钮，点击用 `UIApplication.shared.open` 打开外部目标
-- 删除需要二次确认 Alert
+- 删除需要二次确认 Alert。**落盘推迟到 Sheet 关完之后**（`.sheet(onDismiss:)` + `pendingDeleteID`），
+  否则 0.25s 的淡出全程被 Sheet 的消失动画盖住，等于没有
 - 未保存内容时，用户点击取消 / 遮罩 / 返回需提示确认
+- **一张卡片就是一个「打开编辑」按钮**：海报与片名合并在同一个 `Button` 里（它们本来就是同一个动作）。
+  拆成两个 Button 会让 VoiceOver 对同一动作连读两遍。评分按钮、播放按钮、观看年月留在该 Button **之外**，
+  各自仍是独立可点区域
+- 排序模式：源卡片留在原位变淡（`Constants.draggedCardOpacity`），拖影由系统 `.onDrag` 提供。
+  `.opacity` **必须挂在 `.onDrag` 之外** —— 拖影是 `.onDrag` 那一层的快照，挂在里面会把「变淡」一起烤进拖影；
+  同时必须在滚动容器的 `ScrollView` 上挂一个兜底 `.onDrop` 清 `draggedItemID`，否则在卡片空隙松手会让卡片卡在半透明幽灵态
+- 首页网格字号封顶 `.dynamicTypeSize(...xxxLarge)`，只加在 `AdaptiveGridLayout.body`。
+  **不要**加在 `NavigationStack` 上 —— `.sheet` 继承呈现者环境，会连添加 / 编辑表单一起封顶，而表单最需要大字号
 
 ## 注意事项
 
@@ -166,6 +196,19 @@ SakuraReel
 - 读写走 `MediaRepository`（`@MainActor @Observable`），不直接操作 FileManager
 - 不建立 SakuraReel 自己的账号体系，不接入 iCloud / CloudKit
 
+## 测试
+
+- **模型层断言**：`Tests/ModelTests/`，用 `./Scripts/run-model-tests.sh` 跑（直接 `swiftc`，不经过 Xcode 工程、
+  不需要模拟器）。已覆盖导出 / 导入 / 合并 / 索引修正 / 排行榜卡片尺寸 / 首页网格列数
+- **被测文件不能 import SwiftUI 或 Observation**，否则这个脚本会编译失败 —— 那正是它该失败的时候。
+  `RankingMetrics` / `GridColumns` / `LibraryArchive` / `MediaSort` / `MediaItem` 都守着这条，**要保持**
+- **UI 测试已在 v0.7 全部删除**（`SakuraReelUITests/` 与 `Scripts/run-ui-tests.sh`，连同工程里的 target）。
+  原因：首页排序模式的两个拖动用例在引入 Phase 7 后变得 flaky（对照实验确认是本轮引入，非既有；
+  但用户手动验证拖动功能本身正常），按用户决定不再维护。**代价：UI 层没有自动化回归网**，
+  界面与交互改动只能靠手动验证。要恢复：`git checkout f755269 -- SakuraReelUITests Scripts/run-ui-tests.sh`
+  并把 target 加回 `project.pbxproj` 与 scheme
+
 ## 开发节奏
 
 按 Phase 推进，每完成一个小里程碑更新 `DEVLOG.md`。先保证数据正确，再做视觉效果。
+视觉与交互的最终验证由用户手动完成，不要求截图入库。

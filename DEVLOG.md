@@ -91,10 +91,16 @@
 
 ## Phase 6 — 搜索
 
-- [ ] 点击「搜索」胶囊变为可编辑搜索栏
-- [ ] 实时按片名过滤
-- [ ] 搜索结果复用 `MediaCard` 与 adaptive 网格
-- [ ] 处理空搜索状态与取消恢复
+- [x] 点击「搜索」胶囊变为可编辑搜索栏
+- [x] 实时按片名过滤
+- [x] 搜索结果复用 `MediaCard` 与 adaptive 网格
+- [x] 处理空搜索状态与取消恢复
+
+> 2026-09-14 验收：四项在 Phase 2 重做分类选择器时就已实现（现在是「Segmented Picker +
+> 右端独立放大镜按钮」，点放大镜在胶囊行下方滑出搜索栏）；第 3 项即 `HomeView.gridContent`
+> 复用 `MediaCard` + `AdaptiveGridLayout`，第 4 项是「无搜索结果」空态 + 取消恢复。
+> 本次**只补 UI 用例**（`SakuraReelUITests/SearchUITests.swift`），未改动行为。
+> 详见下方「2026-09-14 Phase 6 搜索：验收 + 补测试」。
 
 ## Phase 7 — UI Polish
 
@@ -229,3 +235,22 @@
 - 已知取舍：卡内字号由卡高算出，**不再跟随系统动态字体**（「一屏几张」的直接代价，首页不受影响）
 - 一度出现又已解决：iPad **竖屏**原本也按「一屏 5 张」摊，卡高 189pt → 片名放大到 31pt，而卡片只有 0.6 屏宽、`# 序号` 再占一截，片名净剩约 86pt（≈2.8 字），长片名断成「攻壳机 / 动队」。改为竖屏不按一屏几张走后，卡高回到 144pt、整列铺满 834pt，文字区约 566pt（≈23 字/行），断行消失
 - 已知既有缺口（**非本次引入**）：`HomeSortModeUITests` 在 iPad 上跑会挂 4 个（首页网格在 iPad 是 5 列，4 张卡片同处一行，那套排序断言失效）。Phase 4 用例此前只在 iPhone 上跑过，本次因取 iPad 截图才暴露
+
+### 2026-09-14 Phase 6 搜索：验收 + 补测试（未改动任何行为）
+- 计划里 Phase 6 的两个清单项（搜索胶囊变搜索栏 / 实时过滤）**在 Phase 2 重做分类选择器时就已实现**。本次没有新增功能，只做验收与补测试。`CodingPlan.md` 的复选框此前一直没维护（Phase 1–5 也全未勾选），不代表功能缺失，已在文件里注明
+- 验收确认的既定行为（**均未改动**，只用用例把现状钉住）：
+  - 只匹配**片名**（`localizedStandardContains`），不搜短评
+  - **忽略当前分类胶囊**，跨「看过 / 在看 / 想看」全局搜 —— 在「看过」下搜「阿诺拉」（想看）能搜到
+  - 没命中时显示「无搜索结果 / 试试其他关键词」，不会误报「还没有作品」
+  - 点分类胶囊退出搜索；进排序模式前先退出搜索
+- 新增 `SakuraReelUITests/SearchUITests.swift`（4 个用例）：未点放大镜时无搜索框、输入后实时过滤只剩命中项、跨分类全局搜、无结果空态、取消退出并恢复全量。与 `HomeSortModeUITests` 共用同一份 home fixture
+- **试过又回退的一条路**：把搜索框迁移到系统 `.searchable`（`isPresented` 绑定 + `.navigationBarDrawer(.automatic)`，保留放大镜按钮）。实测截图后放弃 —— 「更原生」的代价不止位置：
+  1. 搜索框**常驻**显示在胶囊行上方（iOS 26 上 `displayMode: .automatic` 并非「下拉才出现」）
+  2. 搜索激活时**整条导航栏被接管**，排序 / ⋯ / SakuraReel / 排行 全部消失（系统标准行为）
+  3. `SearchFieldPlacement` 的落点只有导航栏 / 工具栏，**没有「内容区」**，搜索框必然离开胶囊行下方
+  与「不改变现有视觉与交互」冲突，故回退，保持手写搜索栏。已 `git restore`，对比截图留在 /tmp 未入库
+- **`Scripts/run-ui-tests.sh` 两处修复**：
+  - `run_test_class` 改为透传 `"$@"`，同一份 fixture 的多个测试类可以一次跑完（Phase 4 + Phase 6 共用 home fixture）。改完漏改了一处调用点的 `-only-testing:` 前缀，已补
+  - **构建失败现在会当场中止**。原来写的是 `xcodebuild build-for-testing ... | tail -1` 配 `set -e` —— 管道的退出码取自 `tail`，**永远是 0**，构建挂了脚本照样往下跑，用上一次的旧测试包跑完并报「全部通过」。这次就中招了：`SearchUITests` 编译不过（`waitForExpectations` 在 Swift 6 下会把 `self` 送过隔离边界），脚本却拿旧包跑出「Phase 4 全部通过」，而旧包里那个临时截图用例还「复活」了一次。真实错误被掩盖了一整轮
+- 验证：Swift 6 语言模式编译零警告；`./Scripts/run-ui-tests.sh` 15 个用例全绿（Phase 4 五个 + Phase 6 四个 + Phase 5 六个）
+- 视觉验证由用户自行负责，本次未截图入库

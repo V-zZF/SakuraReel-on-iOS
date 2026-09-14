@@ -39,6 +39,7 @@
 		AD00000000000000000000A1 /* RankingRow.swift in Sources */ = {isa = PBXBuildFile; fileRef = AD00000000000000000000A2 /* RankingRow.swift */; };
 		AD00000000000000000000B1 /* RankingReorderDropDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = AD00000000000000000000B2 /* RankingReorderDropDelegate.swift */; };
 		AE00000000000000000000A1 /* RankingsUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AE00000000000000000000A2 /* RankingsUITests.swift */; };
+		AE00000000000000000000B1 /* SearchUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AE00000000000000000000B2 /* SearchUITests.swift */; };
 		AF00000000000000000000A1 /* LibraryArchive.swift in Sources */ = {isa = PBXBuildFile; fileRef = AF00000000000000000000A2 /* LibraryArchive.swift */; };
 		AF00000000000000000000B1 /* SyncFolder.swift in Sources */ = {isa = PBXBuildFile; fileRef = AF00000000000000000000B2 /* SyncFolder.swift */; };
 		AF00000000000000000000C1 /* RankingMetrics.swift in Sources */ = {isa = PBXBuildFile; fileRef = AF00000000000000000000C2 /* RankingMetrics.swift */; };
@@ -90,6 +91,7 @@
 		AD00000000000000000000A2 /* RankingRow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RankingRow.swift; sourceTree = "<group>"; };
 		AD00000000000000000000B2 /* RankingReorderDropDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RankingReorderDropDelegate.swift; sourceTree = "<group>"; };
 		AE00000000000000000000A2 /* RankingsUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RankingsUITests.swift; sourceTree = "<group>"; };
+		AE00000000000000000000B2 /* SearchUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SearchUITests.swift; sourceTree = "<group>"; };
 		AF00000000000000000000A2 /* LibraryArchive.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LibraryArchive.swift; sourceTree = "<group>"; };
 		AF00000000000000000000B2 /* SyncFolder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SyncFolder.swift; sourceTree = "<group>"; };
 		AF00000000000000000000C2 /* RankingMetrics.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RankingMetrics.swift; sourceTree = "<group>"; };
@@ -135,6 +137,7 @@
 			children = (
 				AC00000000000000000000A4 /* HomeSortModeUITests.swift */,
 				AE00000000000000000000A2 /* RankingsUITests.swift */,
+				AE00000000000000000000B2 /* SearchUITests.swift */,
 			);
 			path = SakuraReelUITests;
 			sourceTree = "<group>";
@@ -383,6 +386,7 @@
 			files = (
 				AC00000000000000000000A5 /* HomeSortModeUITests.swift in Sources */,
 				AE00000000000000000000A1 /* RankingsUITests.swift in Sources */,
+				AE00000000000000000000B1 /* SearchUITests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

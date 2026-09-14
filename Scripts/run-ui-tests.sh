@@ -1,8 +1,9 @@
 #!/bin/zsh
-# 跑 UI 测试：Phase 4 首页排序模式 + Phase 5 排行榜。
+# 跑 UI 测试：Phase 4 首页排序模式 + Phase 6 搜索 + Phase 5 排行榜。
 #
-# 两个测试类依赖**不同**的库数据，所以分两轮各写各的 fixture：
-# - Phase 4 断言 2024.03 组三条的顺序，且靠库里唯一的「10」定位评分按钮
+# 两组测试类依赖**不同**的库数据，所以分两轮各写各的 fixture：
+# - Phase 4 断言 2024.03 组三条的顺序，且靠库里唯一的「10」定位评分按钮；
+#   Phase 6 搜索也用这份数据，两个类在同一轮里一起跑
 # - Phase 5 需要同一评分横跨不同观看年月的条目，会引入额外的 10 分条目
 # 合成一份会让 Phase 4 的「10」变成多匹配、网格变高导致卡片不可点。
 #
@@ -31,11 +32,21 @@ xcrun simctl bootstatus "$UDID" -b >/dev/null 2>&1 || xcrun simctl boot "$UDID"
 xcrun simctl bootstatus "$UDID" -b >/dev/null
 
 # 2. 先构建并安装，才有数据容器可以写
-xcodebuild build-for-testing \
+#
+# 构建失败必须**当场中止**：`xcodebuild ... | tail -1` 配 `set -e` 是抓不到失败码的
+# （管道的退出码取自 tail），脚本会拿着上一次的旧测试包接着跑，结果全是假的。
+BUILD_LOG="$(mktemp)"
+if ! xcodebuild build-for-testing \
   -project "$PROJECT" -scheme "$SCHEME" \
   -destination "platform=iOS Simulator,id=$UDID" \
-  -derivedDataPath "$DERIVED" \
-  | tail -1
+  -derivedDataPath "$DERIVED" > "$BUILD_LOG" 2>&1; then
+  echo "❌ 构建测试包失败，已中止（继续跑只会拿旧包，结果不可信）：" >&2
+  grep -E "error:" "$BUILD_LOG" | head -20 >&2
+  rm -f "$BUILD_LOG"
+  exit 1
+fi
+tail -1 "$BUILD_LOG"
+rm -f "$BUILD_LOG"
 
 xcrun simctl install "$UDID" "$DERIVED/Build/Products/Debug-iphonesimulator/SakuraReel.app"
 
@@ -87,16 +98,17 @@ print("已写入 %s fixture（%d 条）：%s" % (phase, len(items), path))
 PY
 }
 
-# 跑一个测试类，返回 xcodebuild 的退出码（失败会让脚本以非零退出）
+# 跑测试类，接受多个 -only-testing 参数（同一份 fixture 的几个类一起跑），
+# 返回 xcodebuild 的退出码（失败会让脚本以非零退出）
 run_test_class() {
   # 变量不能叫 status：zsh 里 $status 是只读的特殊变量
-  local only="$1" log exit_code=0
+  local log exit_code=0
   log="$(mktemp)"
   xcodebuild test-without-building \
     -project "$PROJECT" -scheme "$SCHEME" \
     -destination "platform=iOS Simulator,id=$UDID" \
     -derivedDataPath "$DERIVED" \
-    -only-testing:"$only" > "$log" 2>&1 || exit_code=$?
+    "$@" > "$log" 2>&1 || exit_code=$?
   grep -E "Test Case .* (passed|failed)|Executed .* tests|TEST (EXECUTE )?(SUCCEEDED|FAILED)|error:" "$log" || true
   rm -f "$log"
   return $exit_code
@@ -105,18 +117,19 @@ run_test_class() {
 HOME_OK=0
 RANK_OK=0
 
-# 4. Phase 4 — 首页排序模式
+# 4. Phase 4 首页排序模式 + Phase 6 搜索（共用同一份 home fixture）
 write_fixture home
-if run_test_class "SakuraReelUITests/HomeSortModeUITests"; then
-  echo "✅ Phase 4 首页排序模式：全部通过"
+if run_test_class "-only-testing:SakuraReelUITests/HomeSortModeUITests" \
+                  "-only-testing:SakuraReelUITests/SearchUITests"; then
+  echo "✅ Phase 4 首页排序模式 + Phase 6 搜索：全部通过"
   HOME_OK=1
 else
-  echo "❌ Phase 4 首页排序模式：有失败用例"
+  echo "❌ Phase 4 首页排序模式 / Phase 6 搜索：有失败用例"
 fi
 
 # 5. Phase 5 — 排行榜
 write_fixture ranking
-if run_test_class "SakuraReelUITests/RankingsUITests"; then
+if run_test_class "-only-testing:SakuraReelUITests/RankingsUITests"; then
   echo "✅ Phase 5 排行榜：全部通过"
   RANK_OK=1
 else

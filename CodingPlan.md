@@ -4,7 +4,7 @@ SakuraReel 开发计划
 
 已确认的关键决策
 项目	决策
-最低系统版本	iOS 17+（Observation / @Observable 所需）
+最低系统版本	iOS 18+（Observation / @Observable 所需）
 技术栈	Swift / SwiftUI / 本地 JSON 文件存储（无 SwiftData、无 CloudKit）
 数据存储	App 沙盒 Documents 目录，文件可在系统「文件」App 中直接查看 / 备份
 海报存储	poster 不入 JSON；单独存为 Documents/Posters/<id>.jpg
@@ -231,7 +231,7 @@ Phase 1 — 基础架构
 1.1 创建 Xcode 项目
 
 项目名 SakuraReel
-iOS 17 Deployment Target
+iOS 18 Deployment Target
 开启文件共享（Info.plist：UIFileSharingEnabled、LSSupportsOpeningDocumentsInPlace）
 建立目录结构
 1.2 数据模型
@@ -403,7 +403,7 @@ CLAUDE.md 草案
 
 ## 技术栈
 - Swift / SwiftUI / 本地 JSON 文件存储（无 SwiftData、无 CloudKit）
-- iOS 17+
+- iOS 18+
 - 无第三方 UI 框架
 - 无第三方影视 API
 

@@ -7,11 +7,13 @@
 #
 #   ./Scripts/run-model-tests.sh
 #
-set -e
+set -euo pipefail
 
 cd "$(dirname "$0")/.."
 
-OUT="$(mktemp -d)/model-tests"
+MODEL_TEST_DIRECTORY="$(mktemp -d)"
+trap 'rm -rf "$MODEL_TEST_DIRECTORY"' EXIT
+OUT="$MODEL_TEST_DIRECTORY/model-tests"
 
 # 顺序无关，swiftc 会一起编。main.swift 提供顶部代码入口（Swift 只允许它写顶层语句）。
 swiftc -O -o "$OUT" \

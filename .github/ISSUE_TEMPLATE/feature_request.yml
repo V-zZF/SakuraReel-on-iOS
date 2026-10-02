@@ -1,0 +1,18 @@
+name: 功能建议
+description: 描述个人影视收藏中的具体需求
+title: "[Suggestion] "
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: 使用场景
+      description: 目前哪个操作不方便，或者哪种需求没有得到满足？
+    validations:
+      required: true
+  - type: textarea
+    id: suggestion
+    attributes:
+      label: 建议的行为
+      description: 描述期望如何改善这个场景。
+    validations:
+      required: true

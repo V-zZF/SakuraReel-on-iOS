@@ -15,3 +15,21 @@ xcuserdata/
 
 # 本地环境配置
 .claude/settings.local.json
+
+# Python 工具缓存与虚拟环境
+__pycache__/
+*.py[cod]
+.venv/
+
+# 本地凭据与签名文件
+.env
+.env.*
+!.env.example
+*.p12
+*.mobileprovision
+
+# 导出产物
+*.xcarchive
+*.ipa
+*.dSYM/
+*.xcresult/

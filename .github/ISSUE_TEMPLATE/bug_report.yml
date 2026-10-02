@@ -1,0 +1,31 @@
+name: 问题反馈
+description: 报告数据、界面或交互问题
+title: "[Bug] "
+body:
+  - type: textarea
+    id: description
+    attributes:
+      label: 问题描述
+      description: 发生了什么？你预期的行为是什么？
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: 复现步骤
+      placeholder: "1. 打开页面\n2. 执行操作\n3. 出现问题"
+    validations:
+      required: true
+  - type: input
+    id: environment
+    attributes:
+      label: 运行环境
+      description: App 版本、设备型号、系统版本；模拟器请同时注明 Xcode 版本。
+      placeholder: "1.0.0 / iPhone / iOS 版本"
+    validations:
+      required: true
+  - type: textarea
+    id: attachments
+    attributes:
+      label: 截图、录屏或补充信息
+      description: 可说明是否偶发、是否开启减少动态效果。请遮盖个人信息，不上传完整个人资料库。

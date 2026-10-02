@@ -159,6 +159,14 @@ final class MediaRepository {
         try next.upsert(item)
         try await commit(next)
     }
+    func updatePersonalRecord(_ record: PersonalRecord, for id: UUID) async throws {
+        await waitUntilLoaded(); await acquire(); defer { release() }
+        guard byID[id] != nil else { throw RepositoryError.notFound }
+        var next = document
+        try next.updatePersonalRecord(record, for: id)
+        try await commit(next)
+    }
+
     func applyMetadata(_ draft: TMDbImportDraft, fields: Set<MetadataField>, to id: UUID) async throws {
         await waitUntilLoaded(); await acquire(); defer { release() }
         guard let item = byID[id] else { throw RepositoryError.notFound }

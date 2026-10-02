@@ -61,6 +61,10 @@
 		AB317570FFCE1235E2F8DE49 /* Localizable.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = 3BB79F772D4F269494634AA9; };
 		45D14CE9B0E7EB1B0AC871D2 /* ThirdPartyNotices.txt in Resources */ = {isa = PBXBuildFile; fileRef = A7A92B2760297C5829F77818; };
 		FDE000000000000000000002 /* AddMediaFlowView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FDE000000000000000000001; };
+		BD247EAD23264BEE8ACDA5DB /* MediaDetailPanels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4A32874CBC5E44DF923D09A6; };
+		4E9AC464F9A6447591604654 /* MediaDetailHeader.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3E0CCEEDE3414052AD0146AE; };
+		C80824E72F09485C8497E82B /* MediaDetailTracking.swift in Sources */ = {isa = PBXBuildFile; fileRef = 348086E9A4CB4E56AD04FA08; };
+		D8D937D1CFF54DAF8E9A138A /* MediaDetailStatistics.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3D156A5EA3074FB29AEB6588; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -121,6 +125,10 @@
 		A7A92B2760297C5829F77818 /* ThirdPartyNotices.txt */ = {isa = PBXFileReference; lastKnownFileType = text; path = "SakuraReel/Resources/ThirdPartyNotices.txt"; sourceTree = SOURCE_ROOT; };
 		FDE000000000000000000001 /* AddMediaFlowView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "SakuraReel/Views/TMDb/AddMediaFlowView.swift"; sourceTree = SOURCE_ROOT; };
 		FDE000000000000000000003 /* TMDb.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = "Configuration/TMDb.xcconfig"; sourceTree = SOURCE_ROOT; };
+		4A32874CBC5E44DF923D09A6 /* MediaDetailPanels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "SakuraReel/Components/MediaDetail/MediaDetailPanels.swift"; sourceTree = SOURCE_ROOT; };
+		3E0CCEEDE3414052AD0146AE /* MediaDetailHeader.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "SakuraReel/Components/MediaDetail/MediaDetailHeader.swift"; sourceTree = SOURCE_ROOT; };
+		348086E9A4CB4E56AD04FA08 /* MediaDetailTracking.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "SakuraReel/Components/MediaDetail/MediaDetailTracking.swift"; sourceTree = SOURCE_ROOT; };
+		3D156A5EA3074FB29AEB6588 /* MediaDetailStatistics.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "SakuraReel/Components/MediaDetail/MediaDetailStatistics.swift"; sourceTree = SOURCE_ROOT; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -156,6 +164,10 @@
 			children = (
 				2B6C437DB82C86ABAE6E8DBC /* MediaMetadataEditor.swift */,
 				1E27A5026D125E28C0658040 /* MediaDetailView.swift */,
+				3D156A5EA3074FB29AEB6588 /* MediaDetailStatistics.swift */,
+				348086E9A4CB4E56AD04FA08 /* MediaDetailTracking.swift */,
+				3E0CCEEDE3414052AD0146AE /* MediaDetailHeader.swift */,
+				4A32874CBC5E44DF923D09A6 /* MediaDetailPanels.swift */,
 				FDE000000000000000000001 /* AddMediaFlowView.swift */,
 				3DF4ED3B8C7429997720B294 /* TMDbSearchView.swift */,
 				04C2472951DB0AD2994077A0 /* TMDbImportPreview.swift */,
@@ -359,6 +371,10 @@
 				9C5F93F52D07EDA78EEE2EF0 /* TMDbSearchModel.swift in Sources */,
 				4C1459B6ECB9DBB1DC5C5528 /* MediaMetadataEditor.swift in Sources */,
 				C91C0D5788CE492CB21AC97D /* MediaDetailView.swift in Sources */,
+				D8D937D1CFF54DAF8E9A138A /* MediaDetailStatistics.swift in Sources */,
+				C80824E72F09485C8497E82B /* MediaDetailTracking.swift in Sources */,
+				4E9AC464F9A6447591604654 /* MediaDetailHeader.swift in Sources */,
+				BD247EAD23264BEE8ACDA5DB /* MediaDetailPanels.swift in Sources */,
 				7AF3C061A4C24A3587F43AFB /* TMDbRemoteImage.swift in Sources */,
 				BB25BE721180C2BEBF757C12 /* UnsavedDismissGuard.swift in Sources */,
 				30F2ABBF47642895B61650DF /* MediaMetadata.swift in Sources */,
@@ -473,7 +489,7 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS = NO;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 7;
+				CURRENT_PROJECT_VERSION = 8;
 				DEVELOPMENT_ASSET_PATHS = "\"SakuraReel/Preview Content\"";
 				DEVELOPMENT_TEAM = M78JP4X862;
 				ENABLE_PREVIEWS = YES;
@@ -489,7 +505,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 1.1.2;
+				MARKETING_VERSION = 1.1.3;
 				PRODUCT_BUNDLE_IDENTIFIER = com.yourdomain.SakuraReel;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = iphoneos;
@@ -509,7 +525,7 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS = NO;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 7;
+				CURRENT_PROJECT_VERSION = 8;
 				DEVELOPMENT_ASSET_PATHS = "\"SakuraReel/Preview Content\"";
 				DEVELOPMENT_TEAM = M78JP4X862;
 				ENABLE_PREVIEWS = YES;
@@ -525,7 +541,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 1.1.2;
+				MARKETING_VERSION = 1.1.3;
 				PRODUCT_BUNDLE_IDENTIFIER = com.yourdomain.SakuraReel;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = iphoneos;

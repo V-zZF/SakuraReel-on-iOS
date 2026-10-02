@@ -1,18 +1,9 @@
-//
-//  MediaDetailView.swift
-//  SakuraReel
-//
-//  Created by OpenAI Codex on behalf of zzf on 2026/10/2.
-//
 import SwiftUI
-import ImageIO
 
 struct MediaDetailView: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(MediaRepository.self) private var repository
     let itemID: UUID
-    @State private var deletedInEditor = false
-    @State private var editing = false
     @State private var editingMetadata = false
     @State private var deletion = false
     @State private var settings = false
@@ -21,69 +12,87 @@ struct MediaDetailView: View {
     @State private var refreshID = UUID()
     @State private var imported: PresentedImport?
     @State private var error: String?
-    @State private var headerShowsArtwork = true
-    private var leftButtonColor: Color { !headerShowsArtwork || headerContrast.leftIsLight ? .black : .white }
-    private var rightButtonColor: Color { !headerShowsArtwork || headerContrast.rightIsLight ? .black : .white }
-    @State private var headerContrast = HeaderButtonContrast(leftIsLight: true, rightIsLight: true)
     @State private var hydratedItem: MediaItem?
     @State private var hydratedRevision: UInt64?
+    @State private var personalEditor: PersonalEditorSelection?
+    @State private var saving = false
+    private let episodesTarget = "detailEpisodes"
+
     private var item: MediaItem? {
         guard let current = repository.items.first(where: { $0.id == itemID }) else { return nil }
-        return hydratedRevision == repository.document.revision ? hydratedItem ?? current : current
+        if hydratedRevision == repository.document.revision { return hydratedItem ?? current }
+        // Keep decoded artwork visible during revision hydration, using current metadata.
+        var display = current
+        let manifest = current.attachments
+        if manifest == hydratedItem?.attachments {
+            display.poster = hydratedItem?.poster
+            display.backdrop = hydratedItem?.backdrop
+            display.logo = hydratedItem?.logo
+            display.attachments = manifest
+        }
+        return display
     }
+    private var canEditMetadata: Bool { hydratedItem != nil && hydratedRevision == repository.document.revision && !saving }
+
     var body: some View {
         NavigationStack {
             Group {
                 if let item {
-                    ScrollView {
-                        VStack(spacing: 20) {
-                            hero(item)
-                            VStack(alignment: .leading, spacing: 24) {
-                                actions(item)
-                                personal(item)
-                                if let metadata = item.metadata {
-                                    statistics(metadata)
-                                    if let overview = metadata.overview, !overview.isEmpty {
-                                        VStack(alignment: .leading, spacing: 8) { Text("简介").font(.title3.bold()); Text(overview).textSelection(.enabled) }
+                    ScrollViewReader { proxy in
+                        ScrollView(showsIndicators: false) {
+                            VStack(spacing: 0) {
+                                MediaDetailHeader(item: item)
+                                VStack(alignment: .leading, spacing: 20) {
+                                    actions(item).padding(.top, -20).padding(.bottom, 4)
+                                    MediaDetailStatistics(item: item)
+                                    MediaDetailSection(title: "短评", symbol: "text.bubble") {
+                                        Text(item.review.flatMap { $0.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? nil : $0 } ?? "暂无短评")
+                                            .font(.body).lineSpacing(4).textSelection(.enabled)
+                                            .frame(maxWidth: .infinity, alignment: .leading)
                                     }
-                                    credits("演员", entries: metadata.cast)
-                                    credits("职员", entries: metadata.crew)
-                                    parts("季度", entries: metadata.seasons, role: "poster")
-                                    parts("单集", entries: metadata.episodes, role: "still")
+                                    MediaDetailSection(title: "简介", symbol: "text.alignleft") {
+                                        Text(item.metadata?.overview.flatMap { $0.isEmpty ? nil : $0 } ?? "暂无简介")
+                                            .font(.body).lineSpacing(4).textSelection(.enabled)
+                                            .frame(maxWidth: .infinity, alignment: .leading)
+                                    }
+                                    if let metadata = item.metadata {
+                                        MediaDetailWorkStatistics(metadata: metadata, type: item.source?.mediaType,
+                                            onEpisodes: metadata.episodes.isEmpty ? nil : {
+                                                withAnimation(.spring(response: 0.6, dampingFraction: 0.86)) {
+                                                    proxy.scrollTo(episodesTarget, anchor: .top)
+                                                }
+                                            })
+                                        credits("演员", entries: metadata.cast)
+                                        credits("职员", entries: metadata.crew)
+                                        parts("季度", entries: metadata.seasons, role: "poster")
+                                        parts("单集", entries: metadata.episodes, role: "still").id(episodesTarget)
+                                    }
+                                    if refreshing { ProgressView("正在重新获取资料") }
+                                    if saving { ProgressView("正在保存") }
+                                    if let error { Text(error).foregroundStyle(.red).font(.footnote).textSelection(.enabled) }
                                 }
-                                if refreshing { ProgressView("正在重新获取资料") }
-                                if let error { Text(error).foregroundStyle(.red).font(.footnote) }
-                            }.padding(.horizontal).padding(.bottom, 32).frame(maxWidth: 1000).frame(maxWidth: .infinity)
+                                .padding(.horizontal, 16).padding(.top, 4).padding(.bottom, 40)
+                                .frame(maxWidth: 1000).frame(maxWidth: .infinity)
+                            }
                         }
+                        .coordinateSpace(name: MediaDetailHeader.coordinateSpace)
+                        .ignoresSafeArea(edges: .top)
                     }
-                    .onScrollGeometryChange(for: Bool.self) { geometry in
-                        geometry.contentOffset.y + geometry.contentInsets.top < 250
-                    } action: { _, showsArtwork in headerShowsArtwork = showsArtwork }
-                    .ignoresSafeArea(edges: .top)
                 } else { ContentUnavailableView("作品已不存在", systemImage: "film") }
             }
             .background(Constants.libraryBackground)
             .toolbarBackground(.hidden, for: .navigationBar)
             .toolbar {
                 ToolbarItem(placement: .confirmationAction) {
-                    Button("完成") { dismiss() }
-                        .tint(rightButtonColor)
-                        .foregroundStyle(rightButtonColor)
-                }
-                ToolbarItem(placement: .topBarLeading) {
-                    Menu {
-                        Button("编辑个人记录", systemImage: "pencil") { editing = true }.disabled(hydratedItem == nil || hydratedRevision != repository.document.revision)
-                        Button("编辑作品资料", systemImage: "doc.text") { editingMetadata = true }.disabled(hydratedItem == nil || hydratedRevision != repository.document.revision)
-                        if item?.source != nil { Button("重新获取 TMDb 资料", systemImage: "arrow.clockwise") { refresh() }.disabled(refreshing) }
-                        Button("TMDb 设置", systemImage: "gearshape") { settings = true }
-                        Button("删除", systemImage: "trash", role: .destructive) { deletion = true }
-                    } label: { Label("更多操作", systemImage: "ellipsis.circle") }
-                    .tint(leftButtonColor)
-                    .foregroundStyle(leftButtonColor)
+                    Button("完成") { dismiss() }.font(.headline.weight(.semibold)).tint(.primary)
+                        .modifier(MediaDetailToolbarStyle())
+                        .disabled(saving)
                 }
             }
-            .sheet(isPresented: $editing, onDismiss: { if deletedInEditor { dismiss() } }) {
-                if let item { AddEditMediaView(initialItem: item, onSave: { try await repository.upsert($0) }, onDelete: { try await repository.remove(item); deletedInEditor = true }) }
+            .sheet(item: $personalEditor) { selection in
+                MediaDetailPersonalEditor(initialRecord: selection.record) { record in
+                    try await repository.updatePersonalRecord(record, for: itemID)
+                }
             }
             .sheet(isPresented: $editingMetadata) {
                 if let item { MediaMetadataEditor(initialItem: item) { try await saveMetadata($0) } }
@@ -104,85 +113,61 @@ struct MediaDetailView: View {
                 do {
                     let loaded = try await repository.editingItem(for: itemID)
                     guard !Task.isCancelled, requestedRevision == repository.document.revision else { return }
-                    hydratedItem = loaded; hydratedRevision = repository.document.revision
-                }
-                catch { self.error = error.localizedDescription }
+                    hydratedItem = loaded; hydratedRevision = requestedRevision
+                } catch { self.error = error.localizedDescription }
             }
             .onDisappear { refreshTask?.cancel(); refreshID = UUID(); refreshing = false }
             .onChange(of: TMDbEnvironment.shared.settings.generation) { refreshTask?.cancel(); refreshID = UUID(); refreshing = false }
             .tint(Constants.accentPink)
         }
+        .presentationDragIndicator(.visible)
+        .interactiveDismissDisabled(saving)
+        .preferredColorScheme(.light)
     }
-    private func hero(_ item: MediaItem) -> some View {
-        GeometryReader { geometry in
-        ZStack(alignment: .bottom) {
-            if let bytes = item.backdrop ?? item.poster, let image = UIImage(data: bytes) {
-                Image(uiImage: image).resizable().scaledToFill().frame(width: geometry.size.width, height: 370).clipped().accessibilityHidden(true)
-            } else { Color(.systemGray5) }
-            LinearGradient(colors: [.black.opacity(0.15), .black.opacity(0.7)], startPoint: .top, endPoint: .bottom)
-            VStack(spacing: 8) {
-                if let bytes = item.logo, let logo = UIImage(data: bytes) {
-                    Image(uiImage: logo).resizable().scaledToFit().frame(maxWidth: 280, maxHeight: 80).accessibilityLabel(item.title)
-                } else { Text(item.title).font(.largeTitle.bold()).multilineTextAlignment(.center) }
-                if let season = item.metadata?.seasonTitle { Text(season).font(.headline) }
-                Text([item.metadata?.releaseDate, item.metadata?.episodeCount.map { String(localized: "\($0) 集") }, item.metadata?.statusLabel].compactMap { $0 }.filter { !$0.isEmpty }.joined(separator: " · "))
-                    .font(.subheadline)
-                if let genres = item.metadata?.genres, !genres.isEmpty { Text(genres.joined(separator: " · ")).font(.caption) }
-            }.foregroundStyle(.white).padding(.horizontal, 24).padding(.bottom, 26).padding(.top, 100)
-        }.frame(width: geometry.size.width, height: 370).clipped()
-        .task(id: HeaderArtworkIdentity(data: item.backdrop ?? item.poster, width: geometry.size.width)) {
-            let data = item.backdrop ?? item.poster
-            let width = geometry.size.width
-            let contrast = await Task.detached(priority: .utility) {
-                HeaderButtonContrast.sample(data: data, displayWidth: width)
-            }.value
-            guard !Task.isCancelled else { return }
-            headerContrast = contrast
-        }
-        }.frame(height: 370)
-    }
+
     private func actions(_ item: MediaItem) -> some View {
-        HStack(spacing: 16) {
-            if let url = externalURL(item.metadata?.homepage) { Button { UIApplication.shared.open(url) } label: { Label("官网", systemImage: "globe") } }
-            if let url = externalURL(item.playURL) { Button { UIApplication.shared.open(url) } label: { Label("播放", systemImage: "play.fill") } }
-            ShareLink(item: item.title + (item.source?.webpage.map { "\n" + $0.absoluteString } ?? "")) { Label("分享", systemImage: "square.and.arrow.up") }
-        }.buttonStyle(.bordered).controlSize(.small)
-    }
-    private func personal(_ item: MediaItem) -> some View {
-        VStack(alignment: .leading, spacing: 12) {
-            HStack { Text("个人记录").font(.title3.bold()); Spacer(); Button("编辑") { editing = true }.disabled(hydratedItem == nil || hydratedRevision != repository.document.revision) }
-            HStack {
-                RatingLabel(rating: item.rating)
-                Text(item.status.displayName)
-                Spacer()
-                if let year = item.watchYear, let month = item.watchMonth { Text("\(String(year)) 年 \(month) 月").foregroundStyle(.secondary) }
-            }
-            if let review = item.review, !review.isEmpty { Text(review).textSelection(.enabled) }
-            else { Text("暂无短评").foregroundStyle(.secondary) }
-        }.padding().background(.background, in: RoundedRectangle(cornerRadius: 16))
-    }
-    private func statistics(_ metadata: MediaMetadata) -> some View {
-        HStack(alignment: .top, spacing: 12) {
-            if let score = metadata.tmdbRating { stat("TMDb 评分", value: String(format: "%.1f / 10", score), symbol: "star") }
-            if let runtime = metadata.runtimeMinutes { stat("时长", value: String(localized: "\(runtime) 分钟"), symbol: "clock") }
-            if let count = metadata.episodeCount { stat("集数", value: String(localized: "\(count) 集"), symbol: "tv") }
-            if !metadata.companies.isEmpty { stat("制作公司", value: metadata.companies.map(\.name).joined(separator: "、"), symbol: "building.2") }
+        Group {
+            if #available(iOS 26, *) {
+                GlassEffectContainer(spacing: 10) { actionButtons(item) }
+            } else { actionButtons(item) }
         }
     }
-    private func stat(_ label: String, value: String, symbol: String) -> some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Label(String(localized: String.LocalizationValue(label)), systemImage: symbol)
-                .font(.caption).foregroundStyle(.secondary).lineLimit(1)
-            Text(value).font(.headline).lineLimit(3, reservesSpace: true).truncationMode(.tail)
-                .textSelection(.enabled)
-        }.frame(maxWidth: .infinity, alignment: .leading).padding().background(.background, in: RoundedRectangle(cornerRadius: 14))
+
+    private func actionButtons(_ item: MediaItem) -> some View {
+        HStack(spacing: 10) {
+            Spacer(minLength: 0)
+            if let url = item.source?.webpage ?? externalURL(item.metadata?.homepage) {
+                Button { UIApplication.shared.open(url) } label: { MediaDetailActionIcon(symbol: "safari") }
+                    .modifier(MediaDetailCircleStyle()).accessibilityLabel(item.source == nil ? "官网" : "TMDb 页面")
+            }
+            ShareLink(item: item.title + (item.source?.webpage.map { "\n" + $0.absoluteString } ?? "")) {
+                MediaDetailActionIcon(symbol: "square.and.arrow.up")
+            }.modifier(MediaDetailCircleStyle()).accessibilityLabel("分享")
+            if let url = externalURL(item.playURL) {
+                Button { UIApplication.shared.open(url) } label: { MediaDetailActionIcon(symbol: "play.fill") }
+                    .modifier(MediaDetailCircleStyle()).accessibilityLabel("播放")
+            }
+            Menu {
+                Button("编辑个人记录", systemImage: "pencil") {
+                    personalEditor = PersonalEditorSelection(record: item.personal)
+                }
+                Button("编辑作品资料", systemImage: "doc.text") { editingMetadata = true }.disabled(!canEditMetadata)
+                if item.source != nil {
+                    Button("重新获取 TMDb 资料", systemImage: "arrow.clockwise") { refresh() }.disabled(refreshing || saving)
+                }
+                Button("TMDb 设置", systemImage: "gearshape") { settings = true }
+                Button("删除", systemImage: "trash", role: .destructive) { deletion = true }.disabled(saving)
+            } label: { MediaDetailActionIcon(symbol: "ellipsis") }
+                .modifier(MediaDetailCircleStyle()).accessibilityLabel("更多操作")
+            Spacer(minLength: 0)
+        }.disabled(saving)
     }
+
     @ViewBuilder private func credits(_ label: String, entries: [MediaCredit]) -> some View {
         if !entries.isEmpty {
             let showsPhotos = entries.contains { !($0.imagePath?.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ?? true) }
-            VStack(alignment: .leading, spacing: 12) {
-                Text(String(localized: String.LocalizationValue(label))).font(.title3.bold())
-                ScrollView(.horizontal) {
+            MediaDetailDisclosure(title: String(localized: String.LocalizationValue(label)), symbol: "person.2.fill") {
+                ScrollView(.horizontal, showsIndicators: false) {
                     LazyHStack(alignment: .top, spacing: 14) {
                         ForEach(entries) { credit in
                             VStack(alignment: .leading, spacing: 5) {
@@ -200,8 +185,7 @@ struct MediaDetailView: View {
     }
     @ViewBuilder private func parts(_ label: String, entries: [MediaPart], role: String) -> some View {
         if !entries.isEmpty {
-            VStack(alignment: .leading, spacing: 12) {
-                Text(String(localized: String.LocalizationValue(label))).font(.title3.bold())
+            MediaDetailSection(title: String(localized: String.LocalizationValue(label)), symbol: "play.rectangle.on.rectangle.fill") {
                 ForEach(entries) { part in
                     DisclosureGroup {
                         if let overview = part.overview, !overview.isEmpty { Text(overview).font(.subheadline).padding(.vertical, 8) }
@@ -228,8 +212,13 @@ struct MediaDetailView: View {
         try await repository.upsert(current)
     }
     private func delete() {
-        guard let item else { return }
-        Task { do { try await repository.remove(item); dismiss() } catch { self.error = error.localizedDescription } }
+        guard let item, !saving else { return }
+        saving = true
+        Task {
+            do { try await repository.remove(item); dismiss() }
+            catch { self.error = error.localizedDescription }
+            saving = false
+        }
     }
     private func refresh() {
         guard var source = item?.source else { return }
@@ -252,61 +241,7 @@ struct MediaDetailView: View {
     }
 }
 
-
-private struct HeaderArtworkIdentity: Hashable {
-    let data: Data?
-    let width: CGFloat
-}
-
-/// Samples the visible hero's upper corners off the main thread, including its dark overlay.
-private struct HeaderButtonContrast: Sendable {
-    let leftIsLight: Bool
-    let rightIsLight: Bool
-
-    nonisolated static func sample(data: Data?, displayWidth: CGFloat) -> Self {
-        guard displayWidth > 0, let data,
-              let source = CGImageSourceCreateWithData(data as CFData, nil),
-              let image = CGImageSourceCreateThumbnailAtIndex(source, 0, [
-                kCGImageSourceCreateThumbnailFromImageAlways: true,
-                kCGImageSourceCreateThumbnailWithTransform: true,
-                kCGImageSourceThumbnailMaxPixelSize: 256,
-                kCGImageSourceShouldCacheImmediately: true
-              ] as CFDictionary) else { return Self(leftIsLight: true, rightIsLight: true) }
-        let width = 64
-        let height = max(1, Int(ceil(120 / displayWidth * CGFloat(width))))
-        var pixels = [UInt8](repeating: 255, count: width * height * 4)
-        let sampled = pixels.withUnsafeMutableBytes { buffer -> Bool in
-            guard let context = CGContext(data: buffer.baseAddress, width: width, height: height,
-                                          bitsPerComponent: 8, bytesPerRow: width * 4,
-                                          space: CGColorSpaceCreateDeviceRGB(),
-                                          bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue) else { return false }
-            context.setFillColor(CGColor(gray: 1, alpha: 1))
-            context.fill(CGRect(x: 0, y: 0, width: width, height: height))
-            // UIKit-style top-origin coordinates match the hero's center aspect-fill crop.
-            context.translateBy(x: 0, y: CGFloat(height)); context.scaleBy(x: 1, y: -1)
-            let heroHeight = 370 / displayWidth * CGFloat(width)
-            let scale = max(CGFloat(width) / CGFloat(image.width), heroHeight / CGFloat(image.height))
-            let drawnWidth = CGFloat(image.width) * scale, drawnHeight = CGFloat(image.height) * scale
-            context.draw(image, in: CGRect(x: (CGFloat(width) - drawnWidth) / 2,
-                                          y: (heroHeight - drawnHeight) / 2,
-                                          width: drawnWidth, height: drawnHeight))
-            return true
-        }
-        guard sampled else { return Self(leftIsLight: true, rightIsLight: true) }
-        func isLight(_ columns: Range<Int>) -> Bool {
-            var luminance = 0.0
-            for y in 0..<height {
-                for x in columns {
-                    let offset = (y * width + x) * 4
-                    func linear(_ channel: UInt8) -> Double {
-                        let value = Double(channel) / 255 * 0.85
-                        return value <= 0.04045 ? value / 12.92 : pow((value + 0.055) / 1.055, 2.4)
-                    }
-                    luminance += 0.2126 * linear(pixels[offset]) + 0.7152 * linear(pixels[offset + 1]) + 0.0722 * linear(pixels[offset + 2])
-                }
-            }
-            return luminance / Double(height * columns.count) > 0.179
-        }
-        return Self(leftIsLight: isLight(0..<20), rightIsLight: isLight(44..<64))
-    }
+private struct PersonalEditorSelection: Identifiable {
+    let id = UUID()
+    let record: PersonalRecord
 }

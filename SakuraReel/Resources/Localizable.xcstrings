@@ -21,6 +21,7 @@
       }
     },
     "%@ 年 %lld 月" : {
+      "extractionState" : "stale",
       "localizations" : {
         "zh-Hans" : {
           "stringUnit" : {
@@ -36,7 +37,11 @@
     "%lld 分" : {
 
     },
+    "%lld 分，满分 10 分" : {
+
+    },
     "%lld 分钟" : {
+      "extractionState" : "stale",
       "localizations" : {
         "zh-Hans" : {
           "stringUnit" : {
@@ -123,6 +128,9 @@
       }
     },
     "API 请求和 Key 会经过所选代理。AniShelf 代理由第三方运营，图片仍直连 TMDb CDN。" : {
+
+    },
+    "https://" : {
 
     },
     "https://你的 API 主机" : {
@@ -260,6 +268,9 @@
     "TMDb 连接超时，请重试或在设置中切换 API 线路。" : {
 
     },
+    "TMDb 页面" : {
+
+    },
     "上一张" : {
       "localizations" : {
         "zh-Hans" : {
@@ -312,6 +323,7 @@
       }
     },
     "个人记录" : {
+      "extractionState" : "stale",
       "localizations" : {
         "zh-Hans" : {
           "stringUnit" : {
@@ -320,6 +332,9 @@
           }
         }
       }
+    },
+    "个人评分" : {
+
     },
     "中央" : {
       "localizations" : {
@@ -656,6 +671,9 @@
           }
         }
       }
+    },
+    "写下观影感想…" : {
+
     },
     "冬" : {
       "extractionState" : "stale",
@@ -1202,6 +1220,12 @@
         }
       }
     },
+    "已展开" : {
+
+    },
+    "已折叠" : {
+
+    },
     "已记住同步文件夹" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -1243,6 +1267,9 @@
           }
         }
       }
+    },
+    "平均单集时长" : {
+
     },
     "序号" : {
       "localizations" : {
@@ -1494,6 +1521,9 @@
         }
       }
     },
+    "播放链接" : {
+
+    },
     "播放链接 (https://)" : {
       "localizations" : {
         "zh-Hans" : {
@@ -1585,6 +1615,9 @@
           }
         }
       }
+    },
+    "无法保存" : {
+
     },
     "无法保存 Keychain 凭据（%d）。" : {
       "localizations" : {
@@ -1684,7 +1717,6 @@
       }
     },
     "时长" : {
-      "extractionState" : "stale",
       "localizations" : {
         "zh-Hans" : {
           "stringUnit" : {
@@ -1757,6 +1789,7 @@
       }
     },
     "暂无短评" : {
+      "extractionState" : "stale",
       "localizations" : {
         "zh-Hans" : {
           "stringUnit" : {
@@ -1807,6 +1840,9 @@
           }
         }
       }
+    },
+    "有未保存的修改" : {
+
     },
     "有海报" : {
       "extractionState" : "stale",
@@ -1903,6 +1939,9 @@
           }
         }
       }
+    },
+    "正在保存" : {
+
     },
     "正在获取作品资料" : {
       "localizations" : {
@@ -2102,6 +2141,9 @@
           }
         }
       }
+    },
+    "清除" : {
+
     },
     "演员" : {
       "localizations" : {
@@ -2441,6 +2483,9 @@
         }
       }
     },
+    "观看年月" : {
+
+    },
     "观看月" : {
       "localizations" : {
         "zh-Hans" : {
@@ -2450,6 +2495,9 @@
           }
         }
       }
+    },
+    "观看状态" : {
+
     },
     "角色／职务" : {
       "localizations" : {
@@ -2645,6 +2693,9 @@
         }
       }
     },
+    "跳转到单集" : {
+
+    },
     "跳过，使用默认 API" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -2757,6 +2808,9 @@
         }
       }
     },
+    "追踪" : {
+
+    },
     "选择" : {
       "localizations" : {
         "zh-Hans" : {
@@ -2786,6 +2840,9 @@
           }
         }
       }
+    },
+    "选择季度：%@" : {
+
     },
     "选择海报" : {
       "localizations" : {

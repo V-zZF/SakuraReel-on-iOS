@@ -91,6 +91,15 @@ struct LibraryDocument: Codable, Sendable {
         }
         try LibraryValidator.validate(self)
     }
+    /// Merge only personal fields into the current entry; preserve artwork and work details.
+    mutating func updatePersonalRecord(_ record: PersonalRecord, for id: UUID, now: Date = Date()) throws {
+        guard var current = items.first(where: { $0.id == id }) else {
+            throw LibraryArchiveError.invalid("作品已不存在。")
+        }
+        current.personal = record
+        try upsert(current, now: now)
+    }
+
     mutating func remove(_ id: UUID) throws {
         items.removeAll { $0.id == id }
         for index in homeGroups.indices { homeGroups[index].ids.removeAll { $0 == id } }

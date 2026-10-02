@@ -88,6 +88,17 @@ struct MediaMetadata: Codable, Hashable, Sendable {
     var crew: [MediaCredit] = []
     var seasons: [MediaPart] = []
     var episodes: [MediaPart] = []
+    /// TV runtime is an average per episode, so the total is explicitly an estimate.
+    func totalRuntimeMinutes(for type: TMDbMediaType?) -> (minutes: Int, isEstimated: Bool)? {
+        guard let runtime = runtimeMinutes, runtime > 0 else { return nil }
+        let isTV = type == .series || type == .season || (type == nil && episodeCount != nil)
+        guard isTV else { return (runtime, false) }
+        guard let count = episodeCount, count > 0 else { return nil }
+        let total = runtime.multipliedReportingOverflow(by: count)
+        guard !total.overflow else { return nil }
+        return (total.partialValue, true)
+    }
+
     var statusLabel: String? {
         guard let remoteStatus else { return nil }
         switch remoteStatus {

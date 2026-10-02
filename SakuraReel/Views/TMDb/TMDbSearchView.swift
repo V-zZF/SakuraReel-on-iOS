@@ -147,25 +147,39 @@ private struct TMDbResultRow: View {
             HStack(alignment: .top, spacing: 12) {
                 TMDbRemoteImage(path: result.posterPath).frame(width: 75, height: 112).clipShape(RoundedRectangle(cornerRadius: 8))
                 VStack(alignment: .leading, spacing: 5) {
-                    Text(result.title).font(.headline)
+                    Text(result.title).font(.headline).foregroundStyle(.primary)
                     if let date = result.date, !date.isEmpty { Text(date).font(.caption).foregroundStyle(.secondary) }
                     if let overview = result.overview, !overview.isEmpty { Text(overview).font(.caption).lineLimit(3).foregroundStyle(.secondary) }
                     if !bySeason { Button("选择") { onSelect(result.source) }.buttonStyle(.bordered).disabled(disabled) }
                 }
             }
             if result.source.mediaType == .series {
-                Picker("剧集录入方式", selection: $bySeason) { Text("整部剧集").tag(false); Text("按季").tag(true) }.pickerStyle(.segmented)
+                Picker("剧集录入方式", selection: $bySeason) { Text("整部剧集").tag(false); Text("按季").tag(true) }.pickerStyle(.segmented).disabled(disabled)
                 if bySeason {
                     if loading { ProgressView("加载季度") }
-                    if let error { Text(error).font(.caption); Button("重试季度") { retry += 1 } }
+                    if let error { Text(error).font(.caption).foregroundStyle(.secondary); Button("重试季度") { retry += 1 }.buttonStyle(.borderless).disabled(disabled) }
                     if !loading && error == nil && seasons.isEmpty { Text("暂无季度资料").foregroundStyle(.secondary) }
                     ForEach(seasons) { season in
                         Button {
                             let source = MediaSource(tmdb: .season(id: season.id, seriesID: result.source.remoteID, number: season.number), language: result.source.language, fetchedAt: Date())
                             onSelect(source)
                         } label: {
-                            HStack { Text(season.title); Spacer(); Text("选择").font(.caption) }
-                        }.disabled(disabled)
+                            HStack(spacing: 12) {
+                                Text(season.title).foregroundStyle(.primary)
+                                    .multilineTextAlignment(.leading)
+                                Spacer(minLength: 8)
+                                Text("选择").font(.subheadline.weight(.semibold))
+                                    .foregroundStyle(Constants.accentPink).fixedSize()
+                            }
+                            .padding(.horizontal, 12).padding(.vertical, 8)
+                            .frame(maxWidth: .infinity, minHeight: 48, alignment: .leading)
+                            .background(Color(.systemGray6), in: RoundedRectangle(cornerRadius: 10))
+                            .contentShape(Rectangle())
+                        }
+                        // List's automatic style treats multiple buttons as one row action.
+                        .buttonStyle(.plain)
+                        .disabled(disabled)
+                        .accessibilityLabel("选择季度：\(season.title)")
                     }
                 }
             }

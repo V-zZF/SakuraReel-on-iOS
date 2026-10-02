@@ -372,6 +372,69 @@ actor ProducerProbe {
             let preserved = try Data(contentsOf: diskFile)
             expect(preserved == unknown && transactions.document.revision == 21, "external unsupported file is preserved and not overwritten")
         }
+        // Detail drafts must merge into the latest work without replacing artwork or ordering.
+        let detailFolder = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        defer { try? FileManager.default.removeItem(at: detailFolder) }
+        let detailRepo = MediaRepository(directory: detailFolder)
+        var detailEntry = MediaItem(title: "Original", poster: Data([1]), status: .watched,
+                                    watchedAt: YearMonth(year: 2024, month: 3), rating: 9,
+                                    source: source, metadata: MediaMetadata(overview: "original"),
+                                    backdrop: Data([2]), logo: Data([3]))
+        let companion = MediaItem(title: "Companion", status: .watched,
+                                  watchedAt: YearMonth(year: 2024, month: 3), rating: 9)
+        try await detailRepo.upsert(detailEntry)
+        try await detailRepo.upsert(companion)
+        try await detailRepo.applyHomeReorder([companion.id, detailEntry.id])
+        try await detailRepo.applyRankingReorder([detailEntry.id, companion.id])
+        var recordDraft = detailEntry.personal
+        recordDraft.review = "Unsaved detail draft"
+        let homeBefore = detailRepo.document.homeGroups
+        let rankingBefore = detailRepo.document.rankingGroups
+        detailEntry.title = "Latest work title"
+        detailEntry.metadata?.overview = "Latest overview"
+        detailEntry.logo = Data([4])
+        try await detailRepo.upsert(detailEntry)
+        let createdBefore = detailRepo.items.first { $0.id == detailEntry.id }!.createdAt
+        let revisionBefore = detailRepo.document.revision
+        try await detailRepo.updatePersonalRecord(recordDraft, for: detailEntry.id)
+        let merged = try await detailRepo.editingItem(for: detailEntry.id)
+        expect(merged.title == "Latest work title" && merged.metadata?.overview == "Latest overview" && merged.source == source,
+               "detail draft preserves subsequently edited work and source identity")
+        expect(merged.poster == Data([1]) && merged.backdrop == Data([2]) && merged.logo == Data([4]),
+               "personal-only commit retains all current artwork bytes on disk")
+        expect(merged.personal == recordDraft && merged.createdAt == createdBefore && detailRepo.document.revision == revisionBefore + 1,
+               "personal commit publishes once with repository-owned timestamps")
+        expect(detailRepo.document.homeGroups == homeBefore && detailRepo.document.rankingGroups == rankingBefore,
+               "review-only detail commit preserves both manual orders")
+        expect(detailRepo.items.allSatisfy { $0.poster == nil && $0.logo == nil && $0.backdrop == nil },
+               "personal commit does not publish image bytes in lists")
+        for rating in [0, 1, 5, 9, 10] {
+            recordDraft.rating = rating
+            try await detailRepo.updatePersonalRecord(recordDraft, for: detailEntry.id)
+            expect(detailRepo.items.first { $0.id == detailEntry.id }?.rating == rating,
+                   "detail scoring preserves integer rating \(rating)")
+            try LibraryValidator.validate(detailRepo.document)
+        }
+        recordDraft.watchedAt = nil
+        recordDraft.status = .wantToWatch
+        recordDraft.playURL = "https://example.com/play"
+        try await detailRepo.updatePersonalRecord(recordDraft, for: detailEntry.id)
+        expect(detailRepo.document.homeGroups.first { $0.month == nil }?.ids == [detailEntry.id],
+               "clearing watched month moves detail entry into unset-month group")
+        let validRevision = detailRepo.document.revision
+        var invalidRecord = recordDraft; invalidRecord.rating = 11
+        do { try await detailRepo.updatePersonalRecord(invalidRecord, for: detailEntry.id); expect(false, "invalid personal score should fail") }
+        catch { expect(detailRepo.document.revision == validRevision && detailRepo.items.first { $0.id == detailEntry.id }?.personal == recordDraft,
+                       "invalid personal commit preserves published record and revision") }
+        try await detailRepo.remove(merged)
+        let deletedRevision = detailRepo.document.revision
+        do { try await detailRepo.updatePersonalRecord(recordDraft, for: detailEntry.id); expect(false, "deleted detail entry must not be recreated") }
+        catch { expect(error as? RepositoryError == .notFound && detailRepo.document.revision == deletedRevision,
+                       "personal-only commit rejects deleted entry without mutation") }
+        let unchanged = transactions.items[0].personal
+        do { try await transactions.updatePersonalRecord(recordDraft, for: entryTwo.id); expect(false, "external replacement must block personal commit") }
+        catch { expect(transactions.document.revision == 21 && transactions.items[0].personal == unchanged,
+                       "failed personal disk commit preserves record and revision") }
         // No real credentials or Keychain access: exercise provisioning and transactional settings.
         let suite = "SakuraReel.settings-tests.\(UUID().uuidString)"
         let preferences = UserDefaults(suiteName: suite)!

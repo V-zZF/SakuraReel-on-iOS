@@ -6,6 +6,8 @@ SakuraReel's TMDb search/detail layout and resource selection architecture were 
 on 2026-10-02. API host rewriting, relay host selection and rate-limit retry behavior
 are adapted from AniShelf's RedirectingHTTPClient and TMDbAPIKeyValidator, with
 SakuraReel-specific transport retries, opt-in relay failover and credential isolation.
+Detail hero geometry, gradients, popup panel layout, stat cards and tracking layout
+are also adapted from AniShelf, with local artwork and SakuraReel personal-record drafts.
 Modified for SakuraReel on 2026-10-02. Persistence, wire DTOs, authentication storage
 and image processing remain SakuraReel implementations. AniShelf's LibraryStore,
 SwiftData and LibrarySync are not included.

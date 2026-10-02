@@ -25,7 +25,12 @@ struct MediaDetailView: View {
     private var leftButtonColor: Color { !headerShowsArtwork || headerContrast.leftIsLight ? .black : .white }
     private var rightButtonColor: Color { !headerShowsArtwork || headerContrast.rightIsLight ? .black : .white }
     @State private var headerContrast = HeaderButtonContrast(leftIsLight: true, rightIsLight: true)
-    private var item: MediaItem? { repository.items.first { $0.id == itemID } }
+    @State private var hydratedItem: MediaItem?
+    @State private var hydratedRevision: UInt64?
+    private var item: MediaItem? {
+        guard let current = repository.items.first(where: { $0.id == itemID }) else { return nil }
+        return hydratedRevision == repository.document.revision ? hydratedItem ?? current : current
+    }
     var body: some View {
         NavigationStack {
             Group {
@@ -67,8 +72,8 @@ struct MediaDetailView: View {
                 }
                 ToolbarItem(placement: .topBarLeading) {
                     Menu {
-                        Button("编辑个人记录", systemImage: "pencil") { editing = true }
-                        Button("编辑作品资料", systemImage: "doc.text") { editingMetadata = true }
+                        Button("编辑个人记录", systemImage: "pencil") { editing = true }.disabled(hydratedItem == nil || hydratedRevision != repository.document.revision)
+                        Button("编辑作品资料", systemImage: "doc.text") { editingMetadata = true }.disabled(hydratedItem == nil || hydratedRevision != repository.document.revision)
                         if item?.source != nil { Button("重新获取 TMDb 资料", systemImage: "arrow.clockwise") { refresh() }.disabled(refreshing) }
                         Button("TMDb 设置", systemImage: "gearshape") { settings = true }
                         Button("删除", systemImage: "trash", role: .destructive) { deletion = true }
@@ -78,25 +83,31 @@ struct MediaDetailView: View {
                 }
             }
             .sheet(isPresented: $editing, onDismiss: { if deletedInEditor { dismiss() } }) {
-                if let item { AddEditMediaView(initialItem: item, onSave: { try repository.upsert($0) }, onDelete: { try repository.remove(item); deletedInEditor = true }) }
+                if let item { AddEditMediaView(initialItem: item, onSave: { try await repository.upsert($0) }, onDelete: { try await repository.remove(item); deletedInEditor = true }) }
             }
             .sheet(isPresented: $editingMetadata) {
-                if let item { MediaMetadataEditor(initialItem: item) { try saveMetadata($0) } }
+                if let item { MediaMetadataEditor(initialItem: item) { try await saveMetadata($0) } }
             }
             .sheet(isPresented: $settings) { TMDbSettingsView() }
             .sheet(item: $imported) { selection in
                 if let item {
                     TMDbImportPreview(draft: selection.draft, existing: item) { draft, fields in
-                        guard let current = self.item else { throw TMDbError.notFound }
-                        var updated = draft.merging(into: current, fields: fields)
-                        updated.updatedAt = Date()
-                        try repository.upsert(updated)
+                        try await repository.applyMetadata(draft, fields: fields, to: itemID)
                     }
                 }
             }
             .alert("确认删除", isPresented: $deletion) {
                 Button("删除", role: .destructive) { delete() }; Button("取消", role: .cancel) {}
             } message: { Text("删除后不可恢复，确定要删除吗？") }
+            .task(id: repository.document.revision) {
+                let requestedRevision = repository.document.revision
+                do {
+                    let loaded = try await repository.editingItem(for: itemID)
+                    guard !Task.isCancelled, requestedRevision == repository.document.revision else { return }
+                    hydratedItem = loaded; hydratedRevision = repository.document.revision
+                }
+                catch { self.error = error.localizedDescription }
+            }
             .onDisappear { refreshTask?.cancel(); refreshID = UUID(); refreshing = false }
             .onChange(of: TMDbEnvironment.shared.settings.generation) { refreshTask?.cancel(); refreshID = UUID(); refreshing = false }
             .tint(Constants.accentPink)
@@ -139,7 +150,7 @@ struct MediaDetailView: View {
     }
     private func personal(_ item: MediaItem) -> some View {
         VStack(alignment: .leading, spacing: 12) {
-            HStack { Text("个人记录").font(.title3.bold()); Spacer(); Button("编辑") { editing = true } }
+            HStack { Text("个人记录").font(.title3.bold()); Spacer(); Button("编辑") { editing = true }.disabled(hydratedItem == nil || hydratedRevision != repository.document.revision) }
             HStack {
                 RatingLabel(rating: item.rating)
                 Text(item.status.displayName)
@@ -209,15 +220,16 @@ struct MediaDetailView: View {
         guard let text, let url = URL(string: text), let scheme = url.scheme?.lowercased(), scheme != "javascript", scheme != "data", scheme != "file" else { return nil }
         return url
     }
-    private func saveMetadata(_ edited: MediaItem) throws {
+    private func saveMetadata(_ edited: MediaItem) async throws {
         guard var current = item else { throw TMDbError.notFound }
         current.title = edited.title; current.metadata = edited.metadata
         current.poster = edited.poster; current.backdrop = edited.backdrop; current.logo = edited.logo
-        current.updatedAt = Date(); try repository.upsert(current)
+        current.attachments = edited.attachments
+        try await repository.upsert(current)
     }
     private func delete() {
         guard let item else { return }
-        do { try repository.remove(item); dismiss() } catch { self.error = error.localizedDescription }
+        Task { do { try await repository.remove(item); dismiss() } catch { self.error = error.localizedDescription } }
     }
     private func refresh() {
         guard var source = item?.source else { return }

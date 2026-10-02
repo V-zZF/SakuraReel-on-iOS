@@ -160,7 +160,7 @@ struct TimeMachineView: View {
             heroIsSource: true,
             selectedHint: { _ in "打开季度" },
             accessibilityText: { "\($0.quarter.title)，\($0.count) 部作品" },
-            artwork: { SquareMemoryPoster(imageData: $0.representative.poster) },
+            artwork: { SquareMemoryPoster(item: $0.representative) },
             caption: { moment in
                 HStack(alignment: .firstTextBaseline, spacing: 6) {
                     Text("\(String(moment.quarter.year)) 年")
@@ -234,7 +234,7 @@ struct TimeMachineView: View {
             },
             artwork: { item in
                 MemoryFlipArtwork(
-                    imageData: item.poster,
+                    item: item,
                     review: item.review ?? "",
                     isFlipped: selectedItemID == item.id && showsReviewBack
                 )
@@ -311,11 +311,9 @@ struct TimeMachineView: View {
 }
 
 private struct SquareMemoryPoster: View {
+    @Environment(MediaRepository.self) private var repository
+    let item: MediaItem
     @State private var image: UIImage?
-
-    init(imageData: Data?) {
-        _image = State(initialValue: imageData.flatMap(UIImage.init(data:)))
-    }
 
     var body: some View {
         GeometryReader { geometry in
@@ -335,18 +333,24 @@ private struct SquareMemoryPoster: View {
                     }
             }
         }
+        .task(id: repository.document.revision) {
+            var data = item.poster
+            if data == nil { data = await repository.attachment(.poster, for: item.id) }
+            guard !Task.isCancelled else { return }
+            image = data.flatMap(UIImage.init(data:))
+        }
     }
 }
 
 private struct MemoryFlipArtwork: View {
-    let imageData: Data?
+    let item: MediaItem
     let review: String
     let isFlipped: Bool
 
     var body: some View {
         GeometryReader { geometry in
             ZStack {
-                SquareMemoryPoster(imageData: imageData)
+                SquareMemoryPoster(item: item)
                     .opacity(isFlipped ? 0 : 1)
                     .rotation3DEffect(
                         .degrees(isFlipped ? 180 : 0),
@@ -455,4 +459,5 @@ struct TimeMachinePortal: View {
 
 #Preview {
     TimeMachineView(items: PreviewSampleData.sampleItems)
+        .environment(MediaRepository(seedItems: PreviewSampleData.sampleItems))
 }

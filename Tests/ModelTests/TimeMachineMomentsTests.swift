@@ -4,9 +4,8 @@ func runTimeMachineMomentsTests() {
     print("\n— 时光机季度与封面 —")
 
     func item(_ title: String, month: Int?, rating: Int = 0,
-              status: MediaStatus = .watched, rankIndex: Int? = nil) -> MediaItem {
-        MediaItem(title: title, status: status, watchYear: 2024,
-                  watchMonth: month, rating: rating, sortIndex: 0, rankIndex: rankIndex)
+              status: MediaStatus = .watched) -> MediaItem {
+        MediaItem(title: title, status: status, watchedAt: month.map { YearMonth(year: 2024, month: $0) }, rating: rating)
     }
 
     let source = [
@@ -29,21 +28,18 @@ func runTimeMachineMomentsTests() {
     expectEqual(moments.map(\.quarter.monthRange), ["10–12 月", "7–9 月", "4–6 月", "1–3 月"], "月份边界")
     expectEqual(moments[1].rankedItems.map(\.title), ["九月", "七月"], "未评分作品也参与季度，并按观看月份排序")
     var yearless = item("无年份", month: 3)
-    yearless.watchYear = nil
+    yearless.personal.watchedAt = nil
     expect(TimeMachineMoments.quarter(for: yearless) == nil, "缺失观看年份不进入季度")
 
-    let tie = TimeMachineMoments.moments(from: [
-        item("第二名", month: 2, rating: 10, rankIndex: 1),
-        item("第一名", month: 1, rating: 10, rankIndex: 0),
-        item("低分", month: 3, rating: 8),
-    ])
+    let tiedItems = [item("第二名", month: 2, rating: 10), item("第一名", month: 1, rating: 10), item("低分", month: 3, rating: 8)]
+    let tie = TimeMachineMoments.moments(from: tiedItems, rankingOrder: [tiedItems[1].id, tiedItems[0].id, tiedItems[2].id])
     expectEqual(tie[0].representative.title, "第一名", "同分代表封面沿用排行榜名次")
     expectEqual(tie[0].rankedItems.map(\.title), ["第一名", "第二名", "低分"], "季度作品使用排行榜顺序")
 
     var older = item("旧年", month: 12, rating: 10)
-    older.watchYear = 2023
+    older.personal.watchedAt?.year = 2023
     var newer = item("新年", month: 1, rating: 0)
-    newer.watchYear = 2025
+    newer.personal.watchedAt?.year = 2025
     expectEqual(TimeMachineMoments.moments(from: [older, newer]).map(\.quarter.year),
                 [2025, 2023], "季度顺序先比较年份")
 
@@ -67,7 +63,7 @@ func runTimeMachineMomentsTests() {
     }
     func moment(_ year: Int, _ month: Int) -> TimeMachineMoments.Moment {
         var media = item("季度", month: month)
-        media.watchYear = year
+        media.personal.watchedAt?.year = year
         return TimeMachineMoments.moments(from: [media])[0]
     }
     let available = [moment(2026, 7), moment(2025, 7), moment(2024, 10)]

@@ -109,6 +109,9 @@
         }
       }
     },
+    "AniShelf 代理" : {
+
+    },
     "API Key 无效或没有访问权限。" : {
       "localizations" : {
         "zh-Hans" : {
@@ -118,6 +121,9 @@
           }
         }
       }
+    },
+    "API 请求和 Key 会经过所选代理。AniShelf 代理由第三方运营，图片仍直连 TMDb CDN。" : {
+
     },
     "https://你的 API 主机" : {
       "localizations" : {
@@ -195,6 +201,9 @@
         }
       }
     },
+    "TMDb 安全连接失败（TLS，错误 %lld），请检查 VPN 或网络代理线路。" : {
+
+    },
     "TMDb 服务暂时不可用（%lld）。" : {
       "localizations" : {
         "zh-Hans" : {
@@ -204,6 +213,9 @@
           }
         }
       }
+    },
+    "TMDb 网络连接失败（错误 %lld），请重试或切换 API 线路。" : {
+
     },
     "TMDb 设置" : {
       "localizations" : {
@@ -244,6 +256,9 @@
           }
         }
       }
+    },
+    "TMDb 连接超时，请重试或在设置中切换 API 线路。" : {
+
     },
     "上一张" : {
       "localizations" : {
@@ -397,6 +412,9 @@
         }
       }
     },
+    "代理方案" : {
+
+    },
     "以后「导出」「导入」用的都是这个文件夹。" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -427,6 +445,9 @@
           }
         }
       }
+    },
+    "作品已不存在。" : {
+
     },
     "作品状态" : {
       "localizations" : {
@@ -469,7 +490,14 @@
         }
       }
     },
+    "使用 API 代理" : {
+
+    },
+    "使用 tmdb-api.konakona.dev；连接失败时尝试 tmdb-api.konakona52.com。" : {
+
+    },
     "使用自定义 API 代理" : {
+      "extractionState" : "stale",
       "localizations" : {
         "zh-Hans" : {
           "stringUnit" : {
@@ -1256,6 +1284,9 @@
         }
       }
     },
+    "当前设备未连接互联网。" : {
+
+    },
     "影片海报" : {
       "localizations" : {
         "zh-Hans" : {
@@ -1317,6 +1348,9 @@
           }
         }
       }
+    },
+    "所选 API 代理拒绝访问（HTTP %lld），请切换直连或其他代理线路。" : {
+
     },
     "手动添加" : {
       "localizations" : {
@@ -1571,6 +1605,9 @@
           }
         }
       }
+    },
+    "无法解析 TMDb 主机，请检查 DNS 或切换 API 线路。" : {
+
     },
     "无法连接 TMDb，请检查网络或所选线路。" : {
       "localizations" : {
@@ -1877,6 +1914,9 @@
         }
       }
     },
+    "正在读取资料库" : {
+
+    },
     "正在重新获取资料" : {
       "localizations" : {
         "zh-Hans" : {
@@ -2124,6 +2164,7 @@
       }
     },
     "直连 api.themoviedb.org" : {
+      "extractionState" : "stale",
       "localizations" : {
         "zh-Hans" : {
           "stringUnit" : {
@@ -2132,6 +2173,9 @@
           }
         }
       }
+    },
+    "直连 api.themoviedb.org；连接失败可开启 AniShelf 代理。" : {
+
     },
     "看过" : {
       "extractionState" : "stale",
@@ -2364,6 +2408,9 @@
         }
       }
     },
+    "自定义代理" : {
+
+    },
     "获取 API Key" : {
       "localizations" : {
         "zh-Hans" : {
@@ -2588,6 +2635,7 @@
       }
     },
     "资料库读取失败，原文件已保留。请从完整备份恢复。" : {
+      "extractionState" : "stale",
       "localizations" : {
         "zh-Hans" : {
           "stringUnit" : {
@@ -2821,6 +2869,7 @@
       }
     },
     "鉴权请求和 API Key 会经过所选代理。请仅使用你有权使用且信任的主机。图片仍独立直连。" : {
+      "extractionState" : "stale",
       "localizations" : {
         "zh-Hans" : {
           "stringUnit" : {

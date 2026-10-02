@@ -9,6 +9,7 @@ struct RankingsView: View {
     @Environment(\.verticalSizeClass) private var verticalSizeClass
 
     @State private var isSortMode: Bool = false
+    @State private var savingOrder = false
     @State private var sheetTarget: SheetTarget?
     @State private var hasEntered = false
 
@@ -33,7 +34,7 @@ struct RankingsView: View {
         }
     }
 
-    /// 排行榜顺序：评分 → 独立的完整顺序表
+    /// 排行榜顺序：评分 → 手动评分组，未手动组走年月与首页顺序
     private var rankedItems: [MediaItem] {
         repository.rankingItems
     }
@@ -65,6 +66,7 @@ struct RankingsView: View {
                 draggedID: draggedItemID, blockedMessage: blockedMessage,
                 draftIDs: draftItems.map(\.id)
             ))
+            .disabled(savingOrder)
             .navigationTitle("评分排行榜")
         .navigationBarTitleDisplayMode(.inline)
         .toolbarBackground(.visible, for: .navigationBar)
@@ -130,9 +132,7 @@ struct RankingsView: View {
         guard let id = pendingDeleteID else { return }
         pendingDeleteID = nil
         guard let item = repository.items.first(where: { $0.id == id }) else { return }
-        withAnimation(reduceMotion ? nil : .smooth(duration: 0.25)) {
-            repository.delete(item)
-        }
+        Task { await repository.delete(item) }
     }
 
     /// 把 `blockedMessage: String?` 桥接成 alert 需要的 `isPresented`
@@ -327,8 +327,14 @@ struct RankingsView: View {
     ///
     /// 传入全部条目 id，覆盖排行榜完整顺序。
     private func commitSortMode() {
-        repository.applyRankingReorder(draftItems.map(\.id))
-        exitSortMode()
+        guard !savingOrder else { return }
+        savingOrder = true
+        let ids = draftItems.map(\.id)
+        Task {
+            defer { savingOrder = false }
+            do { try await repository.applyRankingReorder(ids); exitSortMode() }
+            catch { blockedMessage = error.localizedDescription }
+        }
     }
 
     /// 放弃草稿并退出：不写盘，草稿丢弃即回到进入前的顺序。

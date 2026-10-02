@@ -13,6 +13,7 @@ struct HomeView: View {
     @State private var isSearchActive: Bool = false
     @State private var searchText: String = ""
     @State private var isSortMode: Bool = false
+    @State private var savingOrder = false
     @State private var tmdbSettings = false
     @State private var sheetTarget: SheetTarget?
     /// 是否已 Push 进排行榜；工具栏按钮通过此状态触发导航。
@@ -340,6 +341,7 @@ struct HomeView: View {
                 draggedID: draggedItemID, blockedMessage: blockedMessage,
                 draftIDs: draftItems.map(\.id)
             ))
+            .disabled(savingOrder)
             .navigationTitle("SakuraReel")
             .navigationBarTitleDisplayMode(.inline)
             .navigationDestination(isPresented: $showsRankings) {
@@ -350,7 +352,7 @@ struct HomeView: View {
             .sheet(item: $sheetTarget, onDismiss: commitPendingDelete) { target in
                 switch target {
                 case .add:
-                    AddMediaFlowView(onSave: { try repository.upsert($0) })
+                    AddMediaFlowView(onSave: { try await repository.upsert($0) })
                 case .edit(let item):
                     MediaDetailView(itemID: item.id)
                 }
@@ -381,9 +383,7 @@ struct HomeView: View {
         guard let id = pendingDeleteID else { return }
         pendingDeleteID = nil
         guard let item = repository.items.first(where: { $0.id == id }) else { return }
-        withAnimation(reduceMotion ? nil : .smooth(duration: 0.25)) {
-            repository.delete(item)
-        }
+        Task { await repository.delete(item) }
     }
 
     /// 把 `blockedMessage: String?` 桥接成 alert 需要的 `isPresented`
@@ -472,9 +472,9 @@ struct HomeView: View {
     private func exportLibrary() {
         guard !isSyncing else { return }
         isSyncing = true
-        let snapshot = repository.snapshot
         Task {
             do {
+                let snapshot = try await repository.exportSnapshot()
                 try await SyncFolder.withAccess { folder in
                     // 云盘上的文件可能要等系统下载，协调读写会阻塞 —— 别占主线程
                     try await Task.detached(priority: .userInitiated) {
@@ -517,14 +517,14 @@ struct HomeView: View {
 
     /// 确认之后才真正写盘。写之前先留一个回滚点。
     private func commitImport(_ pending: PendingImport) {
-        let message: SyncMessage
-        do {
-            try repository.makeImportBackup()
-            try repository.applyImport(pending.snapshot, replacingUnreadable: true)
-            message = SyncMessage(title: "导入完成", body: pending.summary.description)
-        } catch { message = SyncMessage(title: "导入失败", body: error.localizedDescription) }
-        // 确认弹窗正在关闭，同一个 runloop 里再挂一个 alert 会被丢掉，等它关完再说
-        Task { syncMessage = message }
+        Task {
+            isSyncing = true
+            defer { isSyncing = false }
+            do {
+                try await repository.applyImport(pending.snapshot, replacingUnreadable: true, backup: true)
+                syncMessage = SyncMessage(title: "导入完成", body: pending.summary.description)
+            } catch { syncMessage = SyncMessage(title: "导入失败", body: error.localizedDescription) }
+        }
     }
 
     private var syncMessagePresented: Binding<Bool> {
@@ -554,8 +554,14 @@ struct HomeView: View {
     ///
     /// 传入全部条目 id，覆盖首页完整顺序。
     private func commitSortMode() {
-        repository.applyHomeReorder(draftItems.map(\.id))
-        exitSortMode()
+        guard !savingOrder else { return }
+        savingOrder = true
+        let ids = draftItems.map(\.id)
+        Task {
+            defer { savingOrder = false }
+            do { try await repository.applyHomeReorder(ids); exitSortMode() }
+            catch { repository.lastError = error.localizedDescription }
+        }
     }
 
     /// 放弃草稿并退出：不写盘，草稿丢弃即回到进入前的顺序。

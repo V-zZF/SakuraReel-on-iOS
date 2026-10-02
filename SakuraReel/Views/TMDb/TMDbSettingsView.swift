@@ -17,6 +17,7 @@ struct TMDbSettingsView: View {
     @State private var key = ""
     @State private var proxy = ""
     @State private var usesProxy = false
+    @State private var usesAniShelf = true
     @State private var message: String?
     @State private var validating = false
     @State private var task: Task<Void, Never>?
@@ -26,7 +27,7 @@ struct TMDbSettingsView: View {
     @State private var originalProxy = ""
     @State private var originalUsesProxy = false
     @State private var discard = false
-    private var dirty: Bool { language != originalLanguage || key != originalKey || proxy != originalProxy || usesProxy != originalUsesProxy }
+    private var dirty: Bool { language != originalLanguage || key != originalKey || proxy != originalProxy || usesProxy != originalUsesProxy || (usesProxy && (usesAniShelf != TMDbRoutes.aniShelf.contains(originalProxy))) }
     var body: some View {
         let settings = environment.settings
         NavigationStack {
@@ -57,13 +58,22 @@ struct TMDbSettingsView: View {
                     }
                 }
                 Section("连接线路") {
-                    Toggle("使用自定义 API 代理", isOn: $usesProxy)
+                    Toggle("使用 API 代理", isOn: $usesProxy)
                     if usesProxy {
-                        TextField("https://你的 API 主机", text: $proxy)
-                            .textInputAutocapitalization(.never).autocorrectionDisabled().keyboardType(.URL)
-                        Text("鉴权请求和 API Key 会经过所选代理。请仅使用你有权使用且信任的主机。图片仍独立直连。")
+                        Picker("代理方案", selection: $usesAniShelf) {
+                            Text("AniShelf 代理").tag(true)
+                            Text("自定义代理").tag(false)
+                        }
+                        if usesAniShelf {
+                            Text("使用 tmdb-api.konakona.dev；连接失败时尝试 tmdb-api.konakona52.com。")
+                                .font(.caption).foregroundStyle(.secondary)
+                        } else {
+                            TextField("https://你的 API 主机", text: $proxy)
+                                .textInputAutocapitalization(.never).autocorrectionDisabled().keyboardType(.URL)
+                        }
+                        Text("API 请求和 Key 会经过所选代理。AniShelf 代理由第三方运营，图片仍直连 TMDb CDN。")
                             .font(.caption).foregroundStyle(.secondary)
-                    } else { Text("直连 api.themoviedb.org") }
+                    } else { Text("直连 api.themoviedb.org；连接失败可开启 AniShelf 代理。") }
                     Button("验证当前线路") { validate() }.disabled(validating || key.isEmpty)
                     if validating { ProgressView("验证中") }
                     if let message { Text(message).font(.footnote).accessibilityLabel(message) }
@@ -89,7 +99,7 @@ struct TMDbSettingsView: View {
                             message = String(localized: "请填写 API Key，或选择跳过。")
                             return
                         }
-                        try settings.save(key: key, proxy: usesProxy ? proxy : nil)
+                        try settings.save(key: key, proxy: usesProxy ? (usesAniShelf ? TMDbRoutes.aniShelf[0] : proxy) : nil)
                         settings.language = language
                         invalidate()
                         if let onSaved { onSaved() } else { dismiss() } }
@@ -101,9 +111,10 @@ struct TMDbSettingsView: View {
                 language = settings.language; originalLanguage = language
                 key = settings.connection.key; usesProxy = settings.host != "api.themoviedb.org"
                 proxy = usesProxy ? settings.host : ""
+                usesAniShelf = !usesProxy || TMDbRoutes.aniShelf.contains(settings.host)
                 originalKey = key; originalProxy = proxy; originalUsesProxy = usesProxy
             }
-            .onChange(of: key) { invalidate() }.onChange(of: proxy) { invalidate() }.onChange(of: usesProxy) { invalidate() }
+            .onChange(of: key) { invalidate() }.onChange(of: proxy) { invalidate() }.onChange(of: usesProxy) { invalidate() }.onChange(of: usesAniShelf) { invalidate() }
             .onDisappear { task?.cancel() }
             .modifier(UnsavedDismissGuard(isDirty: dirty, onAttempt: { discard = true }))
             .alert("放弃修改？", isPresented: $discard) {
@@ -117,8 +128,9 @@ struct TMDbSettingsView: View {
         invalidate()
         let id = requestID
         do {
-            let host = try TMDbSettings.validatedHost(usesProxy ? proxy : nil)
-            let connection = TMDbConnection(key: key.trimmingCharacters(in: .whitespacesAndNewlines), host: host, generation: UUID())
+            let host = try TMDbSettings.validatedHost(usesProxy ? (usesAniShelf ? TMDbRoutes.aniShelf[0] : proxy) : nil)
+            let connection = TMDbConnection(key: key.trimmingCharacters(in: .whitespacesAndNewlines), host: host, generation: UUID(),
+                fallbackHosts: usesProxy && usesAniShelf ? TMDbRoutes.aniShelf.filter { $0 != host } : [])
             validating = true
             task = Task {
                 do {

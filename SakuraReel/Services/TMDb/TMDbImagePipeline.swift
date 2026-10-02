@@ -10,6 +10,7 @@ import ImageIO
 import CryptoKit
 
 actor TMDbImagePipeline: TMDbImageLoading {
+    private let transport = TMDbURLTransport()
     private let memory = NSCache<NSString, NSData>()
     private let tasks = SharedTaskPool<Data>()
     private var memoryDates: [String: Date] = [:]
@@ -25,16 +26,16 @@ actor TMDbImagePipeline: TMDbImageLoading {
         if let date = memoryDates[key], Date().timeIntervalSince(date) < 7 * 86400, let cached = memory.object(forKey: key as NSString) { return cached as Data }
         let destination = folder.appendingPathComponent(key)
         let folder = self.folder
+        let transport = self.transport
         let data = try await tasks.value(for: key) {
             // The pool's producer executes away from MainActor; no UIKit objects cross isolation.
             let manager = FileManager.default
             if let attrs = try? manager.attributesOfItem(atPath: destination.path),
                let date = attrs[.modificationDate] as? Date, Date().timeIntervalSince(date) < 7 * 86400,
                let data = try? Data(contentsOf: destination) { return data }
-            let (bytes, response) = try await URLSession.shared.data(from: url)
+            let bytes = try await Self.download(url, transport: transport)
             try Task.checkCancellation()
-            guard (response as? HTTPURLResponse).map({ (200..<300).contains($0.statusCode) }) == true,
-                  bytes.count < 30 * 1024 * 1024 else { throw TMDbError.network }
+            guard bytes.count < 30 * 1024 * 1024 else { throw TMDbError.network }
             let data = try Self.process(bytes, pixels: pixels, kind: kind)
             try Task.checkCancellation()
             try manager.createDirectory(at: folder, withIntermediateDirectories: true)
@@ -47,6 +48,26 @@ actor TMDbImagePipeline: TMDbImageLoading {
         memoryDates[key] = Date()
         if memoryDates.count > 1000 { memoryDates = [key: Date()]; memory.removeAllObjects() }
         return data
+    }
+    private nonisolated static func download(_ url: URL, transport: TMDbURLTransport) async throws -> Data {
+        for attempt in 0...1 {
+            try Task.checkCancellation()
+            do {
+                let (bytes, response) = try await transport.send(URLRequest(url: url, timeoutInterval: 15))
+                if (200..<300).contains(response.statusCode) { return bytes }
+                if [502, 503, 504].contains(response.statusCode), attempt == 0 {
+                    try await Task.sleep(for: .milliseconds(500)); continue
+                }
+                throw TMDbError.server(response.statusCode)
+            } catch {
+                if Task.isCancelled || error is CancellationError || (error as? URLError)?.code == .cancelled { throw CancellationError() }
+                if attempt == 0, TMDbRequestClient.retryable(error) {
+                    try await Task.sleep(for: .milliseconds(500)); continue
+                }
+                throw TMDbRequestClient.networkError(error)
+            }
+        }
+        throw TMDbError.network
     }
     nonisolated static func process(_ bytes: Data, pixels: Int, kind: String) throws -> Data {
         guard let source = CGImageSourceCreateWithData(bytes as CFData, nil),

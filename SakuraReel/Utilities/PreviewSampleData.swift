@@ -8,68 +8,48 @@ enum PreviewSampleData {
                 title: "千与千寻",
                 poster: poster,
                 status: .watched,
-                watchYear: 2024,
-                watchMonth: 3,
+                watchedAt: YearMonth(year: 2024, month: 3),
                 rating: 10,
                 review: "每次看都有新发现",
-                playURL: "https://example.com/spirited-away",
-                sortIndex: 0
-            ),
+                playURL: "https://example.com/spirited-away"),
             MediaItem(
                 title: "星际穿越",
                 poster: poster,
                 status: .watched,
-                watchYear: 2024,
-                watchMonth: 3,
+                watchedAt: YearMonth(year: 2024, month: 3),
                 rating: 9,
                 review: nil,
-                playURL: nil,
-                sortIndex: 1
-            ),
+                playURL: nil),
             MediaItem(
                 title: "你想活出怎样的人生",
                 poster: poster,
                 status: .watched,
-                watchYear: 2024,
-                watchMonth: 1,
+                watchedAt: YearMonth(year: 2024, month: 1),
                 rating: 8,
                 review: nil,
-                playURL: "https://example.com/boy-and-heron",
-                sortIndex: 0
-            ),
+                playURL: "https://example.com/boy-and-heron"),
             MediaItem(
                 title: "沙丘2",
                 poster: nil,
                 status: .watching,
-                watchYear: 2025,
-                watchMonth: 8,
+                watchedAt: YearMonth(year: 2025, month: 8),
                 rating: 0,
                 review: nil,
-                playURL: nil,
-                sortIndex: 0
-            ),
+                playURL: nil),
             MediaItem(
                 title: "阿诺拉",
                 poster: poster,
                 status: .wantToWatch,
-                watchYear: nil,
-                watchMonth: nil,
                 rating: 0,
                 review: nil,
-                playURL: nil,
-                sortIndex: 0
-            ),
+                playURL: nil),
             MediaItem(
                 title: "野生机器人",
                 poster: nil,
                 status: .wantToWatch,
-                watchYear: nil,
-                watchMonth: nil,
                 rating: 0,
                 review: nil,
-                playURL: nil,
-                sortIndex: 1
-            )
+                playURL: nil)
         ]
     }
 

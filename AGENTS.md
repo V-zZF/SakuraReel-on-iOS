@@ -65,13 +65,17 @@ SakuraReel
 
 ## 数据模型要点
 
-- `MediaItem` 是 `Codable` 结构体（同时 `Identifiable, Hashable`），**不是** `@Model`
+- `LibraryEntry` 是不含图片字节的 Codable 持久化条目；`MediaItem` 是包含条目与可选图片载荷的独立编辑／传输草稿，不是 `@Model`
+- JSON 根为 `LibraryDocument`：`schemaVersion = 1`、`libraryID`、`revision`、条目与分组顺序；不读取旧格式、不提供迁移
+- 条目按 `WorkDetails`、`PersonalRecord`、类型化 `TMDbIdentity` 与 `AttachmentManifest` 分工；观看年月使用完整的可选 `YearMonth`
+- 本地 UUID 和 TMDb 身份分开；来源语言与获取时间不参与判重
 - 元数据写入 `Documents/SakuraReelLibrary.json`（`.prettyPrinted`，日期 `.iso8601`）
 - `poster` 只在内存中使用，不参与 JSON 编解码；海报单独存为 `Documents/Posters/<id>.jpg`
 - `rating` 为整数 0–10，`0` 表示未评分
-- `sortIndex` 用于首页「同观看年月」组内手动排序
-- `rankIndex` 用于排行榜「同评分」组内手动排序（`nil` = 该评分组未手动排过）
-- `watchYear` / `watchMonth` 单独存储，便于按年月分组排序
+- 首页仅持久化 `homeGroups` 中的年月组内 UUID 顺序；排行榜仅持久化 `rankingGroups` 中手动评分组的 UUID 顺序
+- 删除 `sortIndex` / `rankIndex`；没有整库重复顺序数组
+- 所有读入、导入和写入统一校验，不静默修复非法数据；仓库管理时间戳，排序不改变内容时间戳
+- 文件工作由串行 `LibraryStorage` actor 执行，提交成功后仓库才发布数据；图片按需加载，列表不携带字节
 
 ## 评分颜色规范
 
@@ -91,7 +95,7 @@ SakuraReel
 ### 首页默认排序
 1. 观看年份从新到旧
 2. 观看月份从新到旧
-3. `sortIndex`
+3. 年月组内 UUID 顺序
 
 ### 首页手动排序
 - 只能在**同年同月**内拖动
@@ -99,9 +103,9 @@ SakuraReel
 
 ### 排行榜排序
 1. 评分从高到低
-2. `rankIndex`（只有被手动排过的评分组有值，整库未手动排序时此条不生效）
+2. 手动评分组的 UUID 顺序（未手动评分组跳过）
 3. 观看时间从新到旧
-4. `sortIndex`
+4. 首页年月组内顺序
 
 ### 排行榜手动排序
 - 只能在**同评分**内拖动
@@ -176,7 +180,7 @@ SakuraReel
 - 永久附件：`Posters/<UUID>.jpg`、`Artwork/<UUID>/backdrop.jpg`、`Artwork/<UUID>/logo.png`。完整备份必须包含两种目录。
 - 来源身份区分电影、剧集、季度；季度包含父剧集和季号，语言与获取时间不参与重复判断。
 - 首次导入和主动重新获取均通过独立草稿与字段预览。默认仅填空字段，所有个人记录及两套顺序保持原规则。
-- 作品资料可在独立编辑页修改；打开详情不自动获取远端资料。用户填写的 Key 只存 Keychain，默认直连，不预置代理。
+- 作品资料可在独立编辑页修改；打开详情不自动获取远端资料。用户填写的 Key 只存 Keychain，默认直连。2026-10-02 用户授权复用 AniShelf 网络方案，设置中可主动选择其两条 API 代理；只在该代理组内故障切换，不将直连或自定义代理请求自动转发给第三方。图片仍直连 TMDb CDN。
 - 加号默认打开 TMDb 搜索；未配置 Key 时显示可跳过的官网指引与下方高亮 API 输入框，搜索页底部提供手动添加，不显示 TMDb／收藏库切换。
 - 用户授权的默认 API 凭据由 Git 忽略的 `Configuration/TMDb.local.xcconfig` 供构建注入，点击跳过后写入 Keychain；不要把凭据提交到源码、收藏库或导出文件。未提供本地配置的构建应保留个人 Key 与手动添加入口。
 - 运行 `./Scripts/run-model-tests.sh` 和 `./Scripts/run-tmdb-tests.sh`，再完成通用模拟器构建；不要擅自启动模拟器。

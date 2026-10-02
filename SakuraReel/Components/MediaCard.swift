@@ -21,7 +21,7 @@ struct MediaCard: View {
             Button { onOpen?() } label: {
                 VStack(alignment: .leading, spacing: 0) {
                     // 海报铺满卡片顶部，无左右上边距；PosterView 内部自带 2:3 约束与 fill 裁剪
-                    PosterView(imageData: item.poster, cornerRadius: 0)
+                    LibraryPosterView(item: item, cornerRadius: 0)
                         .clipped()
 
                     Text(item.title)
@@ -90,10 +90,12 @@ struct MediaCard: View {
     MediaCard(item: PreviewSampleData.sampleItems[0])
         .frame(width: 160)
         .padding()
+        .environment(MediaRepository(seedItems: PreviewSampleData.sampleItems))
 }
 
 #Preview("无海报") {
     MediaCard(item: PreviewSampleData.sampleItems[3])
         .frame(width: 160)
         .padding()
+        .environment(MediaRepository(seedItems: PreviewSampleData.sampleItems))
 }

@@ -10,24 +10,41 @@ enum TMDbMediaType: String, Codable, CaseIterable, Sendable {
     case movie, series, season
 }
 
+enum TMDbIdentity: Codable, Hashable, Sendable {
+    case movie(id: Int)
+    case series(id: Int)
+    case season(id: Int, seriesID: Int, number: Int)
+    var mediaType: TMDbMediaType { switch self { case .movie: .movie; case .series: .series; case .season: .season } }
+    var remoteID: Int { switch self { case .movie(let id), .series(let id), .season(let id, _, _): id } }
+    var parentSeriesID: Int? { if case .season(_, let id, _) = self { id } else { nil } }
+    var seasonNumber: Int? { if case .season(_, _, let number) = self { number } else { nil } }
+    var key: String {
+        switch self {
+        case .movie(let id): "tmdb:movie:\(id)"
+        case .series(let id): "tmdb:series:\(id)"
+        case .season(let id, let parent, let number): "tmdb:season:\(parent):\(number):\(id)"
+        }
+    }
+}
 struct MediaSource: Codable, Hashable, Sendable {
-    var provider = "tmdb"
-    var mediaType: TMDbMediaType
-    var remoteID: Int
-    var parentSeriesID: Int?
-    var seasonNumber: Int?
+    var tmdb: TMDbIdentity
     var language: String
     var fetchedAt: Date
-
-    var identity: String {
-        if mediaType == .season {
-            return "\(provider):season:\(parentSeriesID ?? -1):\(seasonNumber ?? -1):\(remoteID)"
-        }
-        return "\(provider):\(mediaType.rawValue):\(remoteID)"
+    var mediaType: TMDbMediaType { tmdb.mediaType }
+    var remoteID: Int { tmdb.remoteID }
+    var parentSeriesID: Int? { tmdb.parentSeriesID }
+    var seasonNumber: Int? { tmdb.seasonNumber }
+    var identity: String { tmdb.key }
+    init(tmdb: TMDbIdentity, language: String, fetchedAt: Date) {
+        self.tmdb = tmdb; self.language = language; self.fetchedAt = fetchedAt
     }
     var webpage: URL? {
-        let path = mediaType == .movie ? "movie/\(remoteID)" : mediaType == .series
-            ? "tv/\(remoteID)" : "tv/\(parentSeriesID ?? 0)/season/\(seasonNumber ?? 0)"
+        let path: String
+        switch tmdb {
+        case .movie(let id): path = "movie/\(id)"
+        case .series(let id): path = "tv/\(id)"
+        case .season(_, let parent, let number): path = "tv/\(parent)/season/\(number)"
+        }
         return URL(string: "https://www.themoviedb.org/\(path)")
     }
 }
@@ -53,7 +70,6 @@ struct MediaPart: Codable, Hashable, Identifiable, Sendable {
     var imagePath: String?
 }
 struct MediaMetadata: Codable, Hashable, Sendable {
-    var localizedTitle: String?
     var originalTitle: String?
     var seasonTitle: String?
     var overview: String?
@@ -149,9 +165,9 @@ enum MetadataField: String, CaseIterable, Identifiable, Sendable {
         case .crew: return m.crew.map { "\($0.name) · \($0.role)" }.joined(separator: "、")
         case .seasons: return m.seasons.map(\.title).joined(separator: "、")
         case .episodes: return m.episodes.map(\.title).joined(separator: "、")
-        case .poster: return item.poster == nil ? "" : String(localized: "已保存图片")
-        case .backdrop: return item.backdrop == nil ? "" : String(localized: "已保存图片")
-        case .logo: return item.logo == nil ? "" : String(localized: "已保存图片")
+        case .poster: return item.attachments.poster == nil ? "" : String(localized: "已保存图片")
+        case .backdrop: return item.attachments.backdrop == nil ? "" : String(localized: "已保存图片")
+        case .logo: return item.attachments.logo == nil ? "" : String(localized: "已保存图片")
         }
     }
 }
@@ -169,7 +185,7 @@ extension TMDbImportDraft {
         var m = item.metadata ?? MediaMetadata()
         for field in fields {
             switch field {
-            case .title: result.title = title; m.localizedTitle = metadata.localizedTitle
+            case .title: result.title = title
             case .originalTitle: m.originalTitle = metadata.originalTitle
             case .seasonTitle: m.seasonTitle = metadata.seasonTitle
             case .overview: m.overview = metadata.overview

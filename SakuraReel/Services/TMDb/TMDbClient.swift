@@ -3,6 +3,8 @@
 //  SakuraReel
 //
 //  Created by OpenAI Codex on behalf of zzf on 2026/10/2.
+//  Relay routing adapted from AniShelf RedirectingHTTPClient and TMDbAPIKeyValidator.
+//  Copyright 2024 Samuel He, Apache-2.0; modified for SakuraReel 2026-10-02.
 //
 import Foundation
 
@@ -50,18 +52,33 @@ actor SharedTaskPool<Value: Sendable> {
     }
 }
 
+enum TMDbRoutes {
+    static let direct = "api.themoviedb.org"
+    static let aniShelf = ["tmdb-api.konakona.dev", "tmdb-api.konakona52.com"]
+}
 struct TMDbConnection: Sendable, Equatable {
     var key: String
     var host = "api.themoviedb.org"
     var generation: UUID
+    var fallbackHosts: [String] = []
 }
 enum TMDbError: LocalizedError, Equatable {
-    case missingKey, authentication, network, rateLimited, notFound, decoding, server(Int), invalidProxy
+    case missingKey, authentication, network, networkFailure(Int), proxyRejected(Int), rateLimited, notFound, decoding, server(Int), invalidProxy
     var errorDescription: String? {
         switch self {
         case .missingKey: String(localized: "请先在 TMDb 设置中保存 API Key。")
         case .authentication: String(localized: "API Key 无效或没有访问权限。")
         case .network: String(localized: "无法连接 TMDb，请检查网络或所选线路。")
+        case .networkFailure(let code):
+            switch URLError.Code(rawValue: code) {
+            case .timedOut: String(localized: "TMDb 连接超时，请重试或在设置中切换 API 线路。")
+            case .notConnectedToInternet: String(localized: "当前设备未连接互联网。")
+            case .cannotFindHost, .dnsLookupFailed: String(localized: "无法解析 TMDb 主机，请检查 DNS 或切换 API 线路。")
+            case .secureConnectionFailed, .serverCertificateHasBadDate, .serverCertificateUntrusted, .serverCertificateHasUnknownRoot, .serverCertificateNotYetValid:
+                String(localized: "TMDb 安全连接失败（TLS，错误 \(code)），请检查 VPN 或网络代理线路。")
+            default: String(localized: "TMDb 网络连接失败（错误 \(code)），请重试或切换 API 线路。")
+            }
+        case .proxyRejected(let code): String(localized: "所选 API 代理拒绝访问（HTTP \(code)），请切换直连或其他代理线路。")
         case .rateLimited: String(localized: "TMDb 请求过于频繁，请稍后重试。")
         case .notFound: String(localized: "TMDb 中已找不到此作品。")
         case .decoding: String(localized: "TMDb 返回的数据无法解析。")
@@ -78,21 +95,52 @@ private final class TMDbRedirectGuard: NSObject, URLSessionTaskDelegate, Sendabl
     func urlSession(_ session: URLSession, task: URLSessionTask,
                     willPerformHTTPRedirection response: HTTPURLResponse, newRequest request: URLRequest,
                     completionHandler: @escaping @Sendable (URLRequest?) -> Void) {
-        completionHandler(request.url?.host == task.originalRequest?.url?.host && request.url?.scheme == "https" ? request : nil)
+        completionHandler(TMDbURLTransport.permitsRedirect(from: task.originalRequest?.url, to: request.url) ? request : nil)
     }
 }
 final class TMDbURLTransport: TMDbHTTPTransport, Sendable {
-    private let session = URLSession(configuration: .ephemeral, delegate: TMDbRedirectGuard(), delegateQueue: nil)
+    static func permitsRedirect(from original: URL?, to destination: URL?) -> Bool {
+        guard let original, let destination, original.scheme == "https", destination.scheme == "https",
+              let originalHost = original.host, destination.host?.lowercased() == originalHost.lowercased(),
+              destination.user == nil, destination.password == nil else { return false }
+        return (original.port ?? 443) == (destination.port ?? 443)
+    }
+    /// AniShelf uses the system's standard session. Keep system proxy/VPN behavior,
+    /// pooling and normal TLS checks, while excluding credential-bearing disk caches.
+    static func configuration() -> URLSessionConfiguration {
+        let value = URLSessionConfiguration.default
+        value.urlCache = nil
+        value.httpCookieStorage = nil
+        value.timeoutIntervalForRequest = 15
+        value.timeoutIntervalForResource = 30
+        value.waitsForConnectivity = false
+        return value
+    }
+    private let session = URLSession(configuration: TMDbURLTransport.configuration(), delegate: TMDbRedirectGuard(), delegateQueue: nil)
     func send(_ request: URLRequest) async throws -> (Data, HTTPURLResponse) {
         let (data, response) = try await session.data(for: request)
         guard let response = response as? HTTPURLResponse else { throw TMDbError.network }
         return (data, response)
     }
 }
+/// Remember a working host only within the explicitly selected route and credential generation.
+actor TMDbRouteState {
+    private var working: [UUID: (String, Date)] = [:]
+    func ordered(_ hosts: [String], generation: UUID, now: Date) -> [String] {
+        guard let (host, date) = working[generation], hosts.contains(host), now.timeIntervalSince(date) < 300 else { return hosts }
+        return [host] + hosts.filter { $0 != host }
+    }
+    func succeeded(_ host: String, generation: UUID, now: Date) {
+        working[generation] = (host, now)
+        if working.count > 8 { working = [generation: (host, now)] }
+    }
+}
+
 struct TMDbRequestClient: Sendable {
     var transport: any TMDbHTTPTransport
     var sleep: @Sendable (TimeInterval) async throws -> Void = { try await Task.sleep(for: .seconds($0)) }
     var now: @Sendable () -> Date = { Date() }
+    var routes = TMDbRouteState()
 
     static func validatedHost(_ proxy: String?) throws -> String {
         guard let proxy else { return "api.themoviedb.org" }
@@ -115,31 +163,85 @@ struct TMDbRequestClient: Sendable {
         }
         return 0.5 * pow(2, Double(attempt))
     }
+    static func retryable(_ error: Error) -> Bool {
+        guard let value = error as? URLError else { return false }
+        switch value.code {
+        case .timedOut, .networkConnectionLost, .cannotConnectToHost, .dnsLookupFailed: return true
+        default: return false
+        }
+    }
+    static func networkError(_ error: Error) -> TMDbError {
+        if let value = error as? URLError { return .networkFailure(value.code.rawValue) }
+        return error as? TMDbError ?? .network
+    }
+    private static func canChangeHost(_ error: Error) -> Bool {
+        guard let error = error as? TMDbError else { return false }
+        switch error {
+        case .network, .networkFailure, .proxyRejected, .server(502), .server(503), .server(504): return true
+        default: return false
+        }
+    }
     func data(path: String, query: [URLQueryItem] = [], connection: TMDbConnection) async throws -> Data {
-        guard !connection.key.isEmpty else { throw TMDbError.missingKey }
-        var parts = URLComponents()
-        parts.scheme = "https"; parts.host = connection.host; parts.path = "/3" + path
-        parts.queryItems = query + [URLQueryItem(name: "api_key", value: connection.key)]
-        guard let url = parts.url else { throw TMDbError.invalidProxy }
-        let request = URLRequest(url: url, cachePolicy: .reloadIgnoringLocalCacheData, timeoutInterval: 30)
+        guard !connection.key.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { throw TMDbError.missingKey }
+        // Alternatives exist only for the user-selected AniShelf relay pair.
+        let selected = try Self.validatedHost(connection.host)
+        guard connection.fallbackHosts.isEmpty ||
+            (TMDbRoutes.aniShelf.contains(selected) && connection.fallbackHosts.allSatisfy { TMDbRoutes.aniShelf.contains($0) }) else { throw TMDbError.invalidProxy }
+        var hosts = [selected]
+        for host in connection.fallbackHosts where !hosts.contains(host) { hosts.append(host) }
+        hosts = await routes.ordered(hosts, generation: connection.generation, now: now())
+        for (index, host) in hosts.enumerated() {
+            try Task.checkCancellation()
+            var parts = URLComponents()
+            parts.scheme = "https"; parts.host = host; parts.path = "/3" + path
+            parts.queryItems = query + [URLQueryItem(name: "api_key", value: connection.key)]
+            guard let url = parts.url else { throw TMDbError.invalidProxy }
+            var request = URLRequest(url: url, cachePolicy: .reloadIgnoringLocalCacheData, timeoutInterval: 15)
+            request.setValue("application/json", forHTTPHeaderField: "Accept")
+            do {
+                let bytes = try await perform(request)
+                await routes.succeeded(host, generation: connection.generation, now: now())
+                return bytes
+            } catch {
+                if error is CancellationError || Task.isCancelled { throw CancellationError() }
+                guard index < hosts.count - 1, Self.canChangeHost(error) else { throw error }
+            }
+        }
+        throw TMDbError.network
+    }
+    private func perform(_ request: URLRequest) async throws -> Data {
         for attempt in 0...2 {
             try Task.checkCancellation()
             let data: Data
             let response: HTTPURLResponse
             do { (data, response) = try await transport.send(request) }
             catch {
-                if Task.isCancelled || (error as? URLError)?.code == .cancelled { throw CancellationError() }
-                throw TMDbError.network
+                if Task.isCancelled || error is CancellationError || (error as? URLError)?.code == .cancelled { throw CancellationError() }
+                // Retry a dropped connection once. TLS/certificate errors never retry on the same host.
+                if attempt < 1, Self.retryable(error) {
+                    try await sleep(0.5)
+                    continue
+                }
+                throw Self.networkError(error)
             }
             try Task.checkCancellation()
             switch response.statusCode {
             case 200..<300: return data
-            case 401, 403: throw TMDbError.authentication
+            case 401, 403:
+                if let host = request.url?.host, TMDbRoutes.aniShelf.contains(host) {
+                    let payload = (try? JSONSerialization.jsonObject(with: data)) as? [String: Any]
+                    // A proxy/WAF error is not evidence of an invalid TMDb credential.
+                    if payload?["status_code"] == nil { throw TMDbError.proxyRejected(response.statusCode) }
+                }
+                throw TMDbError.authentication
             case 404: throw TMDbError.notFound
             case 429:
                 let delay = Self.retryDelay(response.value(forHTTPHeaderField: "Retry-After"), now: now(), attempt: attempt)
                 guard attempt < 2, delay <= 30 else { throw TMDbError.rateLimited }
                 try await sleep(delay)
+            case 502, 503, 504:
+                guard attempt < 2 else { throw TMDbError.server(response.statusCode) }
+                try await sleep(0.5 * pow(2, Double(attempt)))
             default: throw TMDbError.server(response.statusCode)
             }
         }
@@ -269,16 +371,16 @@ actor TMDbService: TMDbServing {
                     URLQueryItem(name: "page", value: String(page))], connection: config)
         try Task.checkCancellation()
         return TMDbSearchPage(results: payload.results.map {
-            TMDbSearchResult(source: MediaSource(mediaType: type, remoteID: $0.id, language: language, fetchedAt: Date()),
+            TMDbSearchResult(source: MediaSource(tmdb: type == .movie ? .movie(id: $0.id) : .series(id: $0.id), language: language, fetchedAt: Date()),
                 title: $0.title ?? $0.name ?? $0.original_title ?? $0.original_name ?? "",
                 date: $0.release_date ?? $0.first_air_date, overview: $0.overview, posterPath: $0.poster_path)
         }, page: payload.page, totalPages: payload.total_pages)
     }
     private func path(_ source: MediaSource) -> String {
-        switch source.mediaType {
-        case .movie: "/movie/\(source.remoteID)"
-        case .series: "/tv/\(source.remoteID)"
-        case .season: "/tv/\(source.parentSeriesID ?? 0)/season/\(source.seasonNumber ?? 0)"
+        switch source.tmdb {
+        case .movie(let id): "/movie/\(id)"
+        case .series(let id): "/tv/\(id)"
+        case .season(_, let seriesID, let number): "/tv/\(seriesID)/season/\(number)"
         }
     }
     private func record(_ source: MediaSource, config: TMDbConnection) async throws -> TMDbRecord {
@@ -301,7 +403,7 @@ actor TMDbService: TMDbServing {
         async let raw = record(source, config: config)
         async let images = optional(WireImages.self, path: endpoint + "/images", query: [], config: config)
         async let credits = optional(WireCredits.self, path: endpoint + "/credits", query: language, config: config)
-        let parentSource = MediaSource(mediaType: .series, remoteID: source.parentSeriesID ?? source.remoteID,
+        let parentSource = MediaSource(tmdb: .series(id: source.parentSeriesID ?? source.remoteID),
                                       language: source.language, fetchedAt: source.fetchedAt)
         async let parent = source.mediaType == .season ? record(parentSource, config: config) : nil
         let (r, imageSet, creditSet, parentRecord) = try await (raw, images, credits, parent)
@@ -319,7 +421,7 @@ actor TMDbService: TMDbServing {
             background = background ?? parentImages?.backdrops?.first?.file_path
         }
         let logo = sortedImages(logoSet, language: source.language, original: base.original_language).first?.file_path
-        let metadata = MediaMetadata(localizedTitle: localized, originalTitle: base.original_title ?? base.original_name,
+        let metadata = MediaMetadata(originalTitle: base.original_title ?? base.original_name,
             seasonTitle: seasonName, overview: r.overview, releaseDate: r.release_date ?? r.first_air_date ?? r.air_date,
             genres: base.genres?.map(\.name) ?? [], remoteStatus: base.status,
             runtimeMinutes: r.runtime ?? base.episode_run_time?.first, episodeCount: r.number_of_episodes ?? r.episodes?.count,

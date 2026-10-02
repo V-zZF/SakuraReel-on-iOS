@@ -1,5 +1,5 @@
 #!/bin/zsh
-# 跑模型层的断言：快照导出 / 导入 / 旧版迁移 / 双顺序。
+# 跑模型层的断言：新文档校验 / 分组顺序 / 文件事务 / 完整备份。
 #
 # 直接 swiftc 编译那几个只依赖 Foundation 的文件，不经过 Xcode 工程、不需要模拟器、
 # 也不需要单元测试 target。被测代码一旦 import 了 SwiftUI 或 Observation，这个脚本

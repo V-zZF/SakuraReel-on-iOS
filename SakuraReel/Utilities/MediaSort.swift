@@ -1,96 +1,30 @@
 import Foundation
 
-enum HomeSortMode {
-    case `default`
-    case manual
-}
-
-/// 排序与拖动分组逻辑唯一来源。
-/// 基于数组排序（本地 JSON 文件存储，不使用 SwiftData SortDescriptor）。
 enum MediaSort {
-    /// Apply an explicit order within the existing, immutable group hierarchy.
     static func homeSorted(_ items: [MediaItem], order: [UUID]) -> [MediaItem] {
-        let positions = Dictionary(uniqueKeysWithValues: order.enumerated().map { ($0.element, $0.offset) })
+        let positions = Dictionary(order.enumerated().map { ($0.element, $0.offset) }, uniquingKeysWith: { first, _ in first })
         return items.sorted {
-            if $0.watchYear != $1.watchYear { return ($0.watchYear ?? -1) > ($1.watchYear ?? -1) }
-            if $0.watchMonth != $1.watchMonth { return ($0.watchMonth ?? -1) > ($1.watchMonth ?? -1) }
-            return (positions[$0.id] ?? Int.max) < (positions[$1.id] ?? Int.max)
-        }
-    }
-
-    static func rankingSorted(_ items: [MediaItem], order: [UUID]) -> [MediaItem] {
-        let positions = Dictionary(uniqueKeysWithValues: order.enumerated().map { ($0.element, $0.offset) })
-        return items.sorted {
-            if $0.rating != $1.rating { return $0.rating > $1.rating }
-            return (positions[$0.id] ?? Int.max) < (positions[$1.id] ?? Int.max)
-        }
-    }
-
-    /// Placement of new items in a rating group, independent of legacy manual indices.
-    static func rankingDefaultSorted(_ items: [MediaItem]) -> [MediaItem] {
-        items.sorted {
-            if $0.rating != $1.rating { return $0.rating > $1.rating }
-            if $0.watchYear != $1.watchYear { return ($0.watchYear ?? -1) > ($1.watchYear ?? -1) }
-            if $0.watchMonth != $1.watchMonth { return ($0.watchMonth ?? -1) > ($1.watchMonth ?? -1) }
-            if $0.sortIndex != $1.sortIndex { return $0.sortIndex < $1.sortIndex }
+            if $0.personal.watchedAt != $1.personal.watchedAt { return ($0.personal.watchedAt ?? YearMonth(year: 0, month: 0)) > ($1.personal.watchedAt ?? YearMonth(year: 0, month: 0)) }
+            if positions[$0.id] != positions[$1.id] { return positions[$0.id, default: Int.max] < positions[$1.id, default: Int.max] }
             return $0.id.uuidString < $1.id.uuidString
         }
     }
-
-    /// 首页排序：观看年份从新到旧 → 观看月份从新到旧 → sortIndex。
-    /// 无观看年月（想看）的条目排在最末。
-    static func homeSorted(_ items: [MediaItem], mode: HomeSortMode) -> [MediaItem] {
-        switch mode {
-        case .default:
-            return items.sorted {
-                if $0.watchYear != $1.watchYear { return ($0.watchYear ?? -1) > ($1.watchYear ?? -1) }
-                if $0.watchMonth != $1.watchMonth { return ($0.watchMonth ?? -1) > ($1.watchMonth ?? -1) }
-                return $0.sortIndex < $1.sortIndex
-            }
-        case .manual:
-            return items.sorted { $0.sortIndex < $1.sortIndex }
+    static func rankingSorted(_ items: [MediaItem], order: [UUID]) -> [MediaItem] {
+        let positions = Dictionary(order.enumerated().map { ($0.element, $0.offset) }, uniquingKeysWith: { first, _ in first })
+        return items.sorted {
+            if $0.rating != $1.rating { return $0.rating > $1.rating }
+            if positions[$0.id] != positions[$1.id] { return positions[$0.id, default: Int.max] < positions[$1.id, default: Int.max] }
+            return $0.id.uuidString < $1.id.uuidString
         }
     }
-
-    /// 排行榜排序：评分从高到低 → rankIndex → 观看时间从新到旧 → sortIndex。
-    ///
-    /// `rankIndex` 只在被手动排过的评分组里有值。整库都没手动排过时全部为 nil（按 0 比较），
-    /// 比较器逐级落到观看时间与 `sortIndex`，即「评分 > 观看时间 > sortIndex」的默认规则。
-    static func rankingSorted(_ items: [MediaItem]) -> [MediaItem] {
-        items.sorted(by: rankingAreInIncreasingOrder)
+    static func rankingDefaultSorted(_ items: [MediaItem], homeOrder: [UUID]) -> [MediaItem] {
+        let home = homeSorted(items, order: homeOrder)
+        let positions = Dictionary(home.enumerated().map { ($0.element.id, $0.offset) }, uniquingKeysWith: { first, _ in first })
+        return items.sorted { $0.rating != $1.rating ? $0.rating > $1.rating : positions[$0.id, default: 0] < positions[$1.id, default: 0] }
     }
-
-    /// 排行榜比较器的本体。
-    ///
-    /// 单独提出来是为了让**导入后的索引修正**复用同一份规则（`LibraryArchive.normalizeIndices`
-    /// 要按当前显示顺序重编撞车的组），而不是在那边再抄一遍评分/时间/序号的比较顺序。
-    /// 提取前后 `rankingSorted` 的行为逐字不变。
-    static func rankingAreInIncreasingOrder(_ lhs: MediaItem, _ rhs: MediaItem) -> Bool {
-        if lhs.rating != rhs.rating { return lhs.rating > rhs.rating }
-        if (lhs.rankIndex ?? 0) != (rhs.rankIndex ?? 0) { return (lhs.rankIndex ?? 0) < (rhs.rankIndex ?? 0) }
-        if lhs.watchYear != rhs.watchYear { return (lhs.watchYear ?? -1) > (rhs.watchYear ?? -1) }
-        if lhs.watchMonth != rhs.watchMonth { return (lhs.watchMonth ?? -1) > (rhs.watchMonth ?? -1) }
-        return lhs.sortIndex < rhs.sortIndex
-    }
-
-    /// 首页拖动分组：相同观看年月为一组。
-    static func homeGroupKey(year: Int?, month: Int?) -> Int {
-        guard let year = year, let month = month else { return -1 }
-        return year * 100 + month
-    }
-
-    /// 首页拖动分组的条目便捷版（Phase 4 拖动逻辑使用）。
-    static func groupKey(of item: MediaItem) -> Int {
-        homeGroupKey(year: item.watchYear, month: item.watchMonth)
-    }
-
-    /// 排行榜拖动分组：相同评分为一组。
-    static func rankingGroupKey(rating: Int) -> Int {
-        rating
-    }
-
-    /// 排行榜拖动分组的条目便捷版（Phase 5 拖动逻辑使用）。
-    static func rankingGroupKey(of item: MediaItem) -> Int {
-        rankingGroupKey(rating: item.rating)
-    }
+    static func rankingSorted(_ items: [MediaItem]) -> [MediaItem] { rankingDefaultSorted(items, homeOrder: items.map(\.id)) }
+    static func homeGroupKey(year: Int?, month: Int?) -> Int { guard let year, let month else { return -1 }; return year * 100 + month }
+    static func groupKey(of item: MediaItem) -> Int { homeGroupKey(year: item.watchYear, month: item.watchMonth) }
+    static func rankingGroupKey(rating: Int) -> Int { rating }
+    static func rankingGroupKey(of item: MediaItem) -> Int { item.rating }
 }

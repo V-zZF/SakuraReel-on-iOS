@@ -161,8 +161,7 @@ private struct TMDbResultRow: View {
                     if !loading && error == nil && seasons.isEmpty { Text("暂无季度资料").foregroundStyle(.secondary) }
                     ForEach(seasons) { season in
                         Button {
-                            let source = MediaSource(mediaType: .season, remoteID: season.id, parentSeriesID: result.source.remoteID,
-                                seasonNumber: season.number, language: result.source.language, fetchedAt: Date())
+                            let source = MediaSource(tmdb: .season(id: season.id, seriesID: result.source.remoteID, number: season.number), language: result.source.language, fetchedAt: Date())
                             onSelect(source)
                         } label: {
                             HStack { Text(season.title); Spacer(); Text("选择").font(.caption) }

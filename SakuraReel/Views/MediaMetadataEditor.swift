@@ -10,13 +10,14 @@ import PhotosUI
 struct MediaMetadataEditor: View {
     @Environment(\.dismiss) private var dismiss
     let initialItem: MediaItem
-    let onSave: (MediaItem) throws -> Void
+    let onSave: (MediaItem) async throws -> Void
+    @State private var isSaving = false
     @State private var item: MediaItem
     @State private var metadata: MediaMetadata
     @State private var numbers: [MetadataField: String]
     @State private var discard = false
     @State private var error: String?
-    init(initialItem: MediaItem, onSave: @escaping (MediaItem) throws -> Void) {
+    init(initialItem: MediaItem, onSave: @escaping (MediaItem) async throws -> Void) {
         self.initialItem = initialItem; self.onSave = onSave
         _item = State(initialValue: initialItem)
         _metadata = State(initialValue: initialItem.metadata ?? MediaMetadata())
@@ -71,8 +72,9 @@ struct MediaMetadataEditor: View {
             .navigationTitle("编辑作品资料").navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) { Button("取消") { if dirty { discard = true } else { dismiss() } } }
-                ToolbarItem(placement: .confirmationAction) { Button("保存") { save() } }
+                ToolbarItem(placement: .confirmationAction) { Button("保存") { Task { await save() } } }
             }
+            .disabled(isSaving)
             .modifier(UnsavedDismissGuard(isDirty: dirty, onAttempt: { discard = true }))
             .alert("放弃修改？", isPresented: $discard) {
                 Button("放弃修改", role: .destructive) { dismiss() }; Button("继续编辑", role: .cancel) {}
@@ -111,7 +113,10 @@ struct MediaMetadataEditor: View {
             Button("添加") { entries.wrappedValue.append(MediaPart(id: nextID(entries.wrappedValue.map(\.id)), number: 1, title: "")) }
         } header: { Text(String(localized: String.LocalizationValue(label))) }
     }
-    private func save() {
+    private func save() async {
+        guard !isSaving else { return }
+        isSaving = true
+        defer { isSaving = false }
         do {
             guard !item.title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { throw MetadataEditError.invalidTitle }
             func integer(_ field: MetadataField) throws -> Int? {
@@ -133,9 +138,8 @@ struct MediaMetadataEditor: View {
                 guard let parsed = formatter.date(from: date), formatter.string(from: parsed) == date else { throw MetadataEditError.invalidDate }
             }
             item.title = item.title.trimmingCharacters(in: .whitespacesAndNewlines)
-            metadata.localizedTitle = item.title
-            item.metadata = metadata; item.updatedAt = Date()
-            try onSave(item); dismiss()
+            item.metadata = metadata
+            try await onSave(item); dismiss()
         } catch { self.error = error.localizedDescription }
     }
 }

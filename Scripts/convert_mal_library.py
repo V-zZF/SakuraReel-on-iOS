@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Create a SakuraReel sync folder from MAL's SQLite library and posters."""
+"""Create a version-1 SakuraReel document from an existing local MAL library."""
 
 import argparse
 import datetime as dt
@@ -48,42 +48,49 @@ def convert(database: Path, posters: Path, output: Path) -> None:
         identifier = str(uuid.uuid5(NAMESPACE, f"mal-anime:{row['id']}")).upper()
         item = {
             "id": identifier,
-            "title": row["title"],
-            "status": status,
-            "rating": rating,
-            "sortIndex": 0,
+            "work": {"title": row["title"]},
+            "personal": {"status": status, "rating": rating},
+            "attachments": {"poster": "jpg"},
             "createdAt": timestamp,
             "updatedAt": timestamp,
         }
         if watch_date:
-            item["watchYear"] = int(watch_date[:4])
-            item["watchMonth"] = int(watch_date[5:])
+            item["personal"]["watchedAt"] = {"year": int(watch_date[:4]), "month": int(watch_date[5:])}
         if row["note"]:
-            item["review"] = row["note"]
+            item["personal"]["review"] = row["note"]
         if row["play_link"]:
-            item["playURL"] = row["play_link"]
+            item["personal"]["playURL"] = row["play_link"]
         items.append(item)
         source_posters.append((source, identifier))
 
     home_groups = defaultdict(list)
     ranking_groups = defaultdict(list)
     for row, item in zip(rows, items):
-        home_groups[(item.get("watchYear"), item.get("watchMonth"))].append((row, item))
-        ranking_groups[item["rating"]].append((row, item))
-    for group in home_groups.values():
-        for index, (_, item) in enumerate(sorted(group, key=lambda pair: (pair[0]["home_position"], pair[0]["position"], pair[0]["id"]))):
-            item["sortIndex"] = index
-    for group in ranking_groups.values():
-        for index, (_, item) in enumerate(sorted(group, key=lambda pair: (pair[0]["leaderboard_position"], pair[0]["id"]))):
-            item["rankIndex"] = index
+        month = item["personal"].get("watchedAt")
+        home_groups[(month["year"], month["month"]) if month else (None, None)].append((row, item))
+        ranking_groups[item["personal"]["rating"]].append((row, item))
+    document = {
+        "schemaVersion": 1, "libraryID": str(uuid.uuid4()).upper(), "revision": 0,
+        "items": items,
+        "homeGroups": [
+            {**({"month": {"year": year, "month": month}} if year is not None else {}),
+             "ids": [item["id"] for _, item in sorted(group, key=lambda pair: (pair[0]["home_position"], pair[0]["position"], pair[0]["id"]))]}
+            for (year, month), group in home_groups.items()
+        ],
+        "rankingGroups": [
+            {"rating": rating, "ids": [item["id"] for _, item in sorted(group, key=lambda pair: (pair[0]["leaderboard_position"], pair[0]["id"]))]}
+            for rating, group in ranking_groups.items()
+        ],
+    }
 
     output.mkdir(parents=True)
     poster_output = output / "Posters"
     poster_output.mkdir()
+    (output / "Artwork").mkdir()
     for source, identifier in source_posters:
         shutil.copyfile(source, poster_output / f"{identifier}.jpg")
     (output / "SakuraReelLibrary.json").write_text(
-        json.dumps(items, ensure_ascii=False, indent=2, sort_keys=True) + "\n",
+        json.dumps(document, ensure_ascii=False, indent=2, sort_keys=True) + "\n",
         encoding="utf-8",
     )
     print(f"Created {len(items)} items and {len(source_posters)} posters in {output}")

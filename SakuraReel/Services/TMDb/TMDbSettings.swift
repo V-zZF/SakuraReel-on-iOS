@@ -61,7 +61,8 @@ enum TMDbKeychain {
         key = readKey()
     }
     var hasKey: Bool { !key.isEmpty }
-    var connection: TMDbConnection { TMDbConnection(key: key, host: host, generation: generation) }
+    var connection: TMDbConnection { TMDbConnection(key: key, host: host, generation: generation,
+        fallbackHosts: TMDbRoutes.aniShelf.contains(host) ? TMDbRoutes.aniShelf.filter { $0 != host } : []) }
     func save(key: String, proxy: String?) throws {
         let selectedHost = try Self.validatedHost(proxy)
         let trimmed = key.trimmingCharacters(in: .whitespacesAndNewlines)

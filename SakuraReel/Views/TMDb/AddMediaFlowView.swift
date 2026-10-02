@@ -9,7 +9,7 @@ import SwiftUI
 /// Owns the unsaved item across onboarding, search and the existing manual form.
 struct AddMediaFlowView: View {
     @Environment(\.dismiss) private var dismiss
-    let onSave: (MediaItem) throws -> Void
+    let onSave: (MediaItem) async throws -> Void
     private enum Stage { case guidance, search, form }
     @State private var stage: Stage = TMDbEnvironment.shared.settings.hasKey ? .search : .guidance
     @State private var draft = MediaItem(title: "", status: .watched)

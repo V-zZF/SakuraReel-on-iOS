@@ -45,3 +45,19 @@ struct PosterView: View {
         .frame(width: 160)
         .padding()
 }
+
+/// A cell holds only the visible image; the repository's bounded cache owns reusable bytes.
+struct LibraryPosterView: View {
+    @Environment(MediaRepository.self) private var repository
+    let item: MediaItem
+    var cornerRadius: CGFloat = Constants.cardCornerRadius
+    @State private var bytes: Data?
+    var body: some View {
+        PosterView(imageData: item.poster ?? bytes, cornerRadius: cornerRadius)
+            .task(id: repository.document.revision) {
+                let loaded = await repository.attachment(.poster, for: item.id)
+                guard !Task.isCancelled else { return }
+                bytes = loaded
+            }
+    }
+}

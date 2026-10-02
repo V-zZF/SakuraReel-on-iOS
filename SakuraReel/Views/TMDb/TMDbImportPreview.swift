@@ -10,17 +10,18 @@ struct TMDbImportPreview: View {
     @Environment(MediaRepository.self) private var repository
     @Environment(\.dismiss) private var dismiss
     let existing: MediaItem
-    var onApply: (TMDbImportDraft, Set<MetadataField>) throws -> Void
+    var onApply: (TMDbImportDraft, Set<MetadataField>) async throws -> Void
     @State private var draft: TMDbImportDraft
     @State private var fields: Set<MetadataField>
     @State private var selectedPoster: String
     @State private var loadingPoster = false
+    @State private var applying = false
     @State private var duplicateDetail: PresentedMedia?
     @State private var error: String?
     @State private var posterTask: Task<Void, Never>?
     @State private var posterRequest = UUID()
     init(draft: TMDbImportDraft, existing: MediaItem,
-         onApply: @escaping (TMDbImportDraft, Set<MetadataField>) throws -> Void) {
+         onApply: @escaping (TMDbImportDraft, Set<MetadataField>) async throws -> Void) {
         self.existing = existing; self.onApply = onApply
         _draft = State(initialValue: draft); _fields = State(initialValue: draft.defaults(for: existing))
         _selectedPoster = State(initialValue: draft.metadata.posterPath ?? "")
@@ -75,10 +76,16 @@ struct TMDbImportPreview: View {
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) { Button("取消") { dismiss() } }
                 ToolbarItem(placement: .confirmationAction) { Button("应用所选字段") {
-                    do { try onApply(draft, fields); dismiss() } catch { self.error = error.localizedDescription }
+                    guard !applying else { return }
+                    applying = true
+                    Task {
+                        defer { applying = false }
+                        do { try await onApply(draft, fields); dismiss() } catch { self.error = error.localizedDescription }
+                    }
                 }.disabled(loadingPoster) }
             }
             .sheet(item: $duplicateDetail) { MediaDetailView(itemID: $0.id) }
+            .disabled(applying)
             .onDisappear { posterTask?.cancel(); posterRequest = UUID(); loadingPoster = false }
             .tint(Constants.accentPink)
         }

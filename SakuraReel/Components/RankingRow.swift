@@ -23,7 +23,7 @@ struct RankingRow: View {
         HStack(spacing: 0) {
             // 海报铺满卡片左侧、高度即卡片高度（宽度按 2:3 反推），
             // 圆角由外层 clipShape 统一裁剪（与 MediaCard 同一做法）
-            PosterView(imageData: item.poster, cornerRadius: 0)
+            LibraryPosterView(item: item, cornerRadius: 0)
                 .frame(width: cardHeight * Constants.posterAspectRatio)
                 .clipped()
 
@@ -76,6 +76,7 @@ struct RankingRow: View {
     }
     .padding()
     .background(Color(.systemGroupedBackground))
+    .environment(MediaRepository(seedItems: PreviewSampleData.sampleItems))
 }
 
 #Preview("无海报") {
@@ -87,6 +88,7 @@ struct RankingRow: View {
     }
     .padding()
     .background(Color(.systemGroupedBackground))
+    .environment(MediaRepository(seedItems: PreviewSampleData.sampleItems))
 }
 
 #Preview("iPhone 一屏五张") {
@@ -99,4 +101,5 @@ struct RankingRow: View {
     .padding(metrics.listPadding)
     .frame(width: metrics.listWidth)
     .background(Color(.systemGroupedBackground))
+    .environment(MediaRepository(seedItems: PreviewSampleData.sampleItems))
 }

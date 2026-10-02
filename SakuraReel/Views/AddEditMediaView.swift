@@ -10,10 +10,11 @@ struct AddEditMediaView: View {
 
     let initialItem: MediaItem?
     var initialDraft: MediaItem? = nil
-    var onSave: (MediaItem) throws -> Void
-    var onDelete: (() throws -> Void)?
+    var onSave: (MediaItem) async throws -> Void
+    var onDelete: (() async throws -> Void)?
 
     // 表单状态
+    @State private var isSaving = false
     @State private var title: String = ""
     @State private var status: MediaStatus = .watched
     @State private var watchYear: Int? = nil
@@ -156,6 +157,7 @@ struct AddEditMediaView: View {
                 bottomActionBar
             }
             .tint(Constants.accentPink)
+            .disabled(isSaving)
             .alert("放弃修改？", isPresented: $showUnsavedAlert) {
                 Button("放弃修改", role: .destructive) { dismiss() }
                 Button("继续编辑", role: .cancel) {}
@@ -164,7 +166,7 @@ struct AddEditMediaView: View {
             }
             .alert("确认删除", isPresented: $showDeleteAlert) {
                 Button("删除", role: .destructive) {
-                    do { try onDelete?(); dismiss() } catch { saveError = error.localizedDescription }
+                    Task { do { try await onDelete?(); dismiss() } catch { saveError = error.localizedDescription } }
                 }
                 Button("取消", role: .cancel) {}
             } message: {
@@ -233,7 +235,7 @@ struct AddEditMediaView: View {
 
             // [保存按钮] - BorderedProminent 突出样式 + 樱花粉 Theme Tint
             Button {
-                handleSave()
+                Task { await handleSave() }
             } label: {
                 Text("保存")
                     .font(.body.weight(.semibold))
@@ -281,29 +283,40 @@ struct AddEditMediaView: View {
     private var currentDraft: MediaItem {
         let trimmedReview = review.trimmingCharacters(in: .whitespacesAndNewlines)
         let trimmedURL = playURL.trimmingCharacters(in: .whitespacesAndNewlines)
-        return MediaItem(id: initialItem?.id ?? localID, title: title, poster: posterData, status: status,
-            watchYear: watchYear, watchMonth: watchMonth, rating: rating,
+        var item = MediaItem(id: initialItem?.id ?? localID, title: title, poster: posterData, status: status,
+            watchedAt: watchYear.flatMap { year in watchMonth.map { YearMonth(year: year, month: $0) } }, rating: rating,
             review: trimmedReview.isEmpty ? nil : trimmedReview, playURL: trimmedURL.isEmpty ? nil : trimmedURL,
-            sortIndex: initialItem?.sortIndex ?? 0, rankIndex: initialItem?.rankIndex,
             createdAt: initialItem?.createdAt ?? Date(), updatedAt: initialItem?.updatedAt ?? Date(),
             source: source, metadata: metadata, backdrop: backdrop, logo: logo)
+        if let base = initialItem ?? initialDraft {
+            if posterData == base.poster { item.attachments.poster = base.attachments.poster }
+            if backdrop == base.backdrop { item.attachments.backdrop = base.attachments.backdrop }
+            if logo == base.logo { item.attachments.logo = base.attachments.logo }
+        }
+        return item
     }
     private func adoptMetadata(_ item: MediaItem) {
         title = item.title; posterData = item.poster
         source = item.source; metadata = item.metadata; backdrop = item.backdrop; logo = item.logo
     }
 
-    private func handleSave() {
+    private func handleSave() async {
+        guard !isSaving else { return }
+        isSaving = true
+        defer { isSaving = false }
         let trimmedTitle = title.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmedTitle.isEmpty else {
             showEmptyTitleAlert = true
             return
         }
+        guard (watchYear == nil) == (watchMonth == nil) else {
+            saveError = "请完整选择观看年份和月份。"
+            return
+        }
         do {
             var item = currentDraft
             item.title = trimmedTitle
-            item.updatedAt = Date()
-            try onSave(item)
+            try await onSave(item)
             dismiss()
         } catch { saveError = error.localizedDescription }
 

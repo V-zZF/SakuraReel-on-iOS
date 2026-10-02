@@ -23,7 +23,7 @@ func expectEqual<T: Equatable>(_ actual: T, _ expected: T, _ label: String) {
 
 runTMDbMetadataTests()
 runArchiveTests()
-runLegacyTests()
+runDocumentTests()
 runRankingMetricsTests()
 runGridColumnsTests()
 runTimeMachineMomentsTests()

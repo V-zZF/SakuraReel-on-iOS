@@ -15,7 +15,6 @@ struct TMDbSearchView: View {
     let onApply: (TMDbImportDraft, Set<MetadataField>) -> Void
     @State private var model = TMDbSearchModel(service: TMDbEnvironment.shared.service)
     @State private var query = ""
-    @State private var gridWidth: CGFloat = 0
     @State private var category = TMDbBrowseCategory.anime
     @State private var seasonSelection: SearchSelection?
     @State private var pendingSeasonSource: MediaSource?
@@ -54,12 +53,6 @@ struct TMDbSearchView: View {
                     results(category.mediaType == .movie ? model.movies : model.series)
                         .padding(.vertical, 8)
                 }
-                .background {
-                    GeometryReader { geometry in
-                        Color.clear.preference(key: GridWidthPreferenceKey.self, value: geometry.size.width)
-                    }
-                }
-                .onPreferenceChange(GridWidthPreferenceKey.self) { gridWidth = $0 }
                 .id(category)
 
             }
@@ -97,7 +90,7 @@ struct TMDbSearchView: View {
                     }
                     onApply(draft, fields)
                     didApply = true
-                }
+                }.environment(repository)
             }
             .sheet(item: $seasonSelection, onDismiss: {
                 if let source = pendingSeasonSource {
@@ -117,7 +110,7 @@ struct TMDbSearchView: View {
                     .tint(Constants.brandTitlePink)
                 }
             }
-            .sheet(item: $detail) { MediaDetailView(itemID: $0.id) }
+            .sheet(item: $detail) { MediaDetailView(itemID: $0.id).environment(repository) }
             .alert("收藏库已有此作品", isPresented: Binding(get: { duplicate != nil }, set: { if !$0 { duplicate = nil } })) {
                 Button("打开已有条目") { detail = duplicate; duplicate = nil }
                 Button("取消", role: .cancel) { duplicate = nil }
@@ -127,42 +120,13 @@ struct TMDbSearchView: View {
     }
     private func results(_ group: TMDbSearchModel.Group) -> some View {
         VStack(spacing: 20) {
-            AdaptiveGridLayout(availableWidth: gridWidth) {
+            LazyVStack(spacing: 16) {
                 ForEach(group.results) { result in
-                    VStack(alignment: .leading, spacing: 0) {
-                        Button { select(result.source) } label: {
-                            VStack(alignment: .leading, spacing: 0) {
-                                // The container owns layout; decoded image proportions never resize a card.
-                                Rectangle().fill(.clear)
-                                    .aspectRatio(Constants.posterAspectRatio, contentMode: .fit)
-                                    .overlay {
-                                        GeometryReader { geometry in
-                                            TMDbRemoteImage(path: result.posterPath, width: 500)
-                                                .frame(width: geometry.size.width, height: geometry.size.height)
-                                        }
-                                    }
-                                    .clipped()
-                                LibraryCardTitle(title: result.title)
-                                    .padding(.horizontal, 12)
-                                    .padding(.top, 12)
-                                    .padding(.bottom, 8)
-                            }.frame(maxWidth: .infinity, alignment: .leading)
-                        }.buttonStyle(LibraryPressStyle()).disabled(selecting)
-                        .accessibilityLabel("选择作品：\(result.title)")
-                        HStack(spacing: 8) {
-                            Text(result.date.flatMap { $0.isEmpty ? nil : String($0.prefix(4)) } ?? "—")
-                                .font(.caption).foregroundStyle(.secondary).lineLimit(1)
-                            Spacer(minLength: 0)
-                            if result.source.mediaType == .series {
-                                Button("按季选择", systemImage: "rectangle.stack") {
-                                    seasonSelection = SearchSelection(result: result)
-                                }.font(.caption).lineLimit(1).buttonStyle(.borderless).disabled(selecting)
-                            }
-                        }.modifier(LibraryCardFooter())
-                    }
-                    .modifier(LibraryCardSurface())
+                    TMDbSearchCard(result: result, disabled: selecting,
+                        onSelect: { select(result.source) },
+                        onSeason: { seasonSelection = SearchSelection(result: result) })
                 }
-            }
+            }.padding(.horizontal, 16)
             if group.loading { ProgressView("加载中").padding() }
             if let error = group.error {
                 Text(error).font(.footnote).foregroundStyle(.secondary)
@@ -197,6 +161,64 @@ struct TMDbSearchView: View {
             }
             selecting = false
         }
+    }
+}
+
+/// Search results use a horizontal poster-and-summary row; each action has its own hit area.
+private struct TMDbSearchCard: View {
+    let result: TMDbSearchResult
+    let disabled: Bool
+    let onSelect: () -> Void
+    let onSeason: () -> Void
+    @ScaledMetric(relativeTo: .body) private var posterWidth: CGFloat = 75
+
+    var body: some View {
+        HStack(alignment: .top, spacing: 16) {
+            Button(action: onSelect) {
+                TMDbRemoteImage(path: result.posterPath)
+                    .frame(width: posterWidth, height: posterWidth / Constants.posterAspectRatio)
+                    .clipShape(RoundedRectangle(cornerRadius: 6))
+            }.buttonStyle(.plain)
+                .accessibilityLabel("选择作品：\(result.title)")
+            VStack(alignment: .leading, spacing: 6) {
+                HStack(alignment: .top, spacing: 12) {
+                    Button(action: onSelect) {
+                        Text(result.title).font(.headline).foregroundStyle(.primary)
+                            .multilineTextAlignment(.leading)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .contentShape(Rectangle())
+                    }.buttonStyle(.plain)
+                        .accessibilityLabel("选择作品：\(result.title)")
+                    if result.source.mediaType == .series {
+                        Button("单季", action: onSeason)
+                            .buttonStyle(.bordered).buttonBorderShape(.capsule)
+                            .controlSize(.small).fixedSize()
+                            .accessibilityLabel("单季：\(result.title)")
+                    } else {
+                        Button("选择", action: onSelect)
+                            .buttonStyle(.bordered).buttonBorderShape(.capsule)
+                            .controlSize(.small).fixedSize()
+                    }
+                }
+                Button(action: onSelect) {
+                    VStack(alignment: .leading, spacing: 6) {
+                        if let date = result.date, !date.isEmpty {
+                            Text(date).font(.subheadline).foregroundStyle(.secondary)
+                        }
+                        if let overview = result.overview, !overview.isEmpty {
+                            Text(overview).font(.subheadline).foregroundStyle(.secondary)
+                                .lineLimit(3).multilineTextAlignment(.leading)
+                        }
+                    }.frame(maxWidth: .infinity, alignment: .leading)
+                        .contentShape(Rectangle())
+                }.buttonStyle(.plain)
+                    .accessibilityLabel("选择作品：\(result.title)")
+            }.frame(maxWidth: .infinity, alignment: .leading)
+        }
+        .padding(12)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(.white, in: RoundedRectangle(cornerRadius: 12))
+        .disabled(disabled)
     }
 }
 

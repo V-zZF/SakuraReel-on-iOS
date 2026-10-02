@@ -23,11 +23,6 @@ struct HomeView: View {
     @State private var timeMachineItems: [MediaItem] = []
     @State private var titleScale: CGFloat = 1
 
-    /// 网格容器的可用宽度（含两侧留白）。`0` = 还没量到。
-    /// 量在这里而不是 `AdaptiveGridLayout` 里：`onPreferenceChange` 的闭包是 `@Sendable`，
-    /// 而 `AdaptiveGridLayout` 存了一个非 `@Sendable` 的 `content` 闭包，捕获它会过不了 Swift 6 隔离检查
-    @State private var gridWidth: CGFloat = 0
-
     /// 已确认删除、但等 Sheet 关完再落盘的条目。见 `onDelete` 处的说明
     @State private var pendingDeleteID: UUID?
 
@@ -141,101 +136,100 @@ struct HomeView: View {
 
     var body: some View {
         NavigationStack {
-            ZStack(alignment: .bottomTrailing) {
-                ScrollViewReader { scrollProxy in
-                    ScrollView {
-                        if isSortMode {
-                            // 排序模式：显示全部条目（无筛选），保证每个「同年同月」组都是完整的，
-                            // 完整顺序表必须覆盖全部条目，不受分类筛选影响
-                            sortGrid
-                        } else {
-                            VStack(spacing: 0) {
-                                // 分类选择器 + 搜索按钮，位于标题下方
-                                HStack(spacing: 8) {
-                                    syncMenu
-                                        .frame(width: 44, height: 44)
-                                    CategorySegmentedControl(selectedStatus: categorySelection, isSearchActive: $isSearchActive)
-                                }
-                                .id("libraryTop")
-                                .frame(maxWidth: .infinity)
-                                .padding(.horizontal, 16)
-                                .padding(.vertical, 8)
-
-                                if isSearchActive {
-                                    searchBar
-                                        .transition(.asymmetric(
-                                            insertion: .move(edge: .top).combined(with: .opacity),
-                                            removal: .move(edge: .top).combined(with: .opacity)
-                                        ))
-                                }
-
-                                if isSearchActive {
-                                    libraryPage(items: filteredItems, emptyStatus: nil)
-                                } else {
-                                    ZStack(alignment: .top) {
-                                        if let outgoingCategory {
-                                            libraryPage(
-                                                items: outgoingCategory.items,
-                                                emptyStatus: outgoingCategory.status
-                                            )
-                                            .frame(width: gridWidth > 0 ? gridWidth : nil)
-                                            .offset(x: (movingToLaterStatus ? -1 : 1) * gridWidth * categorySlideProgress)
-                                            .opacity(1 - categorySlideProgress)
-                                            .allowsHitTesting(false)
-                                        }
-                                        if let status = selectedStatus {
-                                            libraryPage(
-                                                items: allItems.filter { $0.status == status },
-                                                emptyStatus: status
-                                            )
-                                            .frame(width: gridWidth > 0 ? gridWidth : nil)
-                                            .offset(x: outgoingCategory == nil
-                                                ? 0
-                                                : (movingToLaterStatus ? 1 : -1) * gridWidth * (1 - categorySlideProgress))
-                                            .opacity(outgoingCategory == nil ? 1 : categorySlideProgress)
-                                            .allowsHitTesting(outgoingCategory == nil)
-                                        }
+            GeometryReader { viewport in
+                let gridWidth = viewport.size.width
+                ZStack(alignment: .bottomTrailing) {
+                    ScrollViewReader { scrollProxy in
+                        ScrollView {
+                            if isSortMode {
+                                // 排序模式：显示全部条目（无筛选），保证每个「同年同月」组都是完整的，
+                                // 完整顺序表必须覆盖全部条目，不受分类筛选影响
+                                sortGrid(availableWidth: gridWidth)
+                            } else {
+                                VStack(spacing: 0) {
+                                    // 分类选择器 + 搜索按钮，位于标题下方
+                                    HStack(spacing: 8) {
+                                        syncMenu
+                                            .frame(width: 44, height: 44)
+                                        CategorySegmentedControl(selectedStatus: categorySelection, isSearchActive: $isSearchActive)
                                     }
-                                    .frame(maxWidth: .infinity, alignment: .top)
-                                    .clipped()
-                                }
-                            }
-                            .animation(reduceMotion ? nil : .spring(response: 0.32, dampingFraction: 0.9), value: isSearchActive)
-                        }
-                    }
-                    // 兜底：手指在卡片之间的空隙、或最后一行下方的空白处松开时，没有任何卡片的
-                    // `.onDrop` 会被触发，`draggedItemID` 就永远留着 —— 卡片会一直挂着「抬起」的透明态。
-                    // 返回 false，不抢内层卡片的落点
-                    .onDrop(of: [.text], isTargeted: nil) { _ in
-                        draggedItemID = nil
-                        return false
-                    }
-                    .onChange(of: selectedStatus) { _, _ in
-                        var transaction = Transaction(animation: nil)
-                        transaction.disablesAnimations = true
-                        withTransaction(transaction) {
-                            scrollProxy.scrollTo("libraryTop", anchor: .top)
-                        }
-                    }
-                    .onChange(of: isSearchActive) { _, active in
-                        if active { cancelCategorySlide() }
-                    }
-                }
+                                    .id("libraryTop")
+                                    .frame(maxWidth: .infinity)
+                                    .padding(.horizontal, 16)
+                                    .padding(.vertical, 8)
 
-                if !isSortMode {
-                    AddButton {
-                        sheetTarget = .add
+                                    if isSearchActive {
+                                        searchBar
+                                            .transition(.asymmetric(
+                                                insertion: .move(edge: .top).combined(with: .opacity),
+                                                removal: .move(edge: .top).combined(with: .opacity)
+                                            ))
+                                    }
+
+                                    if isSearchActive {
+                                        libraryPage(items: filteredItems, emptyStatus: nil, availableWidth: gridWidth)
+                                    } else {
+                                        ZStack(alignment: .top) {
+                                            if let outgoingCategory {
+                                                libraryPage(
+                                                    items: outgoingCategory.items,
+                                                    emptyStatus: outgoingCategory.status, availableWidth: gridWidth
+                                                )
+                                                .frame(width: gridWidth > 0 ? gridWidth : nil)
+                                                .offset(x: (movingToLaterStatus ? -1 : 1) * gridWidth * categorySlideProgress)
+                                                .opacity(1 - categorySlideProgress)
+                                                .allowsHitTesting(false)
+                                            }
+                                            if let status = selectedStatus {
+                                                libraryPage(
+                                                    items: allItems.filter { $0.status == status },
+                                                    emptyStatus: status, availableWidth: gridWidth
+                                                )
+                                                .frame(width: gridWidth > 0 ? gridWidth : nil)
+                                                .offset(x: outgoingCategory == nil
+                                                    ? 0
+                                                    : (movingToLaterStatus ? 1 : -1) * gridWidth * (1 - categorySlideProgress))
+                                                .opacity(outgoingCategory == nil ? 1 : categorySlideProgress)
+                                                .allowsHitTesting(outgoingCategory == nil)
+                                            }
+                                        }
+                                        .frame(maxWidth: .infinity, alignment: .top)
+                                        .clipped()
+                                    }
+                                }
+                                .animation(reduceMotion ? nil : .spring(response: 0.32, dampingFraction: 0.9), value: isSearchActive)
+                            }
+                        }
+                        // 兜底：手指在卡片之间的空隙、或最后一行下方的空白处松开时，没有任何卡片的
+                        // `.onDrop` 会被触发，`draggedItemID` 就永远留着 —— 卡片会一直挂着「抬起」的透明态。
+                        // 返回 false，不抢内层卡片的落点
+                        .onDrop(of: [.text], isTargeted: nil) { _ in
+                            draggedItemID = nil
+                            return false
+                        }
+                        .onChange(of: selectedStatus) { _, _ in
+                            var transaction = Transaction(animation: nil)
+                            transaction.disablesAnimations = true
+                            withTransaction(transaction) {
+                                scrollProxy.scrollTo("libraryTop", anchor: .top)
+                            }
+                        }
+                        .onChange(of: isSearchActive) { _, active in
+                            if active { cancelCategorySlide() }
+                        }
                     }
-                    .padding(24)
+
+                    if !isSortMode {
+                        AddButton {
+                            sheetTarget = .add
+                        }
+                        .padding(24)
+                    }
                 }
+                // GeometryReader owns the viewport size independently of the grid's old width.
+                .frame(width: viewport.size.width, height: viewport.size.height)
+                .clipped()
             }
-            .background {
-                // 量网格容器的宽度，交给 GridColumns 决定列数（iPad 分栏变窄时自动减列）
-                GeometryReader { proxy in
-                    Color.clear.preference(key: GridWidthPreferenceKey.self, value: proxy.size.width)
-                }
-            }
-            .onPreferenceChange(GridWidthPreferenceKey.self) { gridWidth = $0 }
             .background(Constants.libraryBackground)
             .sensoryFeedback(.selection, trigger: selectedStatus)
             .sensoryFeedback(.selection, trigger: isSearchActive)
@@ -353,8 +347,10 @@ struct HomeView: View {
                 switch target {
                 case .add:
                     AddMediaFlowView(onSave: { try await repository.upsert($0) })
+                        .environment(repository)
                 case .edit(let item):
-                    MediaDetailView(itemID: item.id)
+                    // Explicitly inject across the sheet hosting boundary (iPad app on Mac).
+                    MediaDetailView(itemID: item.id).environment(repository)
                 }
             }
             .alert("资料库文件错误", isPresented: Binding(get: { repository.lastError != nil }, set: { if !$0 { repository.lastError = nil } })) {
@@ -617,19 +613,19 @@ struct HomeView: View {
     }
 
     @ViewBuilder
-    private func libraryPage(items: [MediaItem], emptyStatus: MediaStatus?) -> some View {
+    private func libraryPage(items: [MediaItem], emptyStatus: MediaStatus?, availableWidth: CGFloat) -> some View {
         if items.isEmpty {
             EmptyStateView(status: emptyStatus) {
                 sheetTarget = .add
             }
             .padding(.top, 80)
         } else {
-            gridContent(items: items)
+            gridContent(items: items, availableWidth: availableWidth)
         }
     }
 
-    private func gridContent(items: [MediaItem]) -> some View {
-        AdaptiveGridLayout(availableWidth: gridWidth) {
+    private func gridContent(items: [MediaItem], availableWidth: CGFloat) -> some View {
+        AdaptiveGridLayout(availableWidth: availableWidth) {
             ForEach(items) { item in
                 MediaCard(item: item, onOpen: { sheetTarget = .edit(item) })
                     .transition(.opacity)
@@ -653,8 +649,8 @@ struct HomeView: View {
 
     /// 排序模式网格：与正常网格共用 `AdaptiveGridLayout`（列数唯一来源），
     /// 卡片在组内可拖动重排，跨观看年月拖动由 `HomeReorderDropDelegate` 阻止。
-    private var sortGrid: some View {
-        AdaptiveGridLayout(availableWidth: gridWidth) {
+    private func sortGrid(availableWidth: CGFloat) -> some View {
+        AdaptiveGridLayout(availableWidth: availableWidth) {
             ForEach(draftItems) { item in
                 MediaCard(item: item, isInteractive: false)
                     .onDrag {

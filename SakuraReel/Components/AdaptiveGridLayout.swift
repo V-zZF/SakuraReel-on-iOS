@@ -1,54 +1,14 @@
 import SwiftUI
 
-/// 网格容器的可用宽度（含两侧留白）从内容区回传，供宽度感知的列数使用。
-///
-/// `defaultValue` 必须是 `static let`：Swift 6 下 `static var` 是可变全局状态，编译不过。
-struct GridWidthPreferenceKey: PreferenceKey {
-    static let defaultValue: CGFloat = 0
-
-    static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) {
-        value = max(value, nextValue())
-    }
-}
-
 struct AdaptiveGridLayout<Content: View>: View {
-    @Environment(\.horizontalSizeClass) private var horizontalSizeClass
-    @Environment(\.verticalSizeClass) private var verticalSizeClass
-
-    /// 网格容器的可用宽度（含两侧留白）。`0` = 还没量到，退回尺寸类的答案
+    @Environment(\.displayScale) private var displayScale
+    /// 当前内容区宽度（含两侧留白），由呈现页面持续测量。
     var availableWidth: CGFloat = 0
 
     @ViewBuilder let content: () -> Content
 
-    /// 列数唯一来源：尺寸类给上限（紧凑竖屏 3 列、Regular 5 列、其余 2 列），
-    /// 再由 `GridColumns` 按可用宽度收窄 —— 算术本身在 `GridColumns` 里，可脱离模拟器验证。
-    /// 正常模式网格与排序模式网格共用，保证两套布局永不漂移。
-    static func columnCount(
-        horizontalSizeClass: UserInterfaceSizeClass?,
-        verticalSizeClass: UserInterfaceSizeClass?,
-        availableWidth: CGFloat = 0
-    ) -> Int {
-        let maxColumns: Int
-        if verticalSizeClass == .compact {
-            maxColumns = 3
-        } else if horizontalSizeClass == .regular {
-            maxColumns = 5
-        } else {
-            maxColumns = 2
-        }
-        return GridColumns.count(
-            maxColumns: maxColumns,
-            availableWidth: availableWidth,
-            spacing: GridColumns.spacing
-        )
-    }
-
     private var columnCount: Int {
-        Self.columnCount(
-            horizontalSizeClass: horizontalSizeClass,
-            verticalSizeClass: verticalSizeClass,
-            availableWidth: availableWidth
-        )
+        GridColumns.count(availableWidth: availableWidth, displayScale: displayScale)
     }
 
     var body: some View {

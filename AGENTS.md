@@ -123,7 +123,7 @@ SakuraReel
 - 海报宽度由卡高按 2:3 反推，卡高实际由海报决定；片名允许 2 行（`lineLimit(2)`），不会把卡片撑高
 - 列宽：iPhone 与 iPad 竖屏铺满可用宽度；iPad **横屏**收窄并**居中** —— 卡片宽度按「半屏宽一列的卡片 × `padCardWidthMultiplier`（1.2）」算，否则铺满整屏会把卡片拉成一条长带
 - 居中靠整列两侧各垫一个 `Spacer`：`ScrollView` 会把内容按 leading 摆放，**只给固定宽度并不会居中**
-- iPad 判定与 `AdaptiveGridLayout` 同一套：`horizontalSizeClass == .regular && verticalSizeClass != .compact`；竖横判定直接比 `availableSize` 的宽高
+- 排行榜 iPad 判定：`horizontalSizeClass == .regular && verticalSizeClass != .compact`；竖横判定直接比 `availableSize` 的宽高
 - 卡内字号由卡高算出，**不跟随系统动态字体** —— 这是「一屏几张」的代价
 
 ## 视觉方向
@@ -135,6 +135,14 @@ SakuraReel
 - **品牌强调**：樱花粉，仅用于选中态、按钮、评分高区间，不作为大面积背景
 - **海报**：2:3 比例，卡片视觉中心
 - **信息层级**：海报 > 片名 > 评分 > 观看年月 > 播放入口
+
+## 网格窗口自适应（2026-10-02）
+
+- 首页与排序模式共用 `AdaptiveGridLayout` 和 `GridColumns`，按当前内容区可用宽度实时计算列数。
+- 一行五张仅作卡片尺寸参考，不是固定列数或上限；不以设备型号、横竖屏或尺寸类限制列数。
+- iPad 窗口缩放／分栏、iPhone 与 iPad 旋转时，由外层 GeometryReader 直接传入当前视口宽度并重新排布；不缓存宽度，也不从被网格撑宽的背景反向测量。每张卡片连同分摊的周围间隙按550屏幕像素占宽，通过当前环境displayScale换算pt；列数为可用像素宽度除以550向下取整，至少一列，剩余宽度由各列均分。间距及两侧留白16pt。
+
+- TMDb 搜索结果按用户参考图改为满宽横向卡片：左侧海报，右侧片名、完整日期与最多三行简介；右上角与片名并排放置操作按钮：剧集显示“单季”并进入季度选择，电影显示“选择”。搜索结果不再使用550px海报网格。
 
 ## 交互要点
 

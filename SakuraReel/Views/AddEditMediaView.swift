@@ -182,9 +182,9 @@ struct AddEditMediaView: View {
             .sheet(isPresented: $showsTMDbSearch) {
                 TMDbSearchView(existing: currentDraft) { draft, fields in
                     adoptMetadata(draft.merging(into: currentDraft, fields: fields))
-                }
+                }.environment(repository)
             }
-            .sheet(item: $existingDetail) { MediaDetailView(itemID: $0.id) }
+            .sheet(item: $existingDetail) { MediaDetailView(itemID: $0.id).environment(repository) }
             .sheet(isPresented: $showsMetadataEditor) {
                 MediaMetadataEditor(initialItem: currentDraft) { adoptMetadata($0) }
             }

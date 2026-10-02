@@ -108,7 +108,7 @@ struct RankingsView: View {
         .sheet(item: $sheetTarget, onDismiss: commitPendingDelete) { target in
             switch target {
             case .edit(let item):
-                MediaDetailView(itemID: item.id)
+                MediaDetailView(itemID: item.id).environment(repository)
             }
         }
         .alert("无法移动", isPresented: isBlockedAlertPresented) {

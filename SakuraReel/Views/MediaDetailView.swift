@@ -92,7 +92,7 @@ struct MediaDetailView: View {
             .sheet(item: $personalEditor) { selection in
                 MediaDetailPersonalEditor(initialRecord: selection.record) { record in
                     try await repository.updatePersonalRecord(record, for: itemID)
-                }
+                }.environment(repository)
             }
             .sheet(isPresented: $editingMetadata) {
                 if let item { MediaMetadataEditor(initialItem: item) { try await saveMetadata($0) } }
@@ -102,7 +102,7 @@ struct MediaDetailView: View {
                 if let item {
                     TMDbImportPreview(draft: selection.draft, existing: item) { draft, fields in
                         try await repository.applyMetadata(draft, fields: fields, to: itemID)
-                    }
+                    }.environment(repository)
                 }
             }
             .alert("确认删除", isPresented: $deletion) {
@@ -172,7 +172,7 @@ struct MediaDetailView: View {
                         ForEach(entries) { credit in
                             VStack(alignment: .leading, spacing: 5) {
                                 if showsPhotos {
-                                    TMDbRemoteImage(path: credit.imagePath, role: "profile", width: 185, cachedConfiguration: true)
+                                    TMDbRemoteImage(path: credit.imagePath, role: "profile", width: 185, cachedConfiguration: true, placeholderColor: Constants.brandTitlePink)
                                         .frame(width: 88, height: 120).clipShape(RoundedRectangle(cornerRadius: 10))
                                 }
                                 Text(credit.name).font(.caption.bold()); Text(credit.role).font(.caption).foregroundStyle(.secondary)
@@ -188,14 +188,21 @@ struct MediaDetailView: View {
             MediaDetailSection(title: String(localized: String.LocalizationValue(label)), symbol: "play.rectangle.on.rectangle.fill") {
                 ForEach(entries) { part in
                     DisclosureGroup {
-                        if let overview = part.overview, !overview.isEmpty { Text(overview).font(.subheadline).padding(.vertical, 8) }
-                        if let count = part.episodeCount { Text("\(count) 集").font(.caption) }
+                        if let overview = part.overview, !overview.isEmpty { Text(overview).font(.subheadline).foregroundStyle(.black).padding(.vertical, 8) }
+                        if let count = part.episodeCount { Text("\(count) 集").font(.caption).foregroundStyle(.black) }
                     } label: {
                         HStack {
-                            TMDbRemoteImage(path: part.imagePath, role: role, cachedConfiguration: true).frame(width: 45, height: 60).clipShape(RoundedRectangle(cornerRadius: 6))
-                            VStack(alignment: .leading) { Text(part.title); if let date = part.date { Text(date).font(.caption).foregroundStyle(.secondary) } }
+                            TMDbRemoteImage(path: part.imagePath, role: role, cachedConfiguration: true, placeholderColor: Constants.brandTitlePink).frame(width: 45, height: 60).clipShape(RoundedRectangle(cornerRadius: 6))
+                            VStack(alignment: .leading) {
+                                Text(part.title).foregroundColor(.black)
+                                if let date = part.date {
+                                    Text(date).font(.caption).foregroundStyle(Constants.brandTitlePink)
+                                }
+                            }
                         }
                     }
+                    .tint(Constants.brandTitlePink)
+                    .foregroundStyle(Constants.brandTitlePink)
                 }
             }
         }

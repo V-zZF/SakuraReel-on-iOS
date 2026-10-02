@@ -11,12 +11,13 @@ struct TMDbRemoteImage: View {
     var role = "poster"
     var width = 185
     var cachedConfiguration = false
+    var placeholderColor: Color = .secondary
     @State private var model = RemoteArtworkModel()
     private var identity: String { "\(path ?? ""):\(role):\(width)" }
     var body: some View {
         Group {
             if let bytes = model.data, let image = UIImage(data: bytes) { Image(uiImage: image).resizable().scaledToFill() }
-            else { Rectangle().fill(.quaternary).overlay { Image(systemName: "photo").foregroundStyle(.secondary) } }
+            else { Rectangle().fill(.quaternary).overlay { Image(systemName: "photo").foregroundStyle(placeholderColor) } }
         }
         .clipped().accessibilityHidden(true)
         .task(id: identity) {

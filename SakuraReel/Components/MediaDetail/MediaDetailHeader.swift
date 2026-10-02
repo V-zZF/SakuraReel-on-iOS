@@ -35,7 +35,7 @@ struct MediaDetailHeader: View {
                     .accessibilityHidden(true)
             } else {
                 Color(.systemGray5)
-                    .overlay { Image(systemName: "film").font(.system(size: 52)).foregroundStyle(.white.opacity(0.55)) }
+                    .overlay { Image(systemName: "film").font(.system(size: 52)).foregroundStyle(Constants.brandTitlePink) }
             }
             LinearGradient(colors: [.black.opacity(0.42), .clear], startPoint: .top, endPoint: UnitPoint(x: 0.5, y: 0.22))
             LinearGradient(colors: [.clear, .black.opacity(0.78)], startPoint: UnitPoint(x: 0.5, y: 0.35), endPoint: .bottom)

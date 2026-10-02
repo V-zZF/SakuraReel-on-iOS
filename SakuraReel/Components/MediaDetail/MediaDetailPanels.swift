@@ -28,7 +28,7 @@ struct MediaDetailSection<Content: View>: View {
             Label {
                 Text(title).font(.title3.bold())
             } icon: {
-                Image(systemName: symbol).font(.subheadline.weight(.semibold)).foregroundStyle(.secondary)
+                Image(systemName: symbol).font(.subheadline.weight(.semibold)).foregroundStyle(Constants.brandTitlePink)
             }
             content
         }
@@ -50,10 +50,10 @@ struct MediaDetailDisclosure<Content: View>: View {
                 withAnimation(.spring(response: 0.35, dampingFraction: 0.86)) { expanded.toggle() }
             } label: {
                 HStack(spacing: 10) {
-                    Image(systemName: symbol).font(.subheadline.weight(.semibold)).foregroundStyle(.secondary)
+                    Image(systemName: symbol).font(.subheadline.weight(.semibold)).foregroundStyle(Constants.brandTitlePink)
                     Text(title).font(.title3.bold())
                     Spacer(minLength: 12)
-                    Image(systemName: "chevron.down").font(.footnote.bold()).foregroundStyle(.secondary)
+                    Image(systemName: "chevron.down").font(.footnote.bold()).foregroundStyle(Constants.brandTitlePink)
                         .rotationEffect(.degrees(expanded ? 180 : 0))
                 }.contentShape(Rectangle())
             }
@@ -70,9 +70,9 @@ struct MediaDetailDisclosure<Content: View>: View {
 struct MediaDetailCircleStyle: ViewModifier {
     func body(content: Content) -> some View {
         if #available(iOS 26, *) {
-            content.buttonStyle(.glass).buttonBorderShape(.circle).tint(.primary)
+            content.buttonStyle(.glass).buttonBorderShape(.circle).tint(Constants.brandTitlePink)
         } else {
-            content.buttonStyle(MediaDetailMaterialButtonStyle()).tint(.primary)
+            content.buttonStyle(MediaDetailMaterialButtonStyle()).tint(Constants.brandTitlePink)
         }
     }
 }
@@ -80,7 +80,7 @@ struct MediaDetailCircleStyle: ViewModifier {
 struct MediaDetailActionIcon: View {
     let symbol: String
     var body: some View {
-        Image(systemName: symbol).font(.title2).frame(width: 20, height: 20).padding(10)
+        Image(systemName: symbol).foregroundStyle(Constants.brandTitlePink).font(.title2).frame(width: 20, height: 20).padding(10)
     }
 }
 

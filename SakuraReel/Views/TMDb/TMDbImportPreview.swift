@@ -99,7 +99,7 @@ struct TMDbImportPreview: View {
                     }
                 }.disabled(loadingPoster) }
             }
-            .sheet(item: $duplicateDetail) { MediaDetailView(itemID: $0.id) }
+            .sheet(item: $duplicateDetail) { MediaDetailView(itemID: $0.id).environment(repository) }
             .disabled(applying)
             .onDisappear { posterTask?.cancel(); posterRequest = UUID(); loadingPoster = false }
             .tint(Constants.brandTitlePink)

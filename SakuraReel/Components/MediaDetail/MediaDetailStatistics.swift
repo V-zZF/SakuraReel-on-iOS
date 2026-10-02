@@ -16,8 +16,7 @@ struct MediaDetailStatistics: View {
 
     private var grid: some View {
         LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 12), count: 3), spacing: 12) {
-            card("我的评分", value: item.rating == 0 ? "未评分" : "\(item.rating)", symbol: "star.fill",
-                 color: RatingColor.color(for: item.rating))
+            card("我的评分", value: item.rating == 0 ? "未评分" : "\(item.rating)", symbol: "star.fill")
             card("观看年月", value: item.personal.watchedAt.map { "\($0.year)年\($0.month)月" } ?? "未设置", symbol: "calendar")
             card("总时长", value: item.metadata?.totalRuntimeMinutes(for: item.source?.mediaType).map {
                 "\($0.isEstimated ? "约" : "")\($0.minutes) 分钟"
@@ -25,9 +24,9 @@ struct MediaDetailStatistics: View {
         }
     }
 
-    private func card(_ title: String, value: String, symbol: String, color: Color = Constants.accentPink) -> some View {
+    private func card(_ title: String, value: String, symbol: String) -> some View {
         VStack(alignment: .leading) {
-            Image(systemName: symbol).font(.headline).foregroundStyle(color)
+            Image(systemName: symbol).font(.headline).foregroundStyle(Constants.brandTitlePink)
             Spacer()
             Text(value).font(.title3.bold()).lineLimit(1).minimumScaleFactor(0.55)
             Spacer()
@@ -63,7 +62,7 @@ struct MediaDetailWorkStatistics: View {
                                     Text("集数").foregroundStyle(.primary)
                                     Spacer()
                                     Text("\(count) 集").foregroundStyle(.secondary)
-                                    Image(systemName: "chevron.right").font(.caption).foregroundStyle(.secondary)
+                                    Image(systemName: "chevron.right").font(.caption).foregroundStyle(Constants.brandTitlePink)
                                 }
                             }.buttonStyle(.plain).accessibilityHint("跳转到单集")
                         } else { LabeledContent("集数", value: "\(count) 集") }

@@ -13,6 +13,7 @@ struct HomeView: View {
     @State private var isSearchActive: Bool = false
     @State private var searchText: String = ""
     @State private var isSortMode: Bool = false
+    @State private var tmdbSettings = false
     @State private var sheetTarget: SheetTarget?
     /// 是否已 Push 进排行榜；工具栏按钮通过此状态触发导航。
     @State private var showsRankings = false
@@ -254,7 +255,7 @@ struct HomeView: View {
                 Button("导入") { commitImport(pending) }
                 Button("取消", role: .cancel) {}
             } message: { pending in
-                Text(pending.summary.description + "\n\n导入前会保存仅含 JSON 的备份；被覆盖的海报无法从该备份恢复。")
+                Text(pending.summary.description + "\n\n导入前会保存完整备份，包含资料、海报、背景图和 Logo。")
             }
             .alert(syncMessage?.title ?? "", isPresented: syncMessagePresented) {
                 Button("好", role: .cancel) {}
@@ -345,24 +346,18 @@ struct HomeView: View {
                 RankingsView()
             }
             .toolbarBackground(.visible, for: .navigationBar)
+            .sheet(isPresented: $tmdbSettings) { TMDbSettingsView() }
             .sheet(item: $sheetTarget, onDismiss: commitPendingDelete) { target in
                 switch target {
                 case .add:
-                    AddEditMediaView(
-                        initialItem: nil,
-                        onSave: { repository.upsert($0) },
-                        onDelete: nil
-                    )
+                    AddMediaFlowView(onSave: { try repository.upsert($0) })
                 case .edit(let item):
-                    AddEditMediaView(
-                        initialItem: item,
-                        onSave: { repository.upsert($0) },
-                        // 删除只记下 id，真正的落盘与淡出留到 Sheet 关完之后 ——
-                        // 在这里直接删的话，0.25s 的淡出全程被 Sheet 的消失动画盖住，等于没有
-                        onDelete: { pendingDeleteID = item.id }
-                    )
+                    MediaDetailView(itemID: item.id)
                 }
             }
+            .alert("资料库文件错误", isPresented: Binding(get: { repository.lastError != nil }, set: { if !$0 { repository.lastError = nil } })) {
+                Button("好的", role: .cancel) {}
+            } message: { Text(repository.lastError ?? "") }
             .alert("无法移动", isPresented: isBlockedAlertPresented) {
                 Button("好", role: .cancel) { blockedMessage = nil }
             } message: {
@@ -404,6 +399,8 @@ struct HomeView: View {
     /// 工具栏的「···」菜单
     private var syncMenu: some View {
         Menu {
+            Button("TMDb 设置", systemImage: "gearshape") { tmdbSettings = true }
+            Divider()
             Button {
                 isChoosingSyncFolder = true
             } label: {
@@ -520,9 +517,12 @@ struct HomeView: View {
 
     /// 确认之后才真正写盘。写之前先留一个回滚点。
     private func commitImport(_ pending: PendingImport) {
-        repository.makeImportBackup()
-        repository.applyImport(pending.snapshot)
-        let message = SyncMessage(title: "导入完成", body: pending.summary.description)
+        let message: SyncMessage
+        do {
+            try repository.makeImportBackup()
+            try repository.applyImport(pending.snapshot, replacingUnreadable: true)
+            message = SyncMessage(title: "导入完成", body: pending.summary.description)
+        } catch { message = SyncMessage(title: "导入失败", body: error.localizedDescription) }
         // 确认弹窗正在关闭，同一个 runloop 里再挂一个 alert 会被丢掉，等它关完再说
         Task { syncMessage = message }
     }

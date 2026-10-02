@@ -31,6 +31,8 @@ jobs:
           swift --version
       - name: Run model tests
         run: ./Scripts/run-model-tests.sh
+      - name: Run TMDb service tests
+        run: ./Scripts/run-tmdb-tests.sh
       - name: Build for iOS Simulator
         run: |
           xcodebuild \

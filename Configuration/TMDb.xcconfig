@@ -1,0 +1,3 @@
+// Optional locally provisioned default key. Do not commit credentials.
+TMDB_DEFAULT_API_KEY =
+#include? "TMDb.local.xcconfig"

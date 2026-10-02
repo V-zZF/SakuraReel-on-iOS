@@ -33,3 +33,6 @@ __pycache__/
 *.ipa
 *.dSYM/
 *.xcresult/
+
+# 本机 TMDb 默认凭据（不提交）
+Configuration/TMDb.local.xcconfig

@@ -20,6 +20,9 @@ final class MediaRepository {
     /// 导入前的回滚点（只保留一份，每次导入覆盖）
     static let importBackupFileName = "导入前备份.json"
 
+    var lastError: String?
+    private var loadFailed = false
+    private let isPreview: Bool
     private(set) var items: [MediaItem] = []
     private(set) var homeOrder: [UUID] = []
     private(set) var rankingOrder: [UUID] = []
@@ -39,8 +42,9 @@ final class MediaRepository {
     }
 
     /// - Parameter seedItems: 预览 / 测试用。传非 nil 时直接使用该数组，不读写磁盘；传 nil 时从 Documents 加载。
-    init(seedItems: [MediaItem]? = nil) {
-        directoryURL = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
+    init(seedItems: [MediaItem]? = nil, directory: URL? = nil) {
+        isPreview = seedItems != nil
+        directoryURL = directory ?? FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
         if let seedItems {
             let initial = LibrarySnapshot.legacy(seedItems)
             items = initial.items
@@ -54,38 +58,38 @@ final class MediaRepository {
     // MARK: - 读取
 
     func load() {
-        try? FileManager.default.createDirectory(at: postersDirectoryURL, withIntermediateDirectories: true)
-
-        guard let data = try? Data(contentsOf: libraryURL),
-              let decoded = try? LibrarySnapshot.decode(data) else {
-            // 首次启动：创建空的库文件，让用户能在「文件」App 中看到数据文件
-            items = []
-            save()
-            return
-        }
-
-        homeOrder = decoded.homeOrder
-        rankingOrder = decoded.rankingOrder
-        items = decoded.items.map { item in
-            var copy = item
-            copy.poster = loadPosterData(for: item.id)
-            return copy
-        }
-        if (try? Self.decoder.decode([MediaItem].self, from: data)) != nil {
-            save() // migrate the legacy array to the snapshot format on first load
+        do {
+            try LibraryArchive.recoverPendingCommits(in: directoryURL)
+            guard FileManager.default.fileExists(atPath: libraryURL.path) else {
+                items = []; homeOrder = []; rankingOrder = []; loadFailed = false
+                save(); return
+            }
+            let data = try Data(contentsOf: libraryURL)
+            let decoded = try LibraryArchive.read(from: directoryURL)
+            homeOrder = decoded.homeOrder; rankingOrder = decoded.rankingOrder; items = decoded.items
+            loadFailed = false; lastError = nil
+            if (try? Self.decoder.decode([MediaItem].self, from: data)) != nil { save() }
+        } catch {
+            loadFailed = true
+            lastError = String(localized: "资料库读取失败，原文件已保留。请从完整备份恢复。")
         }
     }
 
     // MARK: - 写入
 
     func save() {
-        savePosters()
-        do {
-            let data = try snapshot.encoded()
-            try data.write(to: libraryURL, options: .atomic)
-        } catch {
-            print("SakuraReel: 保存库文件失败 \(error)")
-        }
+        do { try persist(snapshot) } catch { lastError = error.localizedDescription }
+    }
+
+    private func persist(_ snapshot: LibrarySnapshot, replacingUnreadable: Bool = false) throws {
+        if loadFailed && !replacingUnreadable { throw LibraryArchiveError.unreadableLibraryFile }
+        guard !isPreview else { return }
+        try LibraryArchive.commit(snapshot, to: directoryURL)
+        lastError = nil
+    }
+
+    func duplicate(for source: MediaSource, excluding id: UUID? = nil) -> MediaItem? {
+        items.first { $0.id != id && $0.source?.identity == source.identity }
     }
 
     // MARK: - CRUD（Phase 3 使用）
@@ -94,7 +98,11 @@ final class MediaRepository {
     ///
     /// New entries and entries moved to another date/rating group are inserted into
     /// that group by the legacy default sort. Existing order elsewhere is preserved.
-    func upsert(_ item: MediaItem) {
+    func upsert(_ item: MediaItem) throws {
+        if let source = item.source, duplicate(for: source, excluding: item.id) != nil {
+            throw RepositoryError.duplicate
+        }
+        let oldSnapshot = snapshot
         if let index = items.firstIndex(where: { $0.id == item.id }) {
             var updated = item
             if items[index].rating != item.rating {
@@ -114,7 +122,11 @@ final class MediaRepository {
             items.append(newItem)
         }
         repairOrders()
-        save()
+        do { try persist(snapshot) }
+        catch {
+            items = oldSnapshot.items; homeOrder = oldSnapshot.homeOrder; rankingOrder = oldSnapshot.rankingOrder
+            throw error
+        }
     }
 
     private func repairOrders() {
@@ -125,56 +137,62 @@ final class MediaRepository {
 
     /// Persist the complete home order independently of item timestamps.
     func applyHomeReorder(_ orderedIDs: [UUID]) {
-        homeOrder = orderedIDs
-        repairOrders()
-        save()
+        let old = homeOrder
+        homeOrder = orderedIDs; repairOrders()
+        do { try persist(snapshot) } catch { homeOrder = old; lastError = error.localizedDescription }
     }
 
     /// Persist the complete ranking order independently of content timestamps.
     func applyRankingReorder(_ orderedIDs: [UUID]) {
-        rankingOrder = orderedIDs
-        repairOrders()
-        save()
+        let old = rankingOrder
+        rankingOrder = orderedIDs; repairOrders()
+        do { try persist(snapshot) } catch { rankingOrder = old; lastError = error.localizedDescription }
     }
 
     /// 删除条目，并移除对应的海报文件。
     func delete(_ item: MediaItem) {
-        items.removeAll { $0.id == item.id }
-        homeOrder.removeAll { $0 == item.id }
-        rankingOrder.removeAll { $0 == item.id }
-        try? FileManager.default.removeItem(at: posterURL(for: item.id))
-        save()
+        do { try remove(item) } catch { lastError = error.localizedDescription }
+    }
+    func remove(_ item: MediaItem) throws {
+        let incoming = LibrarySnapshot(items: items.filter { $0.id != item.id },
+                                       homeOrder: homeOrder.filter { $0 != item.id },
+                                       rankingOrder: rankingOrder.filter { $0 != item.id })
+        try applyImport(incoming)
     }
 
     // MARK: - 同步（导入 / 导出）
 
+    /// 完整导入回滚点包含 JSON 和附件；同时保留旧版 JSON 备份名称。
     /// 导入前的回滚点：把当前库文件整份另存为 `Documents/导入前备份.json`（每次覆盖）。
     ///
     /// 用 `Data.write` 而不是 `FileManager.copyItem` —— 后者在目标已存在时会抛错，
     /// 而这里要的正是「覆盖上一次的备份」。
     ///
     /// 只备份元数据，不含海报。导入覆盖或删除的海报无法通过此文件恢复。
-    func makeImportBackup() {
-        guard let data = try? Data(contentsOf: libraryURL) else { return }
-        do {
-            try data.write(to: directoryURL.appendingPathComponent(Self.importBackupFileName), options: .atomic)
-        } catch {
-            print("SakuraReel: 导入前备份失败 \(error)")
+    func makeImportBackup() throws {
+        guard !isPreview else { return }
+        if loadFailed {
+            let backup = directoryURL.appendingPathComponent("读取失败备份-" + UUID().uuidString)
+            try FileManager.default.createDirectory(at: backup, withIntermediateDirectories: true)
+            for name in [LibraryFiles.libraryFileName, LibraryFiles.postersDirectoryName, LibraryFiles.artworkDirectoryName] {
+                let original = directoryURL.appendingPathComponent(name)
+                if FileManager.default.fileExists(atPath: original.path) {
+                    try FileManager.default.copyItem(at: original, to: backup.appendingPathComponent(name))
+                }
+            }
+            return
         }
+        try LibraryArchive.commit(snapshot, to: directoryURL.appendingPathComponent("导入前完整备份"))
+        try snapshot.encoded().write(to: directoryURL.appendingPathComponent(Self.importBackupFileName), options: .atomic)
     }
 
     /// Replace the complete local snapshot, including order and poster membership.
-    func applyImport(_ incoming: LibrarySnapshot) {
-        let incomingIDs = Set(incoming.items.filter { $0.poster != nil }.map(\.id))
-        let existing = (try? FileManager.default.contentsOfDirectory(at: postersDirectoryURL, includingPropertiesForKeys: nil)) ?? []
-        for url in existing where url.pathExtension.lowercased() == "jpg" {
-            guard let id = UUID(uuidString: url.deletingPathExtension().lastPathComponent), !incomingIDs.contains(id) else { continue }
-            try? FileManager.default.removeItem(at: url)
-        }
+    func applyImport(_ incoming: LibrarySnapshot, replacingUnreadable: Bool = false) throws {
+        try persist(incoming, replacingUnreadable: replacingUnreadable)
+        loadFailed = false
         items = incoming.items
         homeOrder = incoming.homeOrder
         rankingOrder = incoming.rankingOrder
-        save()
     }
 
     // MARK: - 海报文件
@@ -183,21 +201,12 @@ final class MediaRepository {
         postersDirectoryURL.appendingPathComponent("\(id.uuidString).jpg")
     }
 
-    private func loadPosterData(for id: UUID) -> Data? {
-        try? Data(contentsOf: posterURL(for: id))
-    }
-
-    private func savePosters() {
-        for item in items {
-            if let poster = item.poster {
-                try? poster.write(to: posterURL(for: item.id), options: .atomic)
-            }
-        }
-    }
-
     // MARK: - 编解码
 
-    private static var encoder: JSONEncoder { LibraryCoding.encoder }
-
     private static var decoder: JSONDecoder { LibraryCoding.decoder }
+}
+
+enum RepositoryError: LocalizedError {
+    case duplicate
+    var errorDescription: String? { String(localized: "收藏库已有相同作品，请打开已有条目。") }
 }

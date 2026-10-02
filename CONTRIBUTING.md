@@ -6,13 +6,13 @@ SakuraReel 是个人影视收藏库。修改优先保证数据正确，沿用原
 
 - 阅读 [README](README.md) 和 [AGENTS.md](AGENTS.md)。
 - 较大的功能或交互调整先在 Issue 中说明场景，避免改变已确定的产品规则。
-- 不引入第三方 UI 框架、影视数据库 API、SwiftData、CloudKit 或自动云同步。
+- 不引入第三方 UI 框架、SwiftData、CloudKit 或自动云同步；外部资料仅允许用户主动使用 TMDb，不增加其他数据库。
 - 排序集中在 `MediaSort`，评分颜色集中在 `RatingColor`，排行榜尺寸集中在 `RankingMetrics`。
 - 使用独立分支，并让每个 Pull Request 聚焦一个明确的问题。
 
 ## 验证修改
 
-1. 运行 `./Scripts/run-model-tests.sh`。
+1. 运行 `./Scripts/run-model-tests.sh` 和 `./Scripts/run-tmdb-tests.sh`。
 2. 按 README 中的命令构建模拟器版本。
 3. 运行 `git diff --check`。
 4. 修改数据或排序时，增加能验证实际边界条件的模型断言；仅调整文档无需重跑 App 构建。

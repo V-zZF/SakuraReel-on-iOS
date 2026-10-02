@@ -5,11 +5,13 @@ import SwiftUI
 /// `initialItem` 为 nil 时是添加模式，非 nil 时是编辑模式。
 /// 通过 `onSave` / `onDelete` 与上层（HomeView）交互，由上层调用 `MediaRepository` 完成持久化。
 struct AddEditMediaView: View {
+    @Environment(MediaRepository.self) private var repository
     @Environment(\.dismiss) private var dismiss
 
     let initialItem: MediaItem?
-    var onSave: (MediaItem) -> Void
-    var onDelete: (() -> Void)?
+    var initialDraft: MediaItem? = nil
+    var onSave: (MediaItem) throws -> Void
+    var onDelete: (() throws -> Void)?
 
     // 表单状态
     @State private var title: String = ""
@@ -20,6 +22,17 @@ struct AddEditMediaView: View {
     @State private var review: String = ""
     @State private var playURL: String = ""
     @State private var posterData: Data? = nil
+
+    @State private var source: MediaSource?
+    @State private var metadata: MediaMetadata?
+    @State private var backdrop: Data?
+    @State private var logo: Data?
+    @State private var initialized = false
+    @State private var localID = UUID()
+    @State private var showsTMDbSearch = false
+    @State private var showsMetadataEditor = false
+    @State private var existingDetail: PresentedMedia?
+    @State private var saveError: String?
 
     // 弹窗状态
     @State private var showDeleteAlert = false
@@ -35,7 +48,9 @@ struct AddEditMediaView: View {
     private var isDirty: Bool {
         if isEditMode {
             let base = initialItem
-            return title != (base?.title ?? "")
+            return source != base?.source || metadata != base?.metadata
+                || backdrop != base?.backdrop || logo != base?.logo
+                || title != (base?.title ?? "")
                 || status != (base?.status ?? .watched)
                 || watchYear != base?.watchYear
                 || watchMonth != base?.watchMonth
@@ -44,7 +59,7 @@ struct AddEditMediaView: View {
                 || playURL != (base?.playURL ?? "")
                 || posterData != (base?.poster ?? nil)
         } else {
-            return !title.isEmpty || !review.isEmpty || !playURL.isEmpty
+            return source != nil || metadata != nil || backdrop != nil || logo != nil || !title.isEmpty || !review.isEmpty || !playURL.isEmpty
                 || posterData != nil
                 || status != .watched
                 || rating != 0
@@ -122,6 +137,12 @@ struct AddEditMediaView: View {
             .navigationTitle(isEditMode ? "编辑内容" : "添加内容")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
+                ToolbarItem(placement: .navigationBarLeading) {
+                    Menu {
+                        Button("从 TMDb 搜索", systemImage: "magnifyingglass") { showsTMDbSearch = true }
+                        Button("编辑作品资料", systemImage: "doc.text") { showsMetadataEditor = true }
+                    } label: { Label("作品资料", systemImage: "doc.text.magnifyingglass") }
+                }
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Button {
                         attemptClose()
@@ -143,8 +164,7 @@ struct AddEditMediaView: View {
             }
             .alert("确认删除", isPresented: $showDeleteAlert) {
                 Button("删除", role: .destructive) {
-                    onDelete?()
-                    dismiss()
+                    do { try onDelete?(); dismiss() } catch { saveError = error.localizedDescription }
                 }
                 Button("取消", role: .cancel) {}
             } message: {
@@ -156,7 +176,22 @@ struct AddEditMediaView: View {
                 Text("保存前需要先填写片名。")
             }
             .onAppear(perform: populateFields)
-            .interactiveDismissDisabled(isDirty)
+            .modifier(UnsavedDismissGuard(isDirty: isDirty, onAttempt: { showUnsavedAlert = true }))
+            .sheet(isPresented: $showsTMDbSearch) {
+                TMDbSearchView(existing: currentDraft) { draft, fields in
+                    adoptMetadata(draft.merging(into: currentDraft, fields: fields))
+                }
+            }
+            .sheet(item: $existingDetail) { MediaDetailView(itemID: $0.id) }
+            .sheet(isPresented: $showsMetadataEditor) {
+                MediaMetadataEditor(initialItem: currentDraft) { adoptMetadata($0) }
+            }
+            .alert("保存失败", isPresented: Binding(get: { saveError != nil }, set: { if !$0 { saveError = nil } })) {
+                Button("继续编辑", role: .cancel) {}
+                if let source, let found = repository.duplicate(for: source, excluding: currentDraft.id) {
+                    Button("打开已有条目") { existingDetail = PresentedMedia(id: found.id) }
+                }
+            } message: { Text(saveError ?? "") }
         }
     }
 
@@ -216,7 +251,11 @@ struct AddEditMediaView: View {
     // MARK: - 行为
 
     private func populateFields() {
-        guard let item = initialItem else { return }
+        guard !initialized else { return }
+        initialized = true
+        guard let item = initialItem ?? initialDraft else { return }
+        localID = item.id
+        source = item.source; metadata = item.metadata; backdrop = item.backdrop; logo = item.logo
         title = item.title
         status = item.status
         watchYear = item.watchYear
@@ -239,32 +278,35 @@ struct AddEditMediaView: View {
         }
     }
 
+    private var currentDraft: MediaItem {
+        let trimmedReview = review.trimmingCharacters(in: .whitespacesAndNewlines)
+        let trimmedURL = playURL.trimmingCharacters(in: .whitespacesAndNewlines)
+        return MediaItem(id: initialItem?.id ?? localID, title: title, poster: posterData, status: status,
+            watchYear: watchYear, watchMonth: watchMonth, rating: rating,
+            review: trimmedReview.isEmpty ? nil : trimmedReview, playURL: trimmedURL.isEmpty ? nil : trimmedURL,
+            sortIndex: initialItem?.sortIndex ?? 0, rankIndex: initialItem?.rankIndex,
+            createdAt: initialItem?.createdAt ?? Date(), updatedAt: initialItem?.updatedAt ?? Date(),
+            source: source, metadata: metadata, backdrop: backdrop, logo: logo)
+    }
+    private func adoptMetadata(_ item: MediaItem) {
+        title = item.title; posterData = item.poster
+        source = item.source; metadata = item.metadata; backdrop = item.backdrop; logo = item.logo
+    }
+
     private func handleSave() {
         let trimmedTitle = title.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmedTitle.isEmpty else {
             showEmptyTitleAlert = true
             return
         }
-        let trimmedReview = review.trimmingCharacters(in: .whitespacesAndNewlines)
-        let trimmedURL = playURL.trimmingCharacters(in: .whitespacesAndNewlines)
+        do {
+            var item = currentDraft
+            item.title = trimmedTitle
+            item.updatedAt = Date()
+            try onSave(item)
+            dismiss()
+        } catch { saveError = error.localizedDescription }
 
-        let item = MediaItem(
-            id: initialItem?.id ?? UUID(),
-            title: trimmedTitle,
-            poster: posterData,
-            status: status,
-            watchYear: watchYear,
-            watchMonth: watchMonth,
-            rating: rating,
-            review: trimmedReview.isEmpty ? nil : trimmedReview,
-            playURL: trimmedURL.isEmpty ? nil : trimmedURL,
-            sortIndex: initialItem?.sortIndex ?? 0,
-            rankIndex: initialItem?.rankIndex,
-            createdAt: initialItem?.createdAt ?? Date(),
-            updatedAt: Date()
-        )
-        onSave(item)
-        dismiss()
     }
 }
 
@@ -273,7 +315,7 @@ struct AddEditMediaView: View {
         initialItem: nil,
         onSave: { _ in },
         onDelete: nil
-    )
+    ).environment(MediaRepository(seedItems: PreviewSampleData.sampleItems))
 }
 
 #Preview("编辑") {
@@ -281,5 +323,5 @@ struct AddEditMediaView: View {
         initialItem: PreviewSampleData.sampleItems[0],
         onSave: { _ in },
         onDelete: {}
-    )
+    ).environment(MediaRepository(seedItems: PreviewSampleData.sampleItems))
 }

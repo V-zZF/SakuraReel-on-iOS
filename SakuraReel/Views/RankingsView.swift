@@ -106,13 +106,7 @@ struct RankingsView: View {
         .sheet(item: $sheetTarget, onDismiss: commitPendingDelete) { target in
             switch target {
             case .edit(let item):
-                AddEditMediaView(
-                    initialItem: item,
-                    onSave: { repository.upsert($0) },
-                    // 删除只记下 id，真正的落盘与淡出留到 Sheet 关完之后 ——
-                    // 在这里直接删的话，0.25s 的淡出全程被 Sheet 的消失动画盖住，等于没有
-                    onDelete: { pendingDeleteID = item.id }
-                )
+                MediaDetailView(itemID: item.id)
             }
         }
         .alert("无法移动", isPresented: isBlockedAlertPresented) {

@@ -1,6 +1,6 @@
 import Foundation
 
-enum MediaStatus: String, Codable, CaseIterable, Identifiable {
+enum MediaStatus: String, Codable, CaseIterable, Identifiable, Sendable {
     case watched
     case watching
     case wantToWatch

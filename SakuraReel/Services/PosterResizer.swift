@@ -5,7 +5,7 @@ import UIKit
 /// 用 `UIGraphicsImageRenderer` + aspect-fill 绘制（自动处理图片 orientation），
 /// `format.scale = 1` 保证输出像素尺寸精确，控制海报文件体积。
 enum PosterResizer {
-    static func resizedPosterData(from image: UIImage, maxHeight: CGFloat = 900) -> Data? {
+    nonisolated static func resizedPosterData(from image: UIImage, maxHeight: CGFloat = 900) -> Data? {
         guard image.size.width > 0, image.size.height > 0 else { return nil }
 
         let targetAspect: CGFloat = 2.0 / 3.0

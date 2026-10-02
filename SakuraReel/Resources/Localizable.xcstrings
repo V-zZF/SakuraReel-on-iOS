@@ -1,0 +1,2886 @@
+{
+  "sourceLanguage" : "zh-Hans",
+  "strings" : {
+    "" : {
+
+    },
+    "%@  短评" : {
+
+    },
+    "%@ 年" : {
+
+    },
+    "%@ 年 %@ 月" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@ 年 %2$@ 月"
+          }
+        }
+      }
+    },
+    "%@ 年 %lld 月" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ 年 %lld 月"
+          }
+        }
+      }
+    },
+    "%lld" : {
+
+    },
+    "%lld 分" : {
+
+    },
+    "%lld 分钟" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld 分钟"
+          }
+        }
+      }
+    },
+    "%lld 年" : {
+
+    },
+    "%lld 月" : {
+
+    },
+    "%lld 部作品" : {
+
+    },
+    "%lld 集" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld 集"
+          }
+        }
+      }
+    },
+    "1–3 月" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "1–3 月"
+          }
+        }
+      }
+    },
+    "4–6 月" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "4–6 月"
+          }
+        }
+      }
+    },
+    "7–9 月" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "7–9 月"
+          }
+        }
+      }
+    },
+    "10–12 月" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "10–12 月"
+          }
+        }
+      }
+    },
+    "API Key 无效或没有访问权限。" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "API Key 无效或没有访问权限。"
+          }
+        }
+      }
+    },
+    "https://你的 API 主机" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "https://你的 API 主机"
+          }
+        }
+      }
+    },
+    "iPhone 一屏五张" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "iPhone 一屏五张"
+          }
+        }
+      }
+    },
+    "Key 仅保存在本机 Keychain，不进入收藏库或导出文件。" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Key 仅保存在本机 Keychain，不进入收藏库或导出文件。"
+          }
+        }
+      }
+    },
+    "Logo 下载失败，将显示片名。" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Logo 下载失败，将显示片名。"
+          }
+        }
+      }
+    },
+    "SakuraReel" : {
+
+    },
+    "The Movie Database" : {
+
+    },
+    "This product uses the TMDB API but is not endorsed or certified by TMDB." : {
+
+    },
+    "TMDb" : {
+
+    },
+    "TMDb API Key（v3）" : {
+
+    },
+    "TMDb 中已找不到此作品。" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "TMDb 中已找不到此作品。"
+          }
+        }
+      }
+    },
+    "TMDb 使用指引" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "TMDb 使用指引"
+          }
+        }
+      }
+    },
+    "TMDb 服务暂时不可用（%lld）。" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "TMDb 服务暂时不可用（%lld）。"
+          }
+        }
+      }
+    },
+    "TMDb 设置" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "TMDb 设置"
+          }
+        }
+      }
+    },
+    "TMDb 评分" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "TMDb 评分"
+          }
+        }
+      }
+    },
+    "TMDb 请求过于频繁，请稍后重试。" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "TMDb 请求过于频繁，请稍后重试。"
+          }
+        }
+      }
+    },
+    "TMDb 返回的数据无法解析。" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "TMDb 返回的数据无法解析。"
+          }
+        }
+      }
+    },
+    "上一张" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "上一张"
+          }
+        }
+      }
+    },
+    "上映／首播日期" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "上映／首播日期"
+          }
+        }
+      }
+    },
+    "上映／首播日期（YYYY-MM-DD）" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "上映／首播日期（YYYY-MM-DD）"
+          }
+        }
+      }
+    },
+    "下一张" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "下一张"
+          }
+        }
+      }
+    },
+    "下一步" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "下一步"
+          }
+        }
+      }
+    },
+    "个人记录" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "个人记录"
+          }
+        }
+      }
+    },
+    "中央" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "中央"
+          }
+        }
+      }
+    },
+    "为看过的作品填写观看年月后，回忆会出现在这里。" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "为看过的作品填写观看年月后，回忆会出现在这里。"
+          }
+        }
+      }
+    },
+    "也可以稍后在 TMDb 设置中填写自己的 API Key。" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "也可以稍后在 TMDb 设置中填写自己的 API Key。"
+          }
+        }
+      }
+    },
+    "仅在搜索、导入或主动重新获取时联网。作品资料保存后可自行修改。" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "仅在搜索、导入或主动重新获取时联网。作品资料保存后可自行修改。"
+          }
+        }
+      }
+    },
+    "仅将勾选字段填入本地资料。个人记录不会被替换。" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "仅将勾选字段填入本地资料。个人记录不会被替换。"
+          }
+        }
+      }
+    },
+    "从 TMDb 快捷录入" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "从 TMDb 快捷录入"
+          }
+        }
+      }
+    },
+    "从 TMDb 搜索" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "从 TMDb 搜索"
+          }
+        }
+      }
+    },
+    "从 TMDb 搜索作品" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "从 TMDb 搜索作品"
+          }
+        }
+      }
+    },
+    "从此文件夹导入" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "从此文件夹导入"
+          }
+        }
+      }
+    },
+    "以后「导出」「导入」用的都是这个文件夹。" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "以后「导出」「导入」用的都是这个文件夹。"
+          }
+        }
+      }
+    },
+    "传闻" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "传闻"
+          }
+        }
+      }
+    },
+    "作品已不存在" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "作品已不存在"
+          }
+        }
+      }
+    },
+    "作品状态" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "作品状态"
+          }
+        }
+      }
+    },
+    "作品类型" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "作品类型"
+          }
+        }
+      }
+    },
+    "作品资料" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "作品资料"
+          }
+        }
+      }
+    },
+    "你想活出怎样的人生" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "你想活出怎样的人生"
+          }
+        }
+      }
+    },
+    "使用自定义 API 代理" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "使用自定义 API 代理"
+          }
+        }
+      }
+    },
+    "使用自己的 API Key 搜索电影和剧集。以下步骤均可跳过，也可以使用默认 API 后继续搜索。" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "使用自己的 API Key 搜索电影和剧集。以下步骤均可跳过，也可以使用默认 API 后继续搜索。"
+          }
+        }
+      }
+    },
+    "侧面" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "侧面"
+          }
+        }
+      }
+    },
+    "保存" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "保存"
+          }
+        }
+      }
+    },
+    "保存前需要先填写片名。" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "保存前需要先填写片名。"
+          }
+        }
+      }
+    },
+    "保存失败" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "保存失败"
+          }
+        }
+      }
+    },
+    "保存并搜索" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "保存并搜索"
+          }
+        }
+      }
+    },
+    "元数据" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "元数据"
+          }
+        }
+      }
+    },
+    "先回首页添加作品，这里会按评分排出名次。" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "先回首页添加作品，这里会按评分排出名次。"
+          }
+        }
+      }
+    },
+    "全部" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "全部"
+          }
+        }
+      }
+    },
+    "公司名称" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "公司名称"
+          }
+        }
+      }
+    },
+    "共" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "共"
+          }
+        }
+      }
+    },
+    "共 %lld 部 平均 %@ 分" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "共 %1$lld 部 平均 %2$@ 分"
+          }
+        }
+      }
+    },
+    "关于 TMDb" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "关于 TMDb"
+          }
+        }
+      }
+    },
+    "关闭" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "关闭"
+          }
+        }
+      }
+    },
+    "关闭时光机" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "关闭时光机"
+          }
+        }
+      }
+    },
+    "冬" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "冬"
+          }
+        }
+      }
+    },
+    "分" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "分"
+          }
+        }
+      }
+    },
+    "分享" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "分享"
+          }
+        }
+      }
+    },
+    "分类" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "分类"
+          }
+        }
+      }
+    },
+    "删除" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "删除"
+          }
+        }
+      }
+    },
+    "删除 Key" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "删除 Key"
+          }
+        }
+      }
+    },
+    "删除后不可恢复，确定要删除吗？" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "删除后不可恢复，确定要删除吗？"
+          }
+        }
+      }
+    },
+    "制作中" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "制作中"
+          }
+        }
+      }
+    },
+    "制作公司" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "制作公司"
+          }
+        }
+      }
+    },
+    "剧集" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "剧集"
+          }
+        }
+      }
+    },
+    "剧集录入方式" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "剧集录入方式"
+          }
+        }
+      }
+    },
+    "加载中" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "加载中"
+          }
+        }
+      }
+    },
+    "加载季度" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "加载季度"
+          }
+        }
+      }
+    },
+    "加载更多" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "加载更多"
+          }
+        }
+      }
+    },
+    "千与千寻" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "千与千寻"
+          }
+        }
+      }
+    },
+    "单集" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "单集"
+          }
+        }
+      }
+    },
+    "原名" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "原名"
+          }
+        }
+      }
+    },
+    "取消" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "取消"
+          }
+        }
+      }
+    },
+    "取消排序" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "取消排序"
+          }
+        }
+      }
+    },
+    "只能调整相同观看年月内的作品顺序。" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "只能调整相同观看年月内的作品顺序。"
+          }
+        }
+      }
+    },
+    "只能调整相同评分内的作品顺序。" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "只能调整相同评分内的作品顺序。"
+          }
+        }
+      }
+    },
+    "同步文件夹的授权已失效（文件夹被删除、移动或改名，或 App 被重装过），请重新选择。" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "同步文件夹的授权已失效（文件夹被删除、移动或改名，或 App 被重装过），请重新选择。"
+          }
+        }
+      }
+    },
+    "名称" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "名称"
+          }
+        }
+      }
+    },
+    "后期制作" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "后期制作"
+          }
+        }
+      }
+    },
+    "图片目录获取失败，使用基本资料中的图片。" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "图片目录获取失败，使用基本资料中的图片。"
+          }
+        }
+      }
+    },
+    "图片读取失败，请重新选择。" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "图片读取失败，请重新选择。"
+          }
+        }
+      }
+    },
+    "在 TMDb 网站申请 API Key（v3），然后返回填写。" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "在 TMDb 网站申请 API Key（v3），然后返回填写。"
+          }
+        }
+      }
+    },
+    "在看" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "在看"
+          }
+        }
+      }
+    },
+    "基准尺寸" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "基准尺寸"
+          }
+        }
+      }
+    },
+    "基本信息" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "基本信息"
+          }
+        }
+      }
+    },
+    "填写 API Key" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "填写 API Key"
+          }
+        }
+      }
+    },
+    "夏" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "夏"
+          }
+        }
+      }
+    },
+    "好" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "好"
+          }
+        }
+      }
+    },
+    "好的" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "好的"
+          }
+        }
+      }
+    },
+    "姓名" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "姓名"
+          }
+        }
+      }
+    },
+    "季度" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "季度"
+          }
+        }
+      }
+    },
+    "季度名" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "季度名"
+          }
+        }
+      }
+    },
+    "完成" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "完成"
+          }
+        }
+      }
+    },
+    "官网" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "官网"
+          }
+        }
+      }
+    },
+    "导入" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "导入"
+          }
+        }
+      }
+    },
+    "导入：%@" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "导入：%@"
+          }
+        }
+      }
+    },
+    "导入前备份.json" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "导入前备份.json"
+          }
+        }
+      }
+    },
+    "导入前完整备份" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "导入前完整备份"
+          }
+        }
+      }
+    },
+    "导入失败" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "导入失败"
+          }
+        }
+      }
+    },
+    "导入完成" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "导入完成"
+          }
+        }
+      }
+    },
+    "导入预览" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "导入预览"
+          }
+        }
+      }
+    },
+    "导出到此文件夹" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "导出到此文件夹"
+          }
+        }
+      }
+    },
+    "导出失败" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "导出失败"
+          }
+        }
+      }
+    },
+    "导出完成" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "导出完成"
+          }
+        }
+      }
+    },
+    "已上映" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "已上映"
+          }
+        }
+      }
+    },
+    "已保存图片" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "已保存图片"
+          }
+        }
+      }
+    },
+    "已取消" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "已取消"
+          }
+        }
+      }
+    },
+    "已完结" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "已完结"
+          }
+        }
+      }
+    },
+    "已记住同步文件夹" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "已记住同步文件夹"
+          }
+        }
+      }
+    },
+    "已评分" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "已评分"
+          }
+        }
+      }
+    },
+    "已选择海报" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "已选择海报"
+          }
+        }
+      }
+    },
+    "平均" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "平均"
+          }
+        }
+      }
+    },
+    "序号" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "序号"
+          }
+        }
+      }
+    },
+    "应用所选字段" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "应用所选字段"
+          }
+        }
+      }
+    },
+    "开源说明" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "开源说明"
+          }
+        }
+      }
+    },
+    "当前：%@" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "当前：%@"
+          }
+        }
+      }
+    },
+    "影片海报" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "影片海报"
+          }
+        }
+      }
+    },
+    "影视类型" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "影视类型"
+          }
+        }
+      }
+    },
+    "影视类型（用、分隔）" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "影视类型（用、分隔）"
+          }
+        }
+      }
+    },
+    "您有未保存的内容，离开后修改将丢失。" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "您有未保存的内容，离开后修改将丢失。"
+          }
+        }
+      }
+    },
+    "想看" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "想看"
+          }
+        }
+      }
+    },
+    "想看列表是空的，把想看的作品记下来。" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "想看列表是空的，把想看的作品记下来。"
+          }
+        }
+      }
+    },
+    "手动添加" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "手动添加"
+          }
+        }
+      }
+    },
+    "打开季度" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "打开季度"
+          }
+        }
+      }
+    },
+    "打开已有条目" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "打开已有条目"
+          }
+        }
+      }
+    },
+    "按季" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "按季"
+          }
+        }
+      }
+    },
+    "排序" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "排序"
+          }
+        }
+      }
+    },
+    "排序完成后可进入时光机" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "排序完成后可进入时光机"
+          }
+        }
+      }
+    },
+    "排行" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "排行"
+          }
+        }
+      }
+    },
+    "搜索" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "搜索"
+          }
+        }
+      }
+    },
+    "搜索作品" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "搜索作品"
+          }
+        }
+      }
+    },
+    "搜索来源" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "搜索来源"
+          }
+        }
+      }
+    },
+    "搜索片名" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "搜索片名"
+          }
+        }
+      }
+    },
+    "搜索片名…" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "搜索片名…"
+          }
+        }
+      }
+    },
+    "搜索电影或剧集，将资料填入现有表单。" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "搜索电影或剧集，将资料填入现有表单。"
+          }
+        }
+      }
+    },
+    "播放" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "播放"
+          }
+        }
+      }
+    },
+    "播放链接 (https://)" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "播放链接 (https://)"
+          }
+        }
+      }
+    },
+    "收藏库" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "收藏库"
+          }
+        }
+      }
+    },
+    "收藏库已有此作品" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "收藏库已有此作品"
+          }
+        }
+      }
+    },
+    "收藏库已有相同作品，请打开已有条目。" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "收藏库已有相同作品，请打开已有条目。"
+          }
+        }
+      }
+    },
+    "放弃修改" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "放弃修改"
+          }
+        }
+      }
+    },
+    "放弃修改？" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "放弃修改？"
+          }
+        }
+      }
+    },
+    "数据文件已损坏或版本不兼容。" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "数据文件已损坏或版本不兼容。"
+          }
+        }
+      }
+    },
+    "整部剧集" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "整部剧集"
+          }
+        }
+      }
+    },
+    "无搜索结果" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "无搜索结果"
+          }
+        }
+      }
+    },
+    "无法保存 Keychain 凭据（%d）。" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "无法保存 Keychain 凭据（%d）。"
+          }
+        }
+      }
+    },
+    "无法移动" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "无法移动"
+          }
+        }
+      }
+    },
+    "无法连接 TMDb，请检查网络或所选线路。" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "无法连接 TMDb，请检查网络或所选线路。"
+          }
+        }
+      }
+    },
+    "无海报" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "无海报"
+          }
+        }
+      }
+    },
+    "无链接" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "无链接"
+          }
+        }
+      }
+    },
+    "日期" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "日期"
+          }
+        }
+      }
+    },
+    "日期需为有效的 YYYY-MM-DD。" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "日期需为有效的 YYYY-MM-DD。"
+          }
+        }
+      }
+    },
+    "日本語" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "日本語"
+          }
+        }
+      }
+    },
+    "时光机" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "时光机"
+          }
+        }
+      }
+    },
+    "时长" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "时长"
+          }
+        }
+      }
+    },
+    "时长（分钟）" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "时长（分钟）"
+          }
+        }
+      }
+    },
+    "时长及集数需为非负整数，TMDb 评分需在 0–10 之间。" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "时长及集数需为非负整数，TMDb 评分需在 0–10 之间。"
+          }
+        }
+      }
+    },
+    "星际穿越" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "星际穿越"
+          }
+        }
+      }
+    },
+    "春" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "春"
+          }
+        }
+      }
+    },
+    "暂无季度资料" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "暂无季度资料"
+          }
+        }
+      }
+    },
+    "暂无海报" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "暂无海报"
+          }
+        }
+      }
+    },
+    "暂无短评" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "暂无短评"
+          }
+        }
+      }
+    },
+    "更多操作" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "更多操作"
+          }
+        }
+      }
+    },
+    "更换同步文件夹" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "更换同步文件夹"
+          }
+        }
+      }
+    },
+    "更换海报" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "更换海报"
+          }
+        }
+      }
+    },
+    "有数据" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "有数据"
+          }
+        }
+      }
+    },
+    "有海报" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "有海报"
+          }
+        }
+      }
+    },
+    "有链接" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "有链接"
+          }
+        }
+      }
+    },
+    "未命名" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "未命名"
+          }
+        }
+      }
+    },
+    "未设置" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "未设置"
+          }
+        }
+      }
+    },
+    "未设置观看年月" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "未设置观看年月"
+          }
+        }
+      }
+    },
+    "未评" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "未评"
+          }
+        }
+      }
+    },
+    "未评分" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "未评分"
+          }
+        }
+      }
+    },
+    "本地图片" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "本地图片"
+          }
+        }
+      }
+    },
+    "本季看过 %lld 部" : {
+
+    },
+    "正在下载海报" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "正在下载海报"
+          }
+        }
+      }
+    },
+    "正在获取作品资料" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "正在获取作品资料"
+          }
+        }
+      }
+    },
+    "正在重新获取资料" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "正在重新获取资料"
+          }
+        }
+      }
+    },
+    "此构建未配置默认 API。请填写自己的 Key，或选择手动添加。" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "此构建未配置默认 API。请填写自己的 Key，或选择手动添加。"
+          }
+        }
+      }
+    },
+    "每次看都有新发现" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "每次看都有新发现"
+          }
+        }
+      }
+    },
+    "沙丘2" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "沙丘2"
+          }
+        }
+      }
+    },
+    "没有正在看的作品，开始追一部新剧。" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "没有正在看的作品，开始追一部新剧。"
+          }
+        }
+      }
+    },
+    "没有短评" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "没有短评"
+          }
+        }
+      }
+    },
+    "没法使用这个文件夹" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "没法使用这个文件夹"
+          }
+        }
+      }
+    },
+    "注册 TMDb" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "注册 TMDb"
+          }
+        }
+      }
+    },
+    "海报" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "海报"
+          }
+        }
+      }
+    },
+    "海报下载失败，可继续导入文本或手动选图。" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "海报下载失败，可继续导入文本或手动选图。"
+          }
+        }
+      }
+    },
+    "海报下载失败，可重试海报或继续导入文本。" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "海报下载失败，可重试海报或继续导入文本。"
+          }
+        }
+      }
+    },
+    "海报候选" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "海报候选"
+          }
+        }
+      }
+    },
+    "添加" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "添加"
+          }
+        }
+      }
+    },
+    "添加作品" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "添加作品"
+          }
+        }
+      }
+    },
+    "添加内容" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "添加内容"
+          }
+        }
+      }
+    },
+    "添加制作公司" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "添加制作公司"
+          }
+        }
+      }
+    },
+    "添加海报" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "添加海报"
+          }
+        }
+      }
+    },
+    "清空" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "清空"
+          }
+        }
+      }
+    },
+    "演员" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "演员"
+          }
+        }
+      }
+    },
+    "演职员获取失败，可以继续导入。" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "演职员获取失败，可以继续导入。"
+          }
+        }
+      }
+    },
+    "片名" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "片名"
+          }
+        }
+      }
+    },
+    "片名 (必填)" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "片名 (必填)"
+          }
+        }
+      }
+    },
+    "电影" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "电影"
+          }
+        }
+      }
+    },
+    "登录 TMDb" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "登录 TMDb"
+          }
+        }
+      }
+    },
+    "直连 api.themoviedb.org" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "直连 api.themoviedb.org"
+          }
+        }
+      }
+    },
+    "看过" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "看过"
+          }
+        }
+      }
+    },
+    "看过列表还是空的，先添加一部吧。" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "看过列表还是空的，先添加一部吧。"
+          }
+        }
+      }
+    },
+    "短评" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "短评"
+          }
+        }
+      }
+    },
+    "短评：%@" : {
+
+    },
+    "确认删除" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "确认删除"
+          }
+        }
+      }
+    },
+    "确认导入" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "确认导入"
+          }
+        }
+      }
+    },
+    "秋" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "秋"
+          }
+        }
+      }
+    },
+    "移到中央" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "移到中央"
+          }
+        }
+      }
+    },
+    "移除图片" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "移除图片"
+          }
+        }
+      }
+    },
+    "移除海报" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "移除海报"
+          }
+        }
+      }
+    },
+    "空状态" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "空状态"
+          }
+        }
+      }
+    },
+    "简介" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "简介"
+          }
+        }
+      }
+    },
+    "简体中文" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "简体中文"
+          }
+        }
+      }
+    },
+    "继续编辑" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "继续编辑"
+          }
+        }
+      }
+    },
+    "编辑" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "编辑"
+          }
+        }
+      }
+    },
+    "编辑个人记录" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "编辑个人记录"
+          }
+        }
+      }
+    },
+    "编辑作品资料" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "编辑作品资料"
+          }
+        }
+      }
+    },
+    "编辑内容" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "编辑内容"
+          }
+        }
+      }
+    },
+    "繁體中文" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "繁體中文"
+          }
+        }
+      }
+    },
+    "翻面查看短评" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "翻面查看短评"
+          }
+        }
+      }
+    },
+    "职员" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "职员"
+          }
+        }
+      }
+    },
+    "背景图" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "背景图"
+          }
+        }
+      }
+    },
+    "背景图下载失败，将使用本地海报。" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "背景图下载失败，将使用本地海报。"
+          }
+        }
+      }
+    },
+    "获取 API Key" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "获取 API Key"
+          }
+        }
+      }
+    },
+    "获取 TMDb API" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "获取 TMDb API"
+          }
+        }
+      }
+    },
+    "观看年" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "观看年"
+          }
+        }
+      }
+    },
+    "观看月" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "观看月"
+          }
+        }
+      }
+    },
+    "角色／职务" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "角色／职务"
+          }
+        }
+      }
+    },
+    "计划中" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "计划中"
+          }
+        }
+      }
+    },
+    "设置" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "设置"
+          }
+        }
+      }
+    },
+    "评价与链接" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "评价与链接"
+          }
+        }
+      }
+    },
+    "评分" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "评分"
+          }
+        }
+      }
+    },
+    "评分排行榜" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "评分排行榜"
+          }
+        }
+      }
+    },
+    "试播" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "试播"
+          }
+        }
+      }
+    },
+    "试试其他关键词，或添加一部新作品。" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "试试其他关键词，或添加一部新作品。"
+          }
+        }
+      }
+    },
+    "语言" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "语言"
+          }
+        }
+      }
+    },
+    "请先在 TMDb 设置中保存 API Key。" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "请先在 TMDb 设置中保存 API Key。"
+          }
+        }
+      }
+    },
+    "请先选择同步文件夹。" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "请先选择同步文件夹。"
+          }
+        }
+      }
+    },
+    "请填写 API Key，或选择跳过。" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "请填写 API Key，或选择跳过。"
+          }
+        }
+      }
+    },
+    "请填写片名" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "请填写片名"
+          }
+        }
+      }
+    },
+    "请填写片名。" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "请填写片名。"
+          }
+        }
+      }
+    },
+    "请输入有效的 HTTPS API 主机，不包含路径、端口或鉴权信息。" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "请输入有效的 HTTPS API 主机，不包含路径、端口或鉴权信息。"
+          }
+        }
+      }
+    },
+    "读取失败备份-" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "读取失败备份-"
+          }
+        }
+      }
+    },
+    "资料库文件" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "资料库文件"
+          }
+        }
+      }
+    },
+    "资料库文件错误" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "资料库文件错误"
+          }
+        }
+      }
+    },
+    "资料库读取失败，原文件已保留。请从完整备份恢复。" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "资料库读取失败，原文件已保留。请从完整备份恢复。"
+          }
+        }
+      }
+    },
+    "跳过，使用默认 API" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "跳过，使用默认 API"
+          }
+        }
+      }
+    },
+    "跳过，使用默认 API（不稳定）" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "跳过，使用默认 API（不稳定）"
+          }
+        }
+      }
+    },
+    "返回季度" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "返回季度"
+          }
+        }
+      }
+    },
+    "还没有作品" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "还没有作品"
+          }
+        }
+      }
+    },
+    "还没有可以回看的季度" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "还没有可以回看的季度"
+          }
+        }
+      }
+    },
+    "这个文件夹里没有 SakuraReel 数据。" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "这个文件夹里没有 SakuraReel 数据。"
+          }
+        }
+      }
+    },
+    "这些是作品资料。TMDb 评分与个人 0–10 分评分独立。" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "这些是作品资料。TMDb 评分与个人 0–10 分评分独立。"
+          }
+        }
+      }
+    },
+    "进入时光机" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "进入时光机"
+          }
+        }
+      }
+    },
+    "连接成功，API Key 有效。" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "连接成功，API Key 有效。"
+          }
+        }
+      }
+    },
+    "连接线路" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "连接线路"
+          }
+        }
+      }
+    },
+    "连载中" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "连载中"
+          }
+        }
+      }
+    },
+    "选择" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "选择"
+          }
+        }
+      }
+    },
+    "选择同步文件夹" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "选择同步文件夹"
+          }
+        }
+      }
+    },
+    "选择填入或替换的字段" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "选择填入或替换的字段"
+          }
+        }
+      }
+    },
+    "选择海报" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "选择海报"
+          }
+        }
+      }
+    },
+    "部" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "部"
+          }
+        }
+      }
+    },
+    "重新获取 TMDb 资料" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "重新获取 TMDb 资料"
+          }
+        }
+      }
+    },
+    "重试" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "重试"
+          }
+        }
+      }
+    },
+    "重试季度" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "重试季度"
+          }
+        }
+      }
+    },
+    "重试海报" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "重试海报"
+          }
+        }
+      }
+    },
+    "野生机器人" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "野生机器人"
+          }
+        }
+      }
+    },
+    "鉴权" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "鉴权"
+          }
+        }
+      }
+    },
+    "鉴权请求和 API Key 会经过所选代理。请仅使用你有权使用且信任的主机。图片仍独立直连。" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "鉴权请求和 API Key 会经过所选代理。请仅使用你有权使用且信任的主机。图片仍独立直连。"
+          }
+        }
+      }
+    },
+    "长按进入时光机" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "长按进入时光机"
+          }
+        }
+      }
+    },
+    "阿诺拉" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "阿诺拉"
+          }
+        }
+      }
+    },
+    "集数" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "集数"
+          }
+        }
+      }
+    },
+    "验证中" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "验证中"
+          }
+        }
+      }
+    },
+    "验证当前线路" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "验证当前线路"
+          }
+        }
+      }
+    }
+  },
+  "version" : "1.0"
+}

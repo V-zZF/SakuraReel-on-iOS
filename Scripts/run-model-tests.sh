@@ -17,6 +17,7 @@ OUT="$MODEL_TEST_DIRECTORY/model-tests"
 
 # 顺序无关，swiftc 会一起编。main.swift 提供顶部代码入口（Swift 只允许它写顶层语句）。
 swiftc -O -o "$OUT" \
+  SakuraReel/Models/MediaMetadata.swift \
   SakuraReel/Models/MediaItem.swift \
   SakuraReel/Models/MediaStatus.swift \
   SakuraReel/Utilities/MediaSort.swift \
@@ -24,6 +25,7 @@ swiftc -O -o "$OUT" \
   SakuraReel/Utilities/GridColumns.swift \
   SakuraReel/Utilities/TimeMachineMoments.swift \
   SakuraReel/Services/LibraryArchive.swift \
+  Tests/ModelTests/TMDbMetadataTests.swift \
   Tests/ModelTests/main.swift \
   Tests/ModelTests/LibraryArchiveTests.swift \
   Tests/ModelTests/RankingMetricsTests.swift \

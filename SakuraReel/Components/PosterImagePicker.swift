@@ -15,6 +15,7 @@ struct PosterImagePicker: View {
     }
 
     var body: some View {
+        let pickerLabel = posterData == nil ? "添加海报" : "更换海报"
         HStack(spacing: 16) {
             if let posterImage {
                 Image(uiImage: posterImage)
@@ -39,7 +40,7 @@ struct PosterImagePicker: View {
                     .foregroundStyle(.secondary)
 
                 PhotosPicker(selection: $selectedPhotoItem, matching: .images) {
-                    Label(posterData == nil ? "添加海报" : "更换海报", systemImage: "photo.badge.plus")
+                    Label(pickerLabel, systemImage: "photo.badge.plus")
                 }
                 .buttonStyle(.bordered)
                 .controlSize(.small)
@@ -47,12 +48,14 @@ struct PosterImagePicker: View {
             }
         }
         .padding(.vertical, 4)
-        .onChange(of: selectedPhotoItem) { _, newItem in
-            Task {
-                guard let rawData = try? await newItem?.loadTransferable(type: Data.self),
-                      let image = UIImage(data: rawData) else { return }
-                posterData = PosterResizer.resizedPosterData(from: image)
-            }
+        .task(id: selectedPhotoItem) {
+            let selected = selectedPhotoItem
+            guard let rawData = try? await selected?.loadTransferable(type: Data.self) else { return }
+            let processed = try? await Task.detached(priority: .utility) {
+                try TMDbImagePipeline.process(rawData, pixels: 1200, kind: "poster")
+            }.value
+            guard !Task.isCancelled, selectedPhotoItem == selected else { return }
+            if let processed { posterData = processed }
         }
     }
 }

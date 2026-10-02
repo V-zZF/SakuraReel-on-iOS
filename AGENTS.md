@@ -11,7 +11,7 @@ SakuraReel 是一款 **Personal Media Library** 应用，用于：
 - 保存播放入口
 - 数据以本地文件形式保存在 App 的 Documents 目录，可在系统「文件」App 中直接查看 / 备份
 
-它不是影视资讯 App，也不是影视社区。第一阶段所有内容均由用户手动添加，不接入 TMDB、Bangumi、豆瓣等外部数据源。
+它不是影视资讯 App，也不是影视社区。支持手动添加和用户主动从 TMDb 快捷录入。2026-10-02 用户授权接入 TMDb 搜索及详情，此授权替代早期不接入外部数据源的限制；不扩展其他外部数据源。TMDb 仅作一次性导入，后续作品资料可自行修改，主动重新获取必须经过字段预览。
 
 ## 核心原则
 
@@ -31,7 +31,7 @@ SakuraReel 是一款 **Personal Media Library** 应用，用于：
 - **外部链接**：UIApplication.shared.open
 - **最低系统版本**：iOS 18+（`@Observable` 依赖 Observation 框架）
 - **无第三方 UI 框架**
-- **无第三方影视数据库 API**
+- **外部数据源**：TMDb（Foundation + URLSession），仅用户主动搜索／获取
 - **无 iCloud / CloudKit 同步**：数据只存在本机
 
 ## 项目目录
@@ -150,7 +150,7 @@ SakuraReel
 - 不要把排序逻辑散落在多个 View 中
 - 不要把排行榜卡片的尺寸写死在 View 里（走 `RankingMetrics`）
 - 不要在不同页面重复硬编码评分颜色
-- 不要默认接入外部影视数据源
+- 除用户授权的 TMDb 外，不要接入其他影视数据源；不自动刷新资料库
 - 不要重新引入 SwiftData / CloudKit / iCloud 同步
 - 不要在大面积使用粉色
 - 不要添加复杂动画
@@ -169,3 +169,14 @@ SakuraReel
 ## 开发节奏
 
 按 Phase 推进，每完成一个小里程碑更新 `DEVLOG.md`。先保证数据正确，再做视觉效果。
+
+## TMDb 与作品资料（2026-10-02）
+
+- `MediaItem.source` / `metadata` 是可选 Codable 值；图片字节不写 JSON。
+- 永久附件：`Posters/<UUID>.jpg`、`Artwork/<UUID>/backdrop.jpg`、`Artwork/<UUID>/logo.png`。完整备份必须包含两种目录。
+- 来源身份区分电影、剧集、季度；季度包含父剧集和季号，语言与获取时间不参与重复判断。
+- 首次导入和主动重新获取均通过独立草稿与字段预览。默认仅填空字段，所有个人记录及两套顺序保持原规则。
+- 作品资料可在独立编辑页修改；打开详情不自动获取远端资料。用户填写的 Key 只存 Keychain，默认直连，不预置代理。
+- 加号默认打开 TMDb 搜索；未配置 Key 时显示可跳过的官网指引与下方高亮 API 输入框，搜索页底部提供手动添加，不显示 TMDb／收藏库切换。
+- 用户授权的默认 API 凭据由 Git 忽略的 `Configuration/TMDb.local.xcconfig` 供构建注入，点击跳过后写入 Keychain；不要把凭据提交到源码、收藏库或导出文件。未提供本地配置的构建应保留个人 Key 与手动添加入口。
+- 运行 `./Scripts/run-model-tests.sh` 和 `./Scripts/run-tmdb-tests.sh`，再完成通用模拟器构建；不要擅自启动模拟器。

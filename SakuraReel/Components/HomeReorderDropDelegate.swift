@@ -15,6 +15,7 @@ struct HomeReorderDropDelegate: DropDelegate {
     @Binding var dragStartSnapshot: [MediaItem]
     /// 跨组被阻止时写入的提示文案（nil = 不提示）
     @Binding var blockedMessage: String?
+    @Binding var lastReorderTargetID: UUID?
     var reduceMotion: Bool = false
 
     /// 跨年月拖动时显示的提示文案
@@ -23,13 +24,15 @@ struct HomeReorderDropDelegate: DropDelegate {
     func dropEntered(info: DropInfo) {
         guard let draggedID = draggedItemID,
               draggedID != targetItem.id,
+              lastReorderTargetID != targetItem.id,
               let from = items.firstIndex(where: { $0.id == draggedID }),
               let to = items.firstIndex(where: { $0.id == targetItem.id }),
               MediaSort.groupKey(of: items[from]) == MediaSort.groupKey(of: targetItem)
         else { return } // 跨组悬停：不做任何移动
 
-        withAnimation(reduceMotion ? nil : .snappy(duration: 0.25)) {
-            items.move(fromOffsets: IndexSet(integer: from), toOffset: to > from ? to + 1 : to)
+        lastReorderTargetID = targetItem.id
+        withAnimation(reduceMotion ? nil : .easeInOut(duration: 0.18)) {
+            MediaSort.moveWithinGroup(&items, from: from, to: to, ranking: false)
         }
     }
 
@@ -39,6 +42,7 @@ struct HomeReorderDropDelegate: DropDelegate {
 
     func performDrop(info: DropInfo) -> Bool {
         defer {
+            lastReorderTargetID = nil
             draggedItemID = nil
             dragStartSnapshot = []
         }

@@ -1,6 +1,17 @@
 import Foundation
 
 enum MediaSort {
+    /// Remove and insert: only the intervening neighbours shift, preserving their order.
+    static func moveWithinGroup(_ items: inout [MediaItem], from: Int, to: Int, ranking: Bool) {
+        guard items.indices.contains(from), items.indices.contains(to), from != to else { return }
+        let key: (MediaItem) -> Int = { item in
+            ranking ? rankingGroupKey(of: item) : groupKey(of: item)
+        }
+        guard items[min(from, to)...max(from, to)].allSatisfy({ key($0) == key(items[from]) }) else { return }
+        let moved = items.remove(at: from)
+        items.insert(moved, at: to)
+    }
+
     static func homeSorted(_ items: [MediaItem], order: [UUID]) -> [MediaItem] {
         let positions = Dictionary(order.enumerated().map { ($0.element, $0.offset) }, uniquingKeysWith: { first, _ in first })
         return items.sorted {

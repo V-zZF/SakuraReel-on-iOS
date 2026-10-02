@@ -178,6 +178,12 @@ final class MediaRepository {
     func applyHomeReorder(_ ids: [UUID]) async throws {
         try await reorder(ids, ranking: false)
     }
+    func applyHomeReorder(_ ids: [UUID], status: MediaStatus) async throws {
+        await waitUntilLoaded(); await acquire(); defer { release() }
+        var next = document
+        try next.reorderHome(ids, status: status)
+        try await commit(next)
+    }
     func applyRankingReorder(_ ids: [UUID]) async throws {
         try await reorder(ids, ranking: true)
     }

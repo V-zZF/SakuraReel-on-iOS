@@ -28,6 +28,8 @@ struct HomeView: View {
 
     /// 排序模式的草稿顺序：拖动只改这里，点「完成」才落盘，点「✕」直接丢弃即回滚
     @State private var draftItems: [MediaItem] = []
+    @State private var sortStatus: MediaStatus = .watched
+    @State private var lastReorderTargetID: UUID?
     @State private var draggedItemID: UUID?
     /// 本次拖动开始前的草稿顺序快照，用于跨年月被拒时回滚
     @State private var dragStartSnapshot: [MediaItem] = []
@@ -204,6 +206,7 @@ struct HomeView: View {
                         // `.onDrop` 会被触发，`draggedItemID` 就永远留着 —— 卡片会一直挂着「抬起」的透明态。
                         // 返回 false，不抢内层卡片的落点
                         .onDrop(of: [.text], isTargeted: nil) { _ in
+                            lastReorderTargetID = nil
                             draggedItemID = nil
                             return false
                         }
@@ -533,14 +536,16 @@ struct HomeView: View {
 
     // MARK: - 排序模式
 
-    /// 进入排序模式：退出搜索、加载全量草稿顺序。
+    /// 进入排序模式：退出搜索、只加载当前分类的草稿顺序。
     ///
     /// 草稿沿用当前首页显示顺序，手动调整仅限同年月组。
     private func enterSortMode() {
         cancelCategorySlide()
         isSearchActive = false
         searchText = ""
-        draftItems = repository.homeItems
+        sortStatus = selectedStatus ?? .watched
+        draftItems = repository.homeItems.filter { $0.status == sortStatus }
+        lastReorderTargetID = nil
         draggedItemID = nil
         blockedMessage = nil
         isSortMode = true
@@ -548,14 +553,15 @@ struct HomeView: View {
 
     /// 提交草稿顺序并退出。
     ///
-    /// 传入全部条目 id，覆盖首页完整顺序。
+    /// 只提交当前分类，仓库保留其他分类的顺序。
     private func commitSortMode() {
         guard !savingOrder else { return }
         savingOrder = true
         let ids = draftItems.map(\.id)
+        let status = sortStatus
         Task {
             defer { savingOrder = false }
-            do { try await repository.applyHomeReorder(ids); exitSortMode() }
+            do { try await repository.applyHomeReorder(ids, status: status); exitSortMode() }
             catch { repository.lastError = error.localizedDescription }
         }
     }
@@ -568,6 +574,7 @@ struct HomeView: View {
     private func exitSortMode() {
         isSortMode = false
         draftItems = []
+        lastReorderTargetID = nil
         draggedItemID = nil
         dragStartSnapshot = []
         blockedMessage = nil
@@ -654,6 +661,7 @@ struct HomeView: View {
             ForEach(draftItems) { item in
                 MediaCard(item: item, isInteractive: false)
                     .onDrag {
+                        lastReorderTargetID = nil
                         dragStartSnapshot = draftItems
                         draggedItemID = item.id
                         return NSItemProvider(object: item.id.uuidString as NSString)
@@ -666,6 +674,7 @@ struct HomeView: View {
                             draggedItemID: $draggedItemID,
                             dragStartSnapshot: $dragStartSnapshot,
                             blockedMessage: $blockedMessage,
+                            lastReorderTargetID: $lastReorderTargetID,
                             reduceMotion: reduceMotion
                         )
                     )

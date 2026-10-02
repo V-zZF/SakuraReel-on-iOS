@@ -590,7 +590,11 @@
         }
       }
     },
+    "先回首页添加作品，标记为看过后，这里会按评分排出名次。" : {
+
+    },
     "先回首页添加作品，这里会按评分排出名次。" : {
+      "extractionState" : "stale",
       "localizations" : {
         "zh-Hans" : {
           "stringUnit" : {

@@ -46,7 +46,8 @@ struct LibraryDocument: Codable, Sendable {
     }
     var rankingOrder: [UUID] { rankedItems.map(\.id) }
     var homeItems: [MediaItem] { MediaSort.homeSorted(items, order: homeOrder) }
-    var rankedItems: [MediaItem] {
+    var rankedItems: [MediaItem] { allRankedItems.filter { $0.status == .watched } }
+    private var allRankedItems: [MediaItem] {
         let defaults = MediaSort.rankingDefaultSorted(items, homeOrder: homeOrder)
         let byID = Dictionary(items.map { ($0.id, $0) }, uniquingKeysWith: { first, _ in first })
         return Set(items.map(\.rating)).sorted(by: >).flatMap { rating in
@@ -74,7 +75,10 @@ struct LibraryDocument: Codable, Sendable {
         if old?.personal.watchedAt != updated.personal.watchedAt || old == nil {
             for index in homeGroups.indices { homeGroups[index].ids.removeAll { $0 == entry.id } }
             homeGroups.removeAll { $0.ids.isEmpty }
-            if let index = homeGroups.firstIndex(where: { $0.month == updated.personal.watchedAt }) { homeGroups[index].ids.append(entry.id) }
+            if let index = homeGroups.firstIndex(where: { $0.month == updated.personal.watchedAt }) {
+                if old == nil { homeGroups[index].ids.insert(entry.id, at: 0) }
+                else { homeGroups[index].ids.append(entry.id) }
+            }
             else { homeGroups.append(HomeOrderGroup(month: updated.personal.watchedAt, ids: [entry.id])) }
         }
         if let index = items.firstIndex(where: { $0.id == updated.id }) { items[index] = updated }
@@ -107,9 +111,25 @@ struct LibraryDocument: Codable, Sendable {
         homeGroups.removeAll { $0.ids.isEmpty }; rankingGroups.removeAll { $0.ids.isEmpty }
         try LibraryValidator.validate(self)
     }
+    /// Replace only the selected category's slots, preserving every other category's order.
+    mutating func reorderHome(_ ids: [UUID], status: MediaStatus) throws {
+        let current = homeItems.filter { $0.status == status }.map(\.id)
+        guard ids.count == current.count, Set(ids) == Set(current) else {
+            throw LibraryArchiveError.invalid("排序必须包含当前分类的全部条目且不能重复。")
+        }
+        var replacement = ids.makeIterator()
+        let selected = Set(current)
+        let merged = homeOrder.map { selected.contains($0) ? replacement.next()! : $0 }
+        try reorder(merged, ranking: false)
+    }
+
     mutating func reorder(_ ids: [UUID], ranking: Bool) throws {
-        let current = ranking ? rankingOrder : homeOrder
-        guard ids.count == current.count, Set(ids) == Set(current) else { throw LibraryArchiveError.invalid("排序必须包含全部条目且不能重复。") }
+        let visible = ranking ? rankingOrder : homeOrder
+        guard ids.count == visible.count, Set(ids) == Set(visible) else { throw LibraryArchiveError.invalid("排序必须包含全部条目且不能重复。") }
+        let current = ranking ? allRankedItems.map(\.id) : homeOrder
+        var replacement = ids.makeIterator()
+        let selected = Set(visible)
+        let ids = current.map { selected.contains($0) ? replacement.next()! : $0 }
         let byID = Dictionary(uniqueKeysWithValues: items.map { ($0.id, $0) })
         for (a, b) in zip(current, ids) {
             guard ranking ? byID[a]?.rating == byID[b]?.rating : byID[a]?.personal.watchedAt == byID[b]?.personal.watchedAt else {

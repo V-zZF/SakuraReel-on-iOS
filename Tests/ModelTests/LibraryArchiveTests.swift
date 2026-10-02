@@ -18,6 +18,60 @@ func runDocumentTests() {
     let a = makeItem(title: "A", rating: 10)
     let b = makeItem(title: "B", rating: 10)
     let older = makeItem(title: "旧月", month: 2, rating: 9)
+    var shifted = [a, b, makeItem(title: "C", rating: 10), older]
+    let c = shifted[2]
+    MediaSort.moveWithinGroup(&shifted, from: 0, to: 2, ranking: false)
+    expectEqual(shifted.map(\.id), [b.id, c.id, a.id, older.id], "向后移动由后方邻卡依次补位")
+    MediaSort.moveWithinGroup(&shifted, from: 2, to: 0, ranking: false)
+    expectEqual(shifted.map(\.id), [a.id, b.id, c.id, older.id], "向前移动由前方邻卡依次补位")
+    MediaSort.moveWithinGroup(&shifted, from: 0, to: 3, ranking: false)
+    expectEqual(shifted.map(\.id), [a.id, b.id, c.id, older.id], "即时拖动拒绝跨年月")
+    MediaSort.moveWithinGroup(&shifted, from: 0, to: 2, ranking: true)
+    expectEqual(shifted.map(\.id), [b.id, c.id, a.id, older.id], "排行榜同评分顺位补位")
+    MediaSort.moveWithinGroup(&shifted, from: 0, to: 3, ranking: true)
+    expectEqual(shifted.map(\.id), [b.id, c.id, a.id, older.id], "即时拖动拒绝跨评分")
+    do {
+        var additions = LibraryDocument(items: [a, b, older])
+        try additions.upsert(c)
+        expectEqual(additions.homeOrder, [c.id, a.id, b.id, older.id], "新添加作品置于对应年月组首位")
+        try additions.upsert(c)
+        expectEqual(additions.homeOrder, [c.id, a.id, b.id, older.id], "编辑保留组内位置")
+        expectEqual(try LibraryDocument.decode(additions.encoded()).homeOrder, additions.homeOrder, "新添加顺序持久化")
+    } catch { expect(false, "新添加排序失败：\(error)") }
+    do {
+        var watchingA = makeItem(title: "在看A", rating: 10); watchingA.status = .watching
+        var watchingB = makeItem(title: "在看B", rating: 10); watchingB.status = .watching
+        var wantedA = makeItem(title: "想看A", rating: 10); wantedA.status = .wantToWatch
+        var wantedB = makeItem(title: "想看B", rating: 10); wantedB.status = .wantToWatch
+        var categories = LibraryDocument(items: [a, watchingA, wantedA, b, watchingB, wantedB, older])
+        func categoryOrder(_ status: MediaStatus) -> [UUID] { categories.homeItems.filter { $0.status == status }.map(\.id) }
+        expectEqual(categories.rankingOrder, [a.id, b.id, older.id], "排行榜仅包含看过")
+        try categories.reorderHome([b.id, a.id, older.id], status: .watched)
+        expectEqual(categoryOrder(.watching), [watchingA.id, watchingB.id], "排序看过不影响在看")
+        expectEqual(categoryOrder(.wantToWatch), [wantedA.id, wantedB.id], "排序看过不影响想看")
+        try categories.reorderHome([watchingB.id, watchingA.id], status: .watching)
+        try categories.reorderHome([wantedB.id, wantedA.id], status: .wantToWatch)
+        expectEqual(categoryOrder(.watched), [b.id, a.id, older.id], "排序另外两类保留看过顺序")
+        expectEqual(categoryOrder(.watching), [watchingB.id, watchingA.id], "在看独立排序")
+        expectEqual(categoryOrder(.wantToWatch), [wantedB.id, wantedA.id], "想看独立排序")
+        rejected("分类排序拒绝混入其他状态") { try categories.reorderHome([a.id, watchingA.id], status: .watching) }
+        rejected("分类排序拒绝跨年月") { try categories.reorderHome([older.id, a.id, b.id], status: .watched) }
+        try categories.reorder([a.id, b.id, older.id], ranking: true)
+        expectEqual(categories.rankingOrder, [a.id, b.id, older.id], "排行榜排序只提交看过")
+        expectEqual(categoryOrder(.watching), [watchingB.id, watchingA.id], "排行榜排序保留在看首页顺序")
+        rejected("排行榜拒绝在看条目") { try categories.reorder([a.id, watchingA.id, older.id], ranking: true) }
+        var changed = a; changed.status = .watching
+        try categories.upsert(changed)
+        expectEqual(categories.rankingOrder, [b.id, older.id], "看过改为在看即时退出排行榜")
+        changed.status = .watched
+        try categories.upsert(changed)
+        expectEqual(categories.rankingOrder, [a.id, b.id, older.id], "改回看过恢复历史排行榜位置")
+        let decoded = try LibraryDocument.decode(categories.encoded())
+        expectEqual(decoded.homeOrder, categories.homeOrder, "三个分类独立顺序持久化")
+        expectEqual(decoded.rankingOrder, categories.rankingOrder, "排行榜过滤与顺序持久化")
+        let empty = LibraryDocument(items: [watchingA, wantedA])
+        expect(empty.rankedItems.isEmpty, "仅在看想看时排行榜为空")
+    } catch { expect(false, "分类独立排序失败：\(error)") }
     var document = LibraryDocument(items: [a, b, older])
     do {
         let restored = try LibraryDocument.decode(document.encoded())

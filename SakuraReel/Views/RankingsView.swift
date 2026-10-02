@@ -15,6 +15,7 @@ struct RankingsView: View {
 
     /// 排序模式的草稿顺序：拖动只改这里，点「完成」才落盘，点「✕」直接丢弃即回滚
     @State private var draftItems: [MediaItem] = []
+    @State private var lastReorderTargetID: UUID?
     @State private var draggedItemID: UUID?
     /// 已确认删除、但等 Sheet 关完再落盘的条目。见 `onDelete` 处的说明
     @State private var pendingDeleteID: UUID?
@@ -145,12 +146,12 @@ struct RankingsView: View {
 
     // MARK: - 第二行摘要
 
-    /// 共 N 部（全部条目） / 平均 N 分（仅统计已评分）
+    /// 共 N 部（看过） / 平均 N 分（看过且已评分）
     private var summaryRow: some View {
         HStack(spacing: 16) {
             HStack(spacing: 4) {
                 Text("共")
-                Text("\(repository.items.count)")
+                Text("\(rankedItems.count)")
                     .fontWeight(.semibold)
                     .foregroundStyle(.primary)
                 Text("部")
@@ -170,13 +171,13 @@ struct RankingsView: View {
         .padding(.vertical, 10)
         // 三个 Text 合成一句读给 VoiceOver；同时给 UI 测试一个稳定的取值点
         .accessibilityElement(children: .ignore)
-        .accessibilityLabel("共 \(repository.items.count) 部 平均 \(averageText) 分")
+        .accessibilityLabel("共 \(rankedItems.count) 部 平均 \(averageText) 分")
         .accessibilityIdentifier("rankingSummary")
     }
 
     /// 平均分只算已评分条目；一条都没有时显示占位符
     private var averageText: String {
-        let rated = repository.items.filter { $0.rating > 0 }
+        let rated = rankedItems.filter { $0.rating > 0 }
         guard !rated.isEmpty else { return "—" }
         let total = rated.reduce(0) { $0 + $1.rating }
         return String(format: "%.1f", Double(total) / Double(rated.count))
@@ -220,6 +221,7 @@ struct RankingsView: View {
             // `draggedItemID` 就永远留着，那一行会一直挂着「抬起」的透明态。
             // 返回 false，不抢内层行的落点
             .onDrop(of: [.text], isTargeted: nil) { _ in
+                lastReorderTargetID = nil
                 draggedItemID = nil
                 return false
             }
@@ -266,6 +268,7 @@ struct RankingsView: View {
                 .accessibilityLabel(rowAccessibilityLabel(rank: rank, item: item))
                 .accessibilityIdentifier(item.title)
                 .onDrag {
+                    lastReorderTargetID = nil
                     dragStartSnapshot = draftItems
                     draggedItemID = item.id
                     return NSItemProvider(object: item.id.uuidString as NSString)
@@ -278,6 +281,7 @@ struct RankingsView: View {
                         draggedItemID: $draggedItemID,
                         dragStartSnapshot: $dragStartSnapshot,
                         blockedMessage: $blockedMessage,
+                            lastReorderTargetID: $lastReorderTargetID,
                         reduceMotion: reduceMotion
                     )
                 )
@@ -306,7 +310,7 @@ struct RankingsView: View {
         ContentUnavailableView {
             Label("还没有作品", systemImage: "film.stack")
         } description: {
-            Text("先回首页添加作品，这里会按评分排出名次。")
+            Text("先回首页添加作品，标记为看过后，这里会按评分排出名次。")
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
@@ -318,6 +322,7 @@ struct RankingsView: View {
     /// 草稿沿用当前显示顺序，保证每个评分组连续。
     private func enterSortMode() {
         draftItems = repository.rankingItems
+        lastReorderTargetID = nil
         draggedItemID = nil
         blockedMessage = nil
         isSortMode = true
@@ -325,7 +330,7 @@ struct RankingsView: View {
 
     /// 提交草稿顺序并退出。
     ///
-    /// 传入全部条目 id，覆盖排行榜完整顺序。
+    /// 只提交看过的条目，保留其他状态的历史排序位置。
     private func commitSortMode() {
         guard !savingOrder else { return }
         savingOrder = true
@@ -345,6 +350,7 @@ struct RankingsView: View {
     private func exitSortMode() {
         isSortMode = false
         draftItems = []
+        lastReorderTargetID = nil
         draggedItemID = nil
         dragStartSnapshot = []
         blockedMessage = nil

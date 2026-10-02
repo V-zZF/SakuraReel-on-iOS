@@ -1,8 +1,8 @@
 import SwiftUI
 
 enum Constants {
-    static let accentPink = Color(hex: "F8A5B6")
-    static let brandTitlePink = Color(hex: "C84F70")
+    static let brandTitlePink = Color(hex: "E07894")
+    static let accentPink = brandTitlePink
     static let cardCornerRadius: CGFloat = 16
     static let cardShadowRadius: CGFloat = 10
     static let libraryBackground = Color(hex: "F5F4F3")
@@ -86,5 +86,37 @@ struct LibraryInteractionFeedback: ViewModifier {
             .sensoryFeedback(.selection, trigger: draftIDs) { old, new in
                 draggedID != nil && old.count == new.count && old != new
             }
+    }
+}
+
+/// Reserve the same footer height whether rating, date or an action is missing.
+struct LibraryCardFooter: ViewModifier {
+    @ScaledMetric(relativeTo: .caption) private var height: CGFloat = 36
+
+    func body(content: Content) -> some View {
+        content
+            .frame(height: height)
+            .padding(.horizontal, 12)
+            .padding(.bottom, 12)
+    }
+}
+
+/// Two lines determine the slot height; shorter titles are vertically centered.
+struct LibraryCardTitle: View {
+    let title: String
+
+    var body: some View {
+        ZStack(alignment: .leading) {
+            Text("占位\n占位")
+                .lineLimit(2, reservesSpace: true)
+                .hidden()
+                .accessibilityHidden(true)
+            Text(title)
+                .lineLimit(2)
+                .multilineTextAlignment(.leading)
+        }
+        .font(.subheadline.weight(.semibold))
+        .foregroundStyle(.primary)
+        .frame(maxWidth: .infinity, alignment: .leading)
     }
 }

@@ -32,7 +32,7 @@ struct AddMediaFlowView: View {
                 AddEditMediaView(initialItem: nil, initialDraft: draft, onSave: onSave, onDelete: nil)
             }
         }
-        .tint(Constants.accentPink)
+        .tint(Constants.brandTitlePink)
     }
 
     private var guidance: some View {
@@ -45,9 +45,9 @@ struct AddMediaFlowView: View {
                         .foregroundStyle(.secondary)
                 }
                 Section("获取 API Key") {
-                    Link("注册 TMDb", destination: URL(string: "https://www.themoviedb.org/signup")!)
-                    Link("登录 TMDb", destination: URL(string: "https://www.themoviedb.org/login")!)
-                    Link("获取 TMDb API", destination: URL(string: "https://www.themoviedb.org/settings/api")!)
+                    Link(destination: URL(string: "https://www.themoviedb.org/signup")!) { Label("注册 TMDb", systemImage: "person.badge.plus") }
+                    Link(destination: URL(string: "https://www.themoviedb.org/login")!) { Label("登录 TMDb", systemImage: "person.crop.circle") }
+                    Link(destination: URL(string: "https://www.themoviedb.org/settings/api")!) { Label("获取 TMDb API", systemImage: "key") }
                     Text("在 TMDb 网站申请 API Key（v3），然后返回填写。")
                         .font(.caption).foregroundStyle(.secondary)
                 }
@@ -58,15 +58,15 @@ struct AddMediaFlowView: View {
                         .keyboardType(.asciiCapable).submitLabel(.go)
                         .privacySensitive()
                         .padding(14)
-                        .background(Constants.accentPink.opacity(0.08), in: RoundedRectangle(cornerRadius: 12))
-                        .overlay { RoundedRectangle(cornerRadius: 12).strokeBorder(Constants.accentPink, lineWidth: 2) }
+                        .background(Constants.brandTitlePink.opacity(0.08), in: RoundedRectangle(cornerRadius: 12))
+                        .overlay { RoundedRectangle(cornerRadius: 12).strokeBorder(Constants.brandTitlePink, lineWidth: 2) }
                         .accessibilityLabel("TMDb API Key（v3）")
                         .onSubmit { saveKey() }
                     Button("保存并搜索", action: saveKey)
                         .buttonStyle(.borderedProminent).disabled(!hasEnteredKey)
                 } header: {
                     Label("填写 API Key", systemImage: "key.fill")
-                        .font(.headline).foregroundStyle(Constants.accentPink)
+                        .font(.headline).foregroundStyle(Constants.brandTitlePink)
                 } footer: {
                     Text("Key 仅保存在本机 Keychain，不进入收藏库或导出文件。")
                 }
@@ -78,6 +78,8 @@ struct AddMediaFlowView: View {
                 }
                 if let error { Section { Text(error).foregroundStyle(.red) } }
             }
+            .scrollContentBackground(.hidden)
+            .background(Constants.libraryBackground)
             .navigationTitle("TMDb 使用指引").navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {

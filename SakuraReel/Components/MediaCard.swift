@@ -24,11 +24,7 @@ struct MediaCard: View {
                     LibraryPosterView(item: item, cornerRadius: 0)
                         .clipped()
 
-                    Text(item.title)
-                        .font(.subheadline.weight(.semibold))
-                        .lineLimit(2)
-                        .foregroundStyle(.primary)
-                        .frame(maxWidth: .infinity, alignment: .leading)
+                    LibraryCardTitle(title: item.title)
                         // 原先文字区是一个 VStack(spacing: 8).padding(12)，
                         // 拆开写要逐项对上：片名上方 12、左右 12、与评分行之间 8
                         .padding(.horizontal, 12)
@@ -68,8 +64,7 @@ struct MediaCard: View {
 
                 PlayButtonOverlay(playURL: item.playURL)
             }
-            .padding(.horizontal, 12)
-            .padding(.bottom, 12)
+            .modifier(LibraryCardFooter())
             .allowsHitTesting(isInteractive)
         }
         .modifier(LibraryCardSurface())

@@ -36,8 +36,6 @@ struct TMDbSettingsView: View {
                     SecureField("TMDb API Key（v3）", text: $key)
                         .textInputAutocapitalization(.never).autocorrectionDisabled()
                     Button("删除 Key", role: .destructive) { key = "" }
-                    Text("Key 仅保存在本机 Keychain，不进入收藏库或导出文件。")
-                        .font(.caption).foregroundStyle(.secondary)
                 }
                 if let onSkip {
                     Section {
@@ -48,8 +46,6 @@ struct TMDbSettingsView: View {
                         if let onManualAdd {
                             Button("手动添加", systemImage: "square.and.pencil") { invalidate(); onManualAdd() }
                         }
-                        Text("也可以稍后在 TMDb 设置中填写自己的 API Key。")
-                            .font(.caption).foregroundStyle(.secondary)
                     }
                 }
                 Section("元数据") {
@@ -64,17 +60,12 @@ struct TMDbSettingsView: View {
                             Text("AniShelf 代理").tag(true)
                             Text("自定义代理").tag(false)
                         }
-                        if usesAniShelf {
-                            Text("使用 tmdb-api.konakona.dev；连接失败时尝试 tmdb-api.konakona52.com。")
-                                .font(.caption).foregroundStyle(.secondary)
-                        } else {
+                        if !usesAniShelf {
                             TextField("https://你的 API 主机", text: $proxy)
                                 .textInputAutocapitalization(.never).autocorrectionDisabled().keyboardType(.URL)
                         }
-                        Text("API 请求和 Key 会经过所选代理。AniShelf 代理由第三方运营，图片仍直连 TMDb CDN。")
-                            .font(.caption).foregroundStyle(.secondary)
-                    } else { Text("直连 api.themoviedb.org；连接失败可开启 AniShelf 代理。") }
-                    Button("验证当前线路") { validate() }.disabled(validating || key.isEmpty)
+                    }
+                    Button("验证当前线路", systemImage: "checkmark.shield") { validate() }.disabled(validating || key.isEmpty)
                     if validating { ProgressView("验证中") }
                     if let message { Text(message).font(.footnote).accessibilityLabel(message) }
                 }
@@ -87,10 +78,10 @@ struct TMDbSettingsView: View {
                             .font(.caption).textSelection(.enabled)
                     }
                     Link("The Movie Database", destination: URL(string: "https://www.themoviedb.org")!)
-                    Text("仅在搜索、导入或主动重新获取时联网。作品资料保存后可自行修改。")
-                        .font(.caption).foregroundStyle(.secondary)
                 }
             }
+            .scrollContentBackground(.hidden)
+            .background(Constants.libraryBackground)
             .navigationTitle("TMDb 设置").navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) { Button("取消") { if dirty { discard = true } else { dismiss() } } }
@@ -120,7 +111,7 @@ struct TMDbSettingsView: View {
             .alert("放弃修改？", isPresented: $discard) {
                 Button("放弃修改", role: .destructive) { dismiss() }; Button("继续编辑", role: .cancel) {}
             }
-            .tint(Constants.accentPink)
+            .tint(Constants.brandTitlePink)
         }
     }
     private func invalidate() { requestID = UUID(); task?.cancel(); validating = false; message = nil }

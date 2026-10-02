@@ -15,7 +15,10 @@ struct TMDbSearchView: View {
     let onApply: (TMDbImportDraft, Set<MetadataField>) -> Void
     @State private var model = TMDbSearchModel(service: TMDbEnvironment.shared.service)
     @State private var query = ""
-    @State private var type = "all"
+    @State private var gridWidth: CGFloat = 0
+    @State private var category = TMDbBrowseCategory.anime
+    @State private var seasonSelection: SearchSelection?
+    @State private var pendingSeasonSource: MediaSource?
     @State private var language = TMDbEnvironment.shared.settings.language
     @State private var settings = false
     @State private var didApply = false
@@ -27,30 +30,41 @@ struct TMDbSearchView: View {
     @State private var selectionID = UUID()
     @State private var selecting = false
     @State private var error: String?
-    private var searchID: String { "\(query)|\(type)|\(language)|\(TMDbEnvironment.shared.settings.generation)" }
+    private var searchID: String { "\(query)|\(category.rawValue)|\(language)|\(TMDbEnvironment.shared.settings.generation)" }
+    private var browsing: Bool { query.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }
     var body: some View {
         NavigationStack {
             VStack(spacing: 0) {
-                HStack {
-                    Image(systemName: "magnifyingglass").accessibilityHidden(true)
-                    TextField("搜索片名", text: $query).submitLabel(.search).autocorrectionDisabled()
-                    if !query.isEmpty { Button("清空") { query = "" } }
-                }.padding(.horizontal).padding(.top).padding(.bottom, 8)
-                HStack {
-                    Picker("语言", selection: $language) { ForEach(TMDbSettings.languages, id: \.0) { Text($0.1).tag($0.0) } }
-                    Picker("作品类型", selection: $type) { Text("全部").tag("all"); Text("剧集").tag("series"); Text("电影").tag("movie") }
-                }.padding(.horizontal)
+                HStack(spacing: 12) {
+                    Picker("作品类型", selection: $category) {
+                        ForEach(TMDbBrowseCategory.allCases, id: \.self) { category in
+                            Text(String(localized: String.LocalizationValue(category.label))).tag(category)
+                        }
+                    }.pickerStyle(.segmented)
+                    Menu {
+                        Picker("语言", selection: $language) {
+                            ForEach(TMDbSettings.languages, id: \.0) { Text($0.1).tag($0.0) }
+                        }
+                    } label: { Image(systemName: "globe").font(.title3).frame(minWidth: 44, minHeight: 44) }
+                    .accessibilityLabel("资料语言")
+                }.padding(.horizontal).padding(.top, 8)
                 if selecting { ProgressView("正在获取作品资料").padding() }
                 if let error { Text(error).font(.footnote).foregroundStyle(.red).padding(.horizontal) }
-                List {
-                    if query.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-                        ContentUnavailableView("从 TMDb 搜索作品", systemImage: "magnifyingglass", description: Text("搜索电影或剧集，将资料填入现有表单。"))
-                    } else {
-                        if type != "movie" { results(model.series, type: .series, title: "剧集") }
-                        if type != "series" { results(model.movies, type: .movie, title: "电影") }
+                ScrollView {
+                    results(category.mediaType == .movie ? model.movies : model.series)
+                        .padding(.vertical, 8)
+                }
+                .background {
+                    GeometryReader { geometry in
+                        Color.clear.preference(key: GridWidthPreferenceKey.self, value: geometry.size.width)
                     }
-                }.listStyle(.insetGrouped)
+                }
+                .onPreferenceChange(GridWidthPreferenceKey.self) { gridWidth = $0 }
+                .id(category)
+
             }
+            .searchable(text: $query, placement: .navigationBarDrawer(displayMode: .always), prompt: "搜索片名")
+            .scrollDismissesKeyboard(.interactively)
             .safeAreaInset(edge: .bottom) {
                 Button("手动添加", systemImage: "square.and.pencil") {
                     cancelSelection(); model.invalidate()
@@ -59,6 +73,7 @@ struct TMDbSearchView: View {
                 .buttonStyle(.bordered).frame(maxWidth: .infinity).padding()
                 .background(.bar)
             }
+            .background(Constants.libraryBackground)
             .navigationTitle("搜索作品").navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) { Button("关闭") { cancelSelection(); dismiss() } }
@@ -66,7 +81,7 @@ struct TMDbSearchView: View {
             }
             .task(id: searchID) {
                 cancelSelection(); error = nil
-                await model.search(query: query, language: language, type: type)
+                await model.search(query: query, language: language, category: category)
             }
             .onDisappear { cancelSelection(); model.invalidate() }
             .sheet(isPresented: $settings) { TMDbSettingsView() }
@@ -84,28 +99,81 @@ struct TMDbSearchView: View {
                     didApply = true
                 }
             }
+            .sheet(item: $seasonSelection, onDismiss: {
+                if let source = pendingSeasonSource {
+                    pendingSeasonSource = nil
+                    select(source)
+                }
+            }) { selection in
+                NavigationStack {
+                    ScrollView {
+                        TMDbResultRow(result: selection.result, disabled: selecting) { source in
+                            pendingSeasonSource = source
+                            seasonSelection = nil
+                        }.padding()
+                    }
+                    .navigationTitle("按季选择").navigationBarTitleDisplayMode(.inline)
+                    .toolbar { ToolbarItem(placement: .cancellationAction) { Button("关闭") { seasonSelection = nil } } }
+                    .tint(Constants.brandTitlePink)
+                }
+            }
             .sheet(item: $detail) { MediaDetailView(itemID: $0.id) }
             .alert("收藏库已有此作品", isPresented: Binding(get: { duplicate != nil }, set: { if !$0 { duplicate = nil } })) {
                 Button("打开已有条目") { detail = duplicate; duplicate = nil }
                 Button("取消", role: .cancel) { duplicate = nil }
             }
-            .tint(Constants.accentPink)
+            .tint(Constants.brandTitlePink)
         }
     }
-    private func results(_ group: TMDbSearchModel.Group, type: TMDbMediaType, title: String) -> some View {
-        Section {
-            ForEach(group.results) { result in
-                TMDbResultRow(result: result, disabled: selecting, onSelect: select)
+    private func results(_ group: TMDbSearchModel.Group) -> some View {
+        VStack(spacing: 20) {
+            AdaptiveGridLayout(availableWidth: gridWidth) {
+                ForEach(group.results) { result in
+                    VStack(alignment: .leading, spacing: 0) {
+                        Button { select(result.source) } label: {
+                            VStack(alignment: .leading, spacing: 0) {
+                                // The container owns layout; decoded image proportions never resize a card.
+                                Rectangle().fill(.clear)
+                                    .aspectRatio(Constants.posterAspectRatio, contentMode: .fit)
+                                    .overlay {
+                                        GeometryReader { geometry in
+                                            TMDbRemoteImage(path: result.posterPath, width: 500)
+                                                .frame(width: geometry.size.width, height: geometry.size.height)
+                                        }
+                                    }
+                                    .clipped()
+                                LibraryCardTitle(title: result.title)
+                                    .padding(.horizontal, 12)
+                                    .padding(.top, 12)
+                                    .padding(.bottom, 8)
+                            }.frame(maxWidth: .infinity, alignment: .leading)
+                        }.buttonStyle(LibraryPressStyle()).disabled(selecting)
+                        .accessibilityLabel("选择作品：\(result.title)")
+                        HStack(spacing: 8) {
+                            Text(result.date.flatMap { $0.isEmpty ? nil : String($0.prefix(4)) } ?? "—")
+                                .font(.caption).foregroundStyle(.secondary).lineLimit(1)
+                            Spacer(minLength: 0)
+                            if result.source.mediaType == .series {
+                                Button("按季选择", systemImage: "rectangle.stack") {
+                                    seasonSelection = SearchSelection(result: result)
+                                }.font(.caption).lineLimit(1).buttonStyle(.borderless).disabled(selecting)
+                            }
+                        }.modifier(LibraryCardFooter())
+                    }
+                    .modifier(LibraryCardSurface())
+                }
             }
-            if group.loading { ProgressView("加载中") }
+            if group.loading { ProgressView("加载中").padding() }
             if let error = group.error {
-                Text(error).font(.caption).foregroundStyle(.secondary)
-                Button("重试") { loadPage(type) }
-            } else if !group.loading && group.page > 0 && group.results.isEmpty { Text("无搜索结果").foregroundStyle(.secondary) }
-            if group.page > 0 && group.page < group.totalPages && !group.loading && group.error == nil {
-                Button("加载更多") { loadPage(type) }
+                Text(error).font(.footnote).foregroundStyle(.secondary)
+                Button("重试") { loadPage(category.mediaType) }.buttonStyle(.bordered)
+            } else if !group.loading && group.page > 0 && group.results.isEmpty {
+                ContentUnavailableView(browsing ? "暂无热门作品" : "无搜索结果", systemImage: "film")
             }
-        } header: { Text(String(localized: String.LocalizationValue(title))) }
+            if group.page > 0 && group.page < group.totalPages && !group.loading && group.error == nil {
+                Button("加载更多") { loadPage(category.mediaType) }.buttonStyle(.bordered)
+            }
+        }
     }
     private func loadPage(_ type: TMDbMediaType) {
         pageTasks[type]?.cancel()
@@ -136,7 +204,7 @@ private struct TMDbResultRow: View {
     let result: TMDbSearchResult
     let disabled: Bool
     let onSelect: (MediaSource) -> Void
-    @State private var bySeason = false
+    @State private var bySeason = true
     @State private var seasons: [MediaPart] = []
     @State private var loading = false
     @State private var error: String?
@@ -145,12 +213,12 @@ private struct TMDbResultRow: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
             HStack(alignment: .top, spacing: 12) {
-                TMDbRemoteImage(path: result.posterPath).frame(width: 75, height: 112).clipShape(RoundedRectangle(cornerRadius: 8))
+                TMDbRemoteImage(path: result.posterPath).frame(width: 75, height: 112).clipShape(RoundedRectangle(cornerRadius: 12))
                 VStack(alignment: .leading, spacing: 5) {
                     Text(result.title).font(.headline).foregroundStyle(.primary)
                     if let date = result.date, !date.isEmpty { Text(date).font(.caption).foregroundStyle(.secondary) }
                     if let overview = result.overview, !overview.isEmpty { Text(overview).font(.caption).lineLimit(3).foregroundStyle(.secondary) }
-                    if !bySeason { Button("选择") { onSelect(result.source) }.buttonStyle(.bordered).disabled(disabled) }
+                    if !bySeason { Button("选择") { onSelect(result.source) }.buttonStyle(.bordered).controlSize(.small).disabled(disabled) }
                 }
             }
             if result.source.mediaType == .series {
@@ -169,7 +237,7 @@ private struct TMDbResultRow: View {
                                     .multilineTextAlignment(.leading)
                                 Spacer(minLength: 8)
                                 Text("选择").font(.subheadline.weight(.semibold))
-                                    .foregroundStyle(Constants.accentPink).fixedSize()
+                                    .foregroundStyle(Constants.brandTitlePink).fixedSize()
                             }
                             .padding(.horizontal, 12).padding(.vertical, 8)
                             .frame(maxWidth: .infinity, minHeight: 48, alignment: .leading)
@@ -197,4 +265,9 @@ private struct TMDbResultRow: View {
             }
         }
     }
+}
+
+private struct SearchSelection: Identifiable {
+    let result: TMDbSearchResult
+    var id: String { result.id }
 }

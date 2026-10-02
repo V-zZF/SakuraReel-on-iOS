@@ -20,7 +20,7 @@ actor FixtureTransport: TMDbHTTPTransport {
         if malformed { body = "invalid" }
         else if path.hasSuffix("/configuration") {
             body = #"{"images":{"secure_base_url":"https://image.tmdb.org/t/p/","poster_sizes":["w185","w780","original"],"backdrop_sizes":["w1280","original"],"logo_sizes":["w500","original"],"profile_sizes":["w185","original"],"still_sizes":["w300","original"]}}"#
-        } else if path.contains("/search/") {
+        } else if (path.contains("/search/") || path.contains("/discover/")) {
             body = #"{"page":1,"total_pages":2,"results":[{"id":7,"title":"Movie","name":"Series","original_title":null,"overview":null,"release_date":"2001-02-03","poster_path":"/poster.jpg"}]}"#
         } else if path.hasSuffix("/images") { body = #"{"posters":[],"backdrops":[],"logos":[]}"# }
         else if path.hasSuffix("/credits") { body = #"{"cast":[],"crew":[]}"# }
@@ -33,6 +33,7 @@ actor FixtureTransport: TMDbHTTPTransport {
     }
     func count(path: String? = nil) -> Int { requests.filter { path == nil || $0.url?.path == path }.count }
     func lastHost() -> String? { requests.last?.url?.host }
+    func latest() -> URLRequest? { requests.last }
 }
 actor NetworkScenarioTransport: TMDbHTTPTransport {
     enum Action: Sendable { case fail(URLError.Code), status(Int), blocked(Int) }
@@ -62,6 +63,9 @@ actor ConnectionBox {
     func changeHost() { value = TMDbConnection(key: "fixture-new-key", host: "owned.example.com", generation: UUID()) }
 }
 actor FakeService: TMDbServing {
+    func discover(category: TMDbBrowseCategory, language: String, page: Int) async throws -> TMDbSearchPage {
+        try await search(category.rawValue, type: category.mediaType, language: language, page: page)
+    }
     var failedPage = false
     func search(_ query: String, type: TMDbMediaType, language: String, page: Int) async throws -> TMDbSearchPage {
         if query == "old" || (query == "pagecancel" && page == 2) {
@@ -205,6 +209,29 @@ actor ProducerProbe {
         let service = TMDbService(client: client, connection: { await box.read() })
         let page = try await service.search("title", type: .movie, language: "zh-CN", page: 1)
         expect(page.totalPages == 2 && page.results[0].overview == nil, "nullable fields and pagination")
+        let popularMovies = try await service.discover(category: .movie, language: "zh-CN", page: 2)
+        let movieRequest = await transport.latest()
+        let discoveryQuery = URLComponents(url: movieRequest!.url!, resolvingAgainstBaseURL: false)!.queryItems!
+        expect(movieRequest?.url?.path == "/3/discover/movie", "popular movies use discovery endpoint")
+        expect(!discoveryQuery.contains { $0.name == "with_genres" || $0.name == "with_origin_country" } &&
+               discoveryQuery.contains(URLQueryItem(name: "sort_by", value: "popularity.desc")) &&
+               discoveryQuery.contains(URLQueryItem(name: "include_adult", value: "false")) &&
+               discoveryQuery.contains(URLQueryItem(name: "page", value: "2")), "popular movies do not inherit anime filters and preserve pagination")
+        expect(popularMovies.results.first?.source.mediaType == .movie, "popular movie identity")
+        let popularSeries = try await service.discover(category: .television, language: "en-US", page: 1)
+        let seriesRequest = await transport.latest()
+        expect(seriesRequest?.url?.path == "/3/discover/tv" && popularSeries.results.first?.source.mediaType == .series,
+               "popular series retain distinct identity")
+        let televisionQuery = URLComponents(url: seriesRequest!.url!, resolvingAgainstBaseURL: false)!.queryItems!
+        expect(!televisionQuery.contains { $0.name == "with_genres" || $0.name == "with_origin_country" },
+               "popular television is not limited to animation or Japan")
+        _ = try await service.discover(category: .anime, language: "zh-CN", page: 1)
+        let animeRequest = await transport.latest()
+        let animeQuery = URLComponents(url: animeRequest!.url!, resolvingAgainstBaseURL: false)!.queryItems!
+        expect(animeRequest?.url?.path == "/3/discover/tv" &&
+               animeQuery.contains(URLQueryItem(name: "with_genres", value: "16")) &&
+               animeQuery.contains(URLQueryItem(name: "with_origin_country", value: "JP")),
+               "anime discovery requires Japanese origin and animation genre")
         let source = MediaSource(tmdb: .movie(id: 7), language: "zh-CN", fetchedAt: Date())
         await transport.setup(optionalFailure: true)
         let draft = try await service.details(source)
@@ -278,19 +305,25 @@ actor ProducerProbe {
         expect(TMDbRequestClient.retryDelay("2", now: now, attempt: 0) == 2, "numeric Retry-After")
         let fake = FakeService()
         let search = TMDbSearchModel(service: fake)
-        let old = Task { await search.search(query: "old", language: "zh-CN", type: "movie") }
+        await search.search(query: "  ", language: "zh-CN")
+        expect(search.movies.results.isEmpty && search.series.results.first?.title == "anime:zh-CN:1",
+               "default category loads only Japanese animation")
+        await search.search(query: "", language: "ja-JP", category: .movie)
+        expect(search.series.results.isEmpty && search.movies.results.first?.source.language == "ja-JP",
+               "popular shelves respect selected language and type")
+        let old = Task { await search.search(query: "old", language: "zh-CN", category: .movie) }
         try await Task.sleep(for: .milliseconds(340))
-        let latest = Task { await search.search(query: "new", language: "ja-JP", type: "series") }
+        let latest = Task { await search.search(query: "new", language: "ja-JP", category: .television) }
         await latest.value; await old.value
         expect(search.movies.results.isEmpty && search.series.results.first?.title == "new:ja-JP:1", "obsolete query language type cannot publish")
         await search.load(.series)
         expect(search.series.results.count == 1 && search.series.error != nil, "failed page preserves results")
         await search.load(.series)
         expect(search.series.results.count == 2 && search.series.page == 2, "retry requests same failed page")
-        let cancelled = Task { await search.search(query: "cancelled", language: "en-US", type: "all") }
+        let cancelled = Task { await search.search(query: "cancelled", language: "en-US", category: .anime) }
         cancelled.cancel(); await cancelled.value
         expect(search.movies.results.isEmpty && search.series.results.isEmpty, "cancelled search publishes nothing")
-        await search.search(query: "pagecancel", language: "en-US", type: "movie")
+        await search.search(query: "pagecancel", language: "en-US", category: .movie)
         let cancelledPage = Task { await search.load(.movie) }
         try await Task.sleep(for: .milliseconds(10))
         cancelledPage.cancel(); await cancelledPage.value

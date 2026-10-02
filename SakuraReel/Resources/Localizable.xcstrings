@@ -127,9 +127,6 @@
         }
       }
     },
-    "API 请求和 Key 会经过所选代理。AniShelf 代理由第三方运营，图片仍直连 TMDb CDN。" : {
-
-    },
     "https://" : {
 
     },
@@ -357,6 +354,7 @@
       }
     },
     "也可以稍后在 TMDb 设置中填写自己的 API Key。" : {
+      "extractionState" : "stale",
       "localizations" : {
         "zh-Hans" : {
           "stringUnit" : {
@@ -367,6 +365,7 @@
       }
     },
     "仅在搜索、导入或主动重新获取时联网。作品资料保存后可自行修改。" : {
+      "extractionState" : "stale",
       "localizations" : {
         "zh-Hans" : {
           "stringUnit" : {
@@ -377,6 +376,7 @@
       }
     },
     "仅将勾选字段填入本地资料。个人记录不会被替换。" : {
+      "extractionState" : "stale",
       "localizations" : {
         "zh-Hans" : {
           "stringUnit" : {
@@ -407,6 +407,7 @@
       }
     },
     "从 TMDb 搜索作品" : {
+      "extractionState" : "stale",
       "localizations" : {
         "zh-Hans" : {
           "stringUnit" : {
@@ -508,9 +509,6 @@
     "使用 API 代理" : {
 
     },
-    "使用 tmdb-api.konakona.dev；连接失败时尝试 tmdb-api.konakona52.com。" : {
-
-    },
     "使用自定义 API 代理" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -603,6 +601,7 @@
       }
     },
     "全部" : {
+      "extractionState" : "stale",
       "localizations" : {
         "zh-Hans" : {
           "stringUnit" : {
@@ -767,6 +766,7 @@
       }
     },
     "剧集" : {
+      "extractionState" : "stale",
       "localizations" : {
         "zh-Hans" : {
           "stringUnit" : {
@@ -836,6 +836,9 @@
           }
         }
       }
+    },
+    "占位\n占位" : {
+
     },
     "原名" : {
       "localizations" : {
@@ -1420,6 +1423,9 @@
         }
       }
     },
+    "按季选择" : {
+
+    },
     "排序" : {
       "localizations" : {
         "zh-Hans" : {
@@ -1502,6 +1508,7 @@
       }
     },
     "搜索电影或剧集，将资料填入现有表单。" : {
+      "extractionState" : "stale",
       "localizations" : {
         "zh-Hans" : {
           "stringUnit" : {
@@ -1787,6 +1794,9 @@
           }
         }
       }
+    },
+    "暂无热门作品" : {
+
     },
     "暂无短评" : {
       "extractionState" : "stale",
@@ -2133,6 +2143,7 @@
       }
     },
     "清空" : {
+      "extractionState" : "stale",
       "localizations" : {
         "zh-Hans" : {
           "stringUnit" : {
@@ -2186,6 +2197,7 @@
       }
     },
     "电影" : {
+      "extractionState" : "stale",
       "localizations" : {
         "zh-Hans" : {
           "stringUnit" : {
@@ -2215,9 +2227,6 @@
           }
         }
       }
-    },
-    "直连 api.themoviedb.org；连接失败可开启 AniShelf 代理。" : {
-
     },
     "看过" : {
       "extractionState" : "stale",
@@ -2473,6 +2482,9 @@
         }
       }
     },
+    "获取结果" : {
+
+    },
     "观看年" : {
       "localizations" : {
         "zh-Hans" : {
@@ -2693,6 +2705,9 @@
         }
       }
     },
+    "资料语言" : {
+
+    },
     "跳转到单集" : {
 
     },
@@ -2820,6 +2835,9 @@
           }
         }
       }
+    },
+    "选择作品：%@" : {
+
     },
     "选择同步文件夹" : {
       "localizations" : {

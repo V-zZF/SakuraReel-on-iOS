@@ -19,28 +19,32 @@ import Observation
     private(set) var series = Group()
     private(set) var requestID = UUID()
     private var query = ""
+    private var category = TMDbBrowseCategory.anime
     private var language = "zh-CN"
     private let service: any TMDbServing
     init(service: any TMDbServing) { self.service = service }
     func invalidate() { requestID = UUID(); movies = Group(); series = Group() }
-    func search(query: String, language: String, type: String) async {
+    func search(query: String, language: String, category: TMDbBrowseCategory = .anime) async {
         invalidate()
         self.query = query.trimmingCharacters(in: .whitespacesAndNewlines); self.language = language
-        guard !self.query.isEmpty else { return }
+        self.category = category
         let id = requestID
-        do { try await Task.sleep(for: .milliseconds(300)); try Task.checkCancellation() } catch { return }
-        await withTaskGroup(of: Void.self) { group in
-            if type != "movie" { group.addTask { await self.load(.series, id: id) } }
-            if type != "series" { group.addTask { await self.load(.movie, id: id) } }
-        }
+        do {
+            if !self.query.isEmpty { try await Task.sleep(for: .milliseconds(300)) }
+            try Task.checkCancellation()
+        } catch { return }
+        await load(category.mediaType, id: id)
     }
+
     func load(_ type: TMDbMediaType, id: UUID? = nil) async {
         let identity = id ?? requestID
         let current = type == .movie ? movies : series
-        guard identity == requestID, !current.loading, current.page == 0 || current.page < current.totalPages else { return }
+        guard type == category.mediaType, identity == requestID, !current.loading, current.page == 0 || current.page < current.totalPages else { return }
         set(type) { $0.loading = true; $0.error = nil }
         do {
-            let page = try await service.search(query, type: type, language: language, page: current.page + 1)
+            let page = try await query.isEmpty
+                ? service.discover(category: category, language: language, page: current.page + 1)
+                : service.search(query, type: type, language: language, page: current.page + 1)
             guard identity == requestID else { return }
             if Task.isCancelled { set(type) { $0.loading = false }; return }
             set(type) {

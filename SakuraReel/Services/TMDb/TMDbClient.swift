@@ -266,8 +266,16 @@ struct TMDbSearchPage: Sendable {
     var page: Int
     var totalPages: Int
 }
+enum TMDbBrowseCategory: String, CaseIterable, Sendable {
+    case anime, television, movie
+    var mediaType: TMDbMediaType { self == .movie ? .movie : .series }
+    var label: String {
+        switch self { case .anime: "番剧"; case .television: "节目"; case .movie: "电影" }
+    }
+}
 protocol TMDbServing: Sendable {
     func search(_ query: String, type: TMDbMediaType, language: String, page: Int) async throws -> TMDbSearchPage
+    func discover(category: TMDbBrowseCategory, language: String, page: Int) async throws -> TMDbSearchPage
     func details(_ source: MediaSource) async throws -> TMDbImportDraft
     func imageURL(_ path: String, role: String, width: Int) async -> URL?
     func cachedImageURL(_ path: String, role: String, width: Int) async -> URL?
@@ -369,6 +377,27 @@ actor TMDbService: TMDbServing {
         let payload = try await client.decode(WirePage.self, path: type == .movie ? "/search/movie" : "/search/tv",
             query: [URLQueryItem(name: "query", value: query), URLQueryItem(name: "language", value: language),
                     URLQueryItem(name: "page", value: String(page))], connection: config)
+        try Task.checkCancellation()
+        return TMDbSearchPage(results: payload.results.map {
+            TMDbSearchResult(source: MediaSource(tmdb: type == .movie ? .movie(id: $0.id) : .series(id: $0.id), language: language, fetchedAt: Date()),
+                title: $0.title ?? $0.name ?? $0.original_title ?? $0.original_name ?? "",
+                date: $0.release_date ?? $0.first_air_date, overview: $0.overview, posterPath: $0.poster_path)
+        }, page: payload.page, totalPages: payload.total_pages)
+    }
+    func discover(category: TMDbBrowseCategory, language: String, page: Int) async throws -> TMDbSearchPage {
+        let type = category.mediaType
+        let config = await connection()
+        var filters = [URLQueryItem(name: "sort_by", value: "popularity.desc"),
+                       URLQueryItem(name: "include_adult", value: "false"),
+                       URLQueryItem(name: "language", value: language),
+                       URLQueryItem(name: "page", value: String(page))]
+        if category == .anime {
+            filters.append(URLQueryItem(name: "with_genres", value: "16"))
+            filters.append(URLQueryItem(name: "with_origin_country", value: "JP"))
+        }
+        let payload = try await client.decode(WirePage.self,
+            path: type == .movie ? "/discover/movie" : "/discover/tv",
+            query: filters, connection: config)
         try Task.checkCancellation()
         return TMDbSearchPage(results: payload.results.map {
             TMDbSearchResult(source: MediaSource(tmdb: type == .movie ? .movie(id: $0.id) : .series(id: $0.id), language: language, fetchedAt: Date()),

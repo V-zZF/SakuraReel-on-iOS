@@ -29,37 +29,42 @@ struct TMDbImportPreview: View {
     var body: some View {
         NavigationStack {
             Form {
-                Section {
-                    Text("仅将勾选字段填入本地资料。个人记录不会被替换。")
-                    ForEach(draft.warnings, id: \.self) { Text($0).font(.caption).foregroundStyle(.secondary) }
-                }
                 if !draft.posterCandidates.isEmpty {
-                    Section("海报候选") {
+                    Section {
                         ScrollView(.horizontal) {
-                            HStack {
+                            HStack(spacing: 12) {
                                 ForEach(draft.posterCandidates, id: \.self) { path in
                                     Button { selectedPoster = path; fetchPoster() } label: {
-                                        TMDbRemoteImage(path: path).frame(width: 70, height: 105)
-                                            .overlay { RoundedRectangle(cornerRadius: 4).stroke(selectedPoster == path ? Constants.accentPink : .clear, lineWidth: 3) }
-                                    }.accessibilityLabel("选择海报")
+                                        TMDbRemoteImage(path: path).frame(width: 88, height: 132)
+                                            .clipShape(RoundedRectangle(cornerRadius: 12))
+                                            .overlay { RoundedRectangle(cornerRadius: 12).stroke(selectedPoster == path ? Constants.brandTitlePink : .clear, lineWidth: 3) }
+                                    }.buttonStyle(.plain).accessibilityLabel("选择海报")
+                                    .accessibilityAddTraits(selectedPoster == path ? .isSelected : [])
                                 }
                             }
                         }
-                        Button("重试海报") { fetchPoster() }.disabled(loadingPoster)
+                        .scrollIndicators(.hidden)
+                        Button("重试海报", systemImage: "arrow.clockwise") { fetchPoster() }.disabled(loadingPoster)
                         if loadingPoster { ProgressView("正在下载海报") }
-                    }
+                    } header: { Label("海报候选", systemImage: "photo.on.rectangle").foregroundStyle(Constants.brandTitlePink) }
                 }
                 Section("选择填入或替换的字段") {
                     ForEach(MetadataField.allCases) { field in
                         let incoming = field.value(in: draft.previewItem)
                         if !incoming.isEmpty {
                             Toggle(isOn: Binding(get: { fields.contains(field) }, set: { if $0 { fields.insert(field) } else { fields.remove(field) } })) {
-                                VStack(alignment: .leading, spacing: 4) {
-                                    Text(String(localized: String.LocalizationValue(field.label))).font(.headline)
-                                    let old = field.value(in: existing)
-                                    if !old.isEmpty { Text("当前：\(old)").font(.caption).foregroundStyle(.secondary).lineLimit(3) }
-                                    Text("导入：\(incoming)").font(.caption).lineLimit(3)
-                                }
+                                HStack(alignment: .top, spacing: 12) {
+                                    Image(systemName: field.previewSymbol)
+                                        .font(.system(size: 19, weight: .regular))
+                                        .foregroundStyle(Constants.brandTitlePink)
+                                        .frame(width: 26, height: 26).accessibilityHidden(true)
+                                    VStack(alignment: .leading, spacing: 6) {
+                                        Text(String(localized: String.LocalizationValue(field.label))).font(.subheadline.weight(.semibold))
+                                        let old = field.value(in: existing)
+                                        if !old.isEmpty { Text("当前：\(old)").font(.caption).foregroundStyle(.secondary).lineLimit(3) }
+                                        Text("导入：\(incoming)").font(.subheadline).foregroundStyle(.primary).lineLimit(3)
+                                    }
+                                }.padding(.vertical, 6)
                             }
                         }
                     }
@@ -70,8 +75,18 @@ struct TMDbImportPreview: View {
                         Button("打开已有条目") { duplicateDetail = PresentedMedia(id: found.id) }
                     }
                 }
+                if !draft.warnings.isEmpty {
+                    Section("获取结果") {
+                        ForEach(draft.warnings, id: \.self) { warning in
+                            Label(warning, systemImage: "exclamationmark.circle")
+                                .font(.footnote).foregroundStyle(.secondary)
+                        }
+                    }
+                }
                 if let error { Text(error).foregroundStyle(.red) }
             }
+            .scrollContentBackground(.hidden)
+            .background(Constants.libraryBackground)
             .navigationTitle("导入预览").navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) { Button("取消") { dismiss() } }
@@ -87,7 +102,7 @@ struct TMDbImportPreview: View {
             .sheet(item: $duplicateDetail) { MediaDetailView(itemID: $0.id) }
             .disabled(applying)
             .onDisappear { posterTask?.cancel(); posterRequest = UUID(); loadingPoster = false }
-            .tint(Constants.accentPink)
+            .tint(Constants.brandTitlePink)
         }
     }
     private func fetchPoster() {
@@ -114,3 +129,29 @@ struct PresentedImport: Identifiable {
     var draft: TMDbImportDraft
 }
 struct PresentedMedia: Identifiable { var id: UUID }
+
+private extension MetadataField {
+    var previewSymbol: String {
+        switch self {
+        case .title: "textformat"
+        case .originalTitle: "character.book.closed"
+        case .seasonTitle: "rectangle.stack"
+        case .overview: "text.alignleft"
+        case .releaseDate: "calendar"
+        case .genres: "tag"
+        case .remoteStatus: "circle.dashed"
+        case .runtimeMinutes: "clock"
+        case .episodeCount: "number"
+        case .tmdbRating: "star"
+        case .homepage: "globe"
+        case .companies: "building.2"
+        case .cast: "person.2"
+        case .crew: "person.crop.rectangle"
+        case .seasons: "square.stack"
+        case .episodes: "list.bullet.rectangle"
+        case .poster: "photo"
+        case .backdrop: "photo.on.rectangle"
+        case .logo: "seal"
+        }
+    }
+}

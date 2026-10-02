@@ -21,11 +21,11 @@ func expectEqual<T: Equatable>(_ actual: T, _ expected: T, _ label: String) {
     expect(actual == expected, "\(label)：期望 \(expected)，实际 \(actual)")
 }
 
-runExportTests()
-runMergeTests()
-runNormalizeTests()
+runArchiveTests()
+runLegacyTests()
 runRankingMetricsTests()
 runGridColumnsTests()
+runTimeMachineMomentsTests()
 
 print("")
 if failureCount == 0 {

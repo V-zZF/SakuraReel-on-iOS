@@ -14,11 +14,13 @@ struct YearMonthPickers: View {
     }
 
     var body: some View {
-        Picker("观看年", selection: $year) {
+        Picker(selection: $year) {
             Text("未设置").tag(Int?.none)
             ForEach(yearRange, id: \.self) { y in
                 Text("\(y) 年").tag(Int?.some(y))
             }
+        } label: {
+            Label("观看年", systemImage: "calendar")
         }
         .onChange(of: year) { _, newYear in
             if newYear == nil {
@@ -29,10 +31,12 @@ struct YearMonthPickers: View {
         }
 
         if year != nil {
-            Picker("观看月", selection: $month) {
+            Picker(selection: $month) {
                 ForEach(1...12, id: \.self) { m in
                     Text("\(m) 月").tag(Int?.some(m))
                 }
+            } label: {
+                Label("观看月", systemImage: "calendar")
             }
         }
     }

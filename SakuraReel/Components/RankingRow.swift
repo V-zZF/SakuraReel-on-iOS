@@ -13,6 +13,8 @@ struct RankingRow: View {
     let item: MediaItem
     /// 卡片高度，来自 `RankingMetrics.cardHeight`
     let cardHeight: CGFloat
+    /// 片名字号基准值按设备形态提供，随后仍随卡片高度等比缩放。
+    var titleBaseFontSize: CGFloat = 12
 
     /// 相对基准卡高的放大倍数。下方所有 pt 数值的基准值都对应 scale == 1 的现状尺寸
     private var scale: CGFloat { cardHeight / RankingMetrics.baseCardHeight }
@@ -27,7 +29,7 @@ struct RankingRow: View {
 
             VStack(alignment: .leading, spacing: 6 * scale) {
                 HStack(spacing: 4 * scale) {
-                    Text("#")
+                    Image(systemName: "number")
                         .font(.system(size: 11 * scale))
                         .foregroundStyle(.secondary)
                     Text("\(rank)")
@@ -35,7 +37,7 @@ struct RankingRow: View {
                         .foregroundStyle(.secondary)
                     // 卡片变大后一行放不下几个字，允许换到第二行 —— 行高由海报决定，不会因此变高
                     Text(item.title)
-                        .font(.system(size: 15 * scale, weight: .semibold))
+                        .font(.system(size: titleBaseFontSize * scale, weight: .semibold))
                         .foregroundStyle(.primary)
                         .lineLimit(2)
                 }

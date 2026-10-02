@@ -8,6 +8,35 @@ enum HomeSortMode {
 /// 排序与拖动分组逻辑唯一来源。
 /// 基于数组排序（本地 JSON 文件存储，不使用 SwiftData SortDescriptor）。
 enum MediaSort {
+    /// Apply an explicit order within the existing, immutable group hierarchy.
+    static func homeSorted(_ items: [MediaItem], order: [UUID]) -> [MediaItem] {
+        let positions = Dictionary(uniqueKeysWithValues: order.enumerated().map { ($0.element, $0.offset) })
+        return items.sorted {
+            if $0.watchYear != $1.watchYear { return ($0.watchYear ?? -1) > ($1.watchYear ?? -1) }
+            if $0.watchMonth != $1.watchMonth { return ($0.watchMonth ?? -1) > ($1.watchMonth ?? -1) }
+            return (positions[$0.id] ?? Int.max) < (positions[$1.id] ?? Int.max)
+        }
+    }
+
+    static func rankingSorted(_ items: [MediaItem], order: [UUID]) -> [MediaItem] {
+        let positions = Dictionary(uniqueKeysWithValues: order.enumerated().map { ($0.element, $0.offset) })
+        return items.sorted {
+            if $0.rating != $1.rating { return $0.rating > $1.rating }
+            return (positions[$0.id] ?? Int.max) < (positions[$1.id] ?? Int.max)
+        }
+    }
+
+    /// Placement of new items in a rating group, independent of legacy manual indices.
+    static func rankingDefaultSorted(_ items: [MediaItem]) -> [MediaItem] {
+        items.sorted {
+            if $0.rating != $1.rating { return $0.rating > $1.rating }
+            if $0.watchYear != $1.watchYear { return ($0.watchYear ?? -1) > ($1.watchYear ?? -1) }
+            if $0.watchMonth != $1.watchMonth { return ($0.watchMonth ?? -1) > ($1.watchMonth ?? -1) }
+            if $0.sortIndex != $1.sortIndex { return $0.sortIndex < $1.sortIndex }
+            return $0.id.uuidString < $1.id.uuidString
+        }
+    }
+
     /// 首页排序：观看年份从新到旧 → 观看月份从新到旧 → sortIndex。
     /// 无观看年月（想看）的条目排在最末。
     static func homeSorted(_ items: [MediaItem], mode: HomeSortMode) -> [MediaItem] {

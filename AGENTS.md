@@ -29,7 +29,7 @@ SakuraReel 是一款 **Personal Media Library** 应用，用于：
 - **海报存储**：单独图片文件（`Documents/Posters/<id>.jpg`），不写入 JSON
 - **图片选择**：PhotosPicker
 - **外部链接**：UIApplication.shared.open
-- **最低系统版本**：iOS 17+（`@Observable` 依赖 Observation 框架）
+- **最低系统版本**：iOS 18+（`@Observable` 依赖 Observation 框架）
 - **无第三方 UI 框架**
 - **无第三方影视数据库 API**
 - **无 iCloud / CloudKit 同步**：数据只存在本机

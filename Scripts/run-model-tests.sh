@@ -1,5 +1,5 @@
 #!/bin/zsh
-# 跑模型层的断言：导出 / 导入 / 合并 / 索引修正。
+# 跑模型层的断言：快照导出 / 导入 / 旧版迁移 / 双顺序。
 #
 # 直接 swiftc 编译那几个只依赖 Foundation 的文件，不经过 Xcode 工程、不需要模拟器、
 # 也不需要单元测试 target。被测代码一旦 import 了 SwiftUI 或 Observation，这个脚本
@@ -20,10 +20,12 @@ swiftc -O -o "$OUT" \
   SakuraReel/Utilities/MediaSort.swift \
   SakuraReel/Utilities/RankingMetrics.swift \
   SakuraReel/Utilities/GridColumns.swift \
+  SakuraReel/Utilities/TimeMachineMoments.swift \
   SakuraReel/Services/LibraryArchive.swift \
   Tests/ModelTests/main.swift \
   Tests/ModelTests/LibraryArchiveTests.swift \
   Tests/ModelTests/RankingMetricsTests.swift \
-  Tests/ModelTests/GridColumnsTests.swift
+  Tests/ModelTests/GridColumnsTests.swift \
+  Tests/ModelTests/TimeMachineMomentsTests.swift
 
 "$OUT"

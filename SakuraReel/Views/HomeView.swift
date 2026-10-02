@@ -6,13 +6,20 @@ struct HomeView: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     @State private var selectedStatus: MediaStatus? = .watched
+    @State private var movingToLaterStatus = true
+    @State private var outgoingCategory: CategorySnapshot?
+    @State private var categorySlideProgress: CGFloat = 1
+    @State private var categorySlideTask: Task<Void, Never>?
     @State private var isSearchActive: Bool = false
     @State private var searchText: String = ""
     @State private var isSortMode: Bool = false
     @State private var sheetTarget: SheetTarget?
-    /// 是否已 Push 进排行榜。用「按钮 + 编程式跳转」而不是 NavigationLink：
-    /// 工具栏里的 NavigationLink 会少一圈内边距，胶囊宽度和左侧「排序」对不齐
+    /// 是否已 Push 进排行榜；工具栏按钮通过此状态触发导航。
     @State private var showsRankings = false
+    @State private var showsTimeMachine = false
+    @State private var isLaunchingTimeMachine = false
+    @State private var timeMachineItems: [MediaItem] = []
+    @State private var titleScale: CGFloat = 1
 
     /// 网格容器的可用宽度（含两侧留白）。`0` = 还没量到。
     /// 量在这里而不是 `AdaptiveGridLayout` 里：`onPreferenceChange` 的闭包是 `@Sendable`，
@@ -35,14 +42,14 @@ struct HomeView: View {
     /// 正在读 / 写同步文件夹。云盘上的文件可能要先下载，这段时间会卡住，所以禁掉菜单入口
     @State private var isSyncing = false
     @State private var isChoosingSyncFolder = false
-    /// 待确认的导入：合并结果已经算好，等用户点「导入」才写盘（nil = 无）
+    /// 待确认的导入：云端快照已经读好，等用户点「导入」才写盘（nil = 无）
     @State private var pendingImport: PendingImport?
     /// 同步的结果 / 失败提示（nil = 不提示）
     @State private var syncMessage: SyncMessage?
 
-    /// 合并结果已算好、等确认的一次导入
+    /// 云端快照已读好、等确认的一次导入
     private struct PendingImport {
-        let items: [MediaItem]
+        let snapshot: LibrarySnapshot
         let summary: ImportSummary
     }
 
@@ -50,6 +57,11 @@ struct HomeView: View {
     private struct SyncMessage {
         let title: String
         let body: String
+    }
+
+    private struct CategorySnapshot {
+        let status: MediaStatus
+        let items: [MediaItem]
     }
 
     /// 添加 / 编辑 Sheet 目标（nil = 关闭）
@@ -66,7 +78,7 @@ struct HomeView: View {
     }
 
     private var allItems: [MediaItem] {
-        MediaSort.homeSorted(repository.items, mode: .default)
+        repository.homeItems
     }
 
     private var filteredItems: [MediaItem] {
@@ -79,52 +91,133 @@ struct HomeView: View {
         return allItems
     }
 
+    private var categorySelection: Binding<MediaStatus?> {
+        Binding(
+            get: { selectedStatus },
+            set: { next in
+                guard let next, next != selectedStatus else { return }
+                let statuses = MediaStatus.allCases
+                let previousIndex = statuses.firstIndex(of: selectedStatus ?? .watched) ?? 0
+                let nextIndex = statuses.firstIndex(of: next) ?? 0
+                movingToLaterStatus = nextIndex > previousIndex
+                categorySlideTask?.cancel()
+                categorySlideTask = nil
+                if reduceMotion || isSearchActive || isSortMode {
+                    outgoingCategory = nil
+                    categorySlideProgress = 1
+                    var transaction = Transaction(animation: nil)
+                    transaction.disablesAnimations = true
+                    withTransaction(transaction) {
+                        selectedStatus = next
+                        isSearchActive = false
+                    }
+                } else {
+                    if let previous = selectedStatus {
+                        outgoingCategory = CategorySnapshot(
+                            status: previous,
+                            items: allItems.filter { $0.status == previous }
+                        )
+                    }
+                    categorySlideProgress = 0
+                    selectedStatus = next
+                    categorySlideTask = Task { @MainActor in
+                        // Give SwiftUI one frame to render the two pages at their start positions.
+                        try? await Task.sleep(for: .milliseconds(16))
+                        guard !Task.isCancelled else { return }
+                        withAnimation(.easeInOut(duration: 0.3)) {
+                            categorySlideProgress = 1
+                        }
+                        try? await Task.sleep(for: .milliseconds(320))
+                        guard !Task.isCancelled else { return }
+                        outgoingCategory = nil
+                        categorySlideTask = nil
+                    }
+                }
+            }
+        )
+    }
+
     var body: some View {
         NavigationStack {
             ZStack(alignment: .bottomTrailing) {
-                ScrollView {
-                    if isSortMode {
-                        // 排序模式：显示全部条目（无筛选），保证每个「同年同月」组都是完整的，
-                        // 重排后重编 sortIndex 才不会与未显示的组内条目撞车
-                        sortGrid
-                    } else {
-                        VStack(spacing: 0) {
-                            // 分类选择器 + 搜索按钮，位于标题下方
-                            HStack(spacing: 8) {
-                                syncMenu
-                                    .frame(width: 44, height: 44)
-                                CategorySegmentedControl(selectedStatus: $selectedStatus, isSearchActive: $isSearchActive)
-                            }
-                            .frame(maxWidth: .infinity)
+                ScrollViewReader { scrollProxy in
+                    ScrollView {
+                        if isSortMode {
+                            // 排序模式：显示全部条目（无筛选），保证每个「同年同月」组都是完整的，
+                            // 完整顺序表必须覆盖全部条目，不受分类筛选影响
+                            sortGrid
+                        } else {
+                            VStack(spacing: 0) {
+                                // 分类选择器 + 搜索按钮，位于标题下方
+                                HStack(spacing: 8) {
+                                    syncMenu
+                                        .frame(width: 44, height: 44)
+                                    CategorySegmentedControl(selectedStatus: categorySelection, isSearchActive: $isSearchActive)
+                                }
+                                .id("libraryTop")
+                                .frame(maxWidth: .infinity)
                                 .padding(.horizontal, 16)
                                 .padding(.vertical, 8)
 
-                            if isSearchActive {
-                                searchBar
-                                    .transition(.asymmetric(
-                                        insertion: .move(edge: .top).combined(with: .opacity),
-                                        removal: .move(edge: .top).combined(with: .opacity)
-                                    ))
-                            }
-
-                            if filteredItems.isEmpty {
-                                EmptyStateView(status: isSearchActive ? nil : selectedStatus) {
-                                    sheetTarget = .add
+                                if isSearchActive {
+                                    searchBar
+                                        .transition(.asymmetric(
+                                            insertion: .move(edge: .top).combined(with: .opacity),
+                                            removal: .move(edge: .top).combined(with: .opacity)
+                                        ))
                                 }
-                                .padding(.top, 80)
-                            } else {
-                                gridContent
+
+                                if isSearchActive {
+                                    libraryPage(items: filteredItems, emptyStatus: nil)
+                                } else {
+                                    ZStack(alignment: .top) {
+                                        if let outgoingCategory {
+                                            libraryPage(
+                                                items: outgoingCategory.items,
+                                                emptyStatus: outgoingCategory.status
+                                            )
+                                            .frame(width: gridWidth > 0 ? gridWidth : nil)
+                                            .offset(x: (movingToLaterStatus ? -1 : 1) * gridWidth * categorySlideProgress)
+                                            .opacity(1 - categorySlideProgress)
+                                            .allowsHitTesting(false)
+                                        }
+                                        if let status = selectedStatus {
+                                            libraryPage(
+                                                items: allItems.filter { $0.status == status },
+                                                emptyStatus: status
+                                            )
+                                            .frame(width: gridWidth > 0 ? gridWidth : nil)
+                                            .offset(x: outgoingCategory == nil
+                                                ? 0
+                                                : (movingToLaterStatus ? 1 : -1) * gridWidth * (1 - categorySlideProgress))
+                                            .opacity(outgoingCategory == nil ? 1 : categorySlideProgress)
+                                            .allowsHitTesting(outgoingCategory == nil)
+                                        }
+                                    }
+                                    .frame(maxWidth: .infinity, alignment: .top)
+                                    .clipped()
+                                }
                             }
+                            .animation(reduceMotion ? nil : .spring(response: 0.32, dampingFraction: 0.9), value: isSearchActive)
                         }
-                        .animation(reduceMotion ? nil : .spring(response: 0.32, dampingFraction: 0.9), value: isSearchActive)
                     }
-                }
-                // 兜底：手指在卡片之间的空隙、或最后一行下方的空白处松开时，没有任何卡片的
-                // `.onDrop` 会被触发，`draggedItemID` 就永远留着 —— 卡片会一直挂着「抬起」的透明态。
-                // 返回 false，不抢内层卡片的落点
-                .onDrop(of: [.text], isTargeted: nil) { _ in
-                    draggedItemID = nil
-                    return false
+                    // 兜底：手指在卡片之间的空隙、或最后一行下方的空白处松开时，没有任何卡片的
+                    // `.onDrop` 会被触发，`draggedItemID` 就永远留着 —— 卡片会一直挂着「抬起」的透明态。
+                    // 返回 false，不抢内层卡片的落点
+                    .onDrop(of: [.text], isTargeted: nil) { _ in
+                        draggedItemID = nil
+                        return false
+                    }
+                    .onChange(of: selectedStatus) { _, _ in
+                        var transaction = Transaction(animation: nil)
+                        transaction.disablesAnimations = true
+                        withTransaction(transaction) {
+                            scrollProxy.scrollTo("libraryTop", anchor: .top)
+                        }
+                    }
+                    .onChange(of: isSearchActive) { _, active in
+                        if active { cancelCategorySlide() }
+                    }
                 }
 
                 if !isSortMode {
@@ -161,7 +254,7 @@ struct HomeView: View {
                 Button("导入") { commitImport(pending) }
                 Button("取消", role: .cancel) {}
             } message: { pending in
-                Text(pending.summary.description + "\n\n本机独有的作品不会被删除。")
+                Text(pending.summary.description + "\n\n导入前会保存仅含 JSON 的备份；被覆盖的海报无法从该备份恢复。")
             }
             .alert(syncMessage?.title ?? "", isPresented: syncMessagePresented) {
                 Button("好", role: .cancel) {}
@@ -181,38 +274,63 @@ struct HomeView: View {
                                 .font(.system(size: 15, weight: .semibold))
                                 .foregroundStyle(.primary)
                         }
+                        .accessibilityLabel("取消排序")
                     } else {
-                        Button("排序") {
+                        Button {
                             enterSortMode()
+                        } label: {
+                            Image(systemName: "arrow.up.arrow.down")
+                                .font(.system(size: 16, weight: .semibold))
                         }
-                        .font(.subheadline.weight(.medium))
                         .foregroundStyle(.primary)
+                        .accessibilityLabel("排序")
                     }
                 }
 
                 ToolbarItem(placement: .principal) {
                     Text("SakuraReel")
-                        .font(.system(size: 20, weight: .bold, design: .rounded))
-                        .foregroundStyle(Constants.accentPink)
+                        .font(.system(size: 30, weight: .bold, design: .rounded))
+                        .foregroundStyle(Constants.brandTitlePink)
                         .lineLimit(1)
                         .minimumScaleFactor(0.85)
+                        .scaleEffect(titleScale)
+                        .contentShape(Rectangle())
+                        .onLongPressGesture(minimumDuration: 0.5, perform: {
+                            enterTimeMachine()
+                        }, onPressingChanged: { pressing in
+                            guard !isSortMode, !reduceMotion else { return }
+                            withAnimation(reduceMotion ? nil : (pressing
+                                ? .easeOut(duration: 0.18)
+                                : .spring(response: 0.3, dampingFraction: 0.48))) {
+                                titleScale = pressing ? 1.08 : 1
+                            }
+                        })
+                        .accessibilityAddTraits(.isButton)
+                        .accessibilityHint(isSortMode ? "排序完成后可进入时光机" : "长按进入时光机")
+                        .accessibilityAction(named: Text("进入时光机")) {
+                            enterTimeMachine()
+                        }
                 }
 
                 ToolbarItem(placement: .topBarTrailing) {
                     if isSortMode {
-                        Button("完成") {
+                        Button {
                             commitSortMode()
+                        } label: {
+                            Image(systemName: "checkmark")
+                                .font(.system(size: 16, weight: .semibold))
                         }
-                        .font(.subheadline.weight(.semibold))
                         .foregroundStyle(.primary)
+                        .accessibilityLabel("完成")
                     } else {
-                        // 必须是 Button 而不是 NavigationLink：工具栏里的 NavigationLink
-                        // 每侧比 Button 少 6pt 内边距，胶囊会比左边的「排序」窄一圈（实测 142px vs 178px）
-                        Button("排行") {
+                        Button {
                             showsRankings = true
+                        } label: {
+                            Image(systemName: "chart.bar.xaxis")
+                                .font(.system(size: 16, weight: .semibold))
                         }
-                        .font(.subheadline.weight(.medium))
                         .foregroundStyle(.primary)
+                        .accessibilityLabel("排行")
                     }
                 }
             }
@@ -249,6 +367,15 @@ struct HomeView: View {
                 Button("好", role: .cancel) { blockedMessage = nil }
             } message: {
                 Text(blockedMessage ?? "")
+            }
+        }
+        .accessibilityHidden(showsTimeMachine)
+        .overlay {
+            if showsTimeMachine {
+                TimeMachinePortal(items: timeMachineItems, rankingOrder: repository.rankingOrder, reduceMotion: reduceMotion) {
+                    showsTimeMachine = false
+                    timeMachineItems = []
+                }
             }
         }
     }
@@ -348,18 +475,18 @@ struct HomeView: View {
     private func exportLibrary() {
         guard !isSyncing else { return }
         isSyncing = true
-        let items = repository.items
+        let snapshot = repository.snapshot
         Task {
             do {
                 try await SyncFolder.withAccess { folder in
                     // 云盘上的文件可能要等系统下载，协调读写会阻塞 —— 别占主线程
                     try await Task.detached(priority: .userInitiated) {
-                        try LibraryArchive.export(items, to: folder)
+                        try LibraryArchive.export(snapshot, to: folder)
                     }.value
                 }
                 syncMessage = SyncMessage(
                     title: "导出完成",
-                    body: "已把 \(items.count) 部作品写进「\(SyncFolder.displayName ?? "")」。"
+                    body: "已把 \(snapshot.items.count) 部作品写进「\(SyncFolder.displayName ?? "")」。"
                 )
             } catch {
                 syncMessage = SyncMessage(title: "导出失败", body: error.localizedDescription)
@@ -369,11 +496,11 @@ struct HomeView: View {
         }
     }
 
-    /// 同步文件夹 → 本机：先算出合并结果让用户确认会改什么，再写盘。
+    /// 同步文件夹 → 本机：先读取快照并提示覆盖范围，再整体替换。
     private func prepareImport() {
         guard !isSyncing else { return }
         isSyncing = true
-        let local = repository.items
+        let local = repository.snapshot
         Task {
             do {
                 let incoming = try await SyncFolder.withAccess { folder in
@@ -381,15 +508,8 @@ struct HomeView: View {
                         try LibraryArchive.read(from: folder)
                     }.value
                 }
-                let (merged, summary) = LibraryArchive.merge(incoming: incoming, into: local)
-                if summary.changed == 0 {
-                    syncMessage = SyncMessage(
-                        title: "没有需要导入的内容",
-                        body: "文件夹里的 \(incoming.count) 部作品，本机都已有同样新或更新的版本。\n\n\(summary.description)"
-                    )
-                } else {
-                    pendingImport = PendingImport(items: merged, summary: summary)
-                }
+                let summary = LibraryArchive.summary(incoming: incoming, local: local)
+                pendingImport = PendingImport(snapshot: incoming, summary: summary)
             } catch {
                 syncMessage = SyncMessage(title: "导入失败", body: error.localizedDescription)
             }
@@ -401,7 +521,7 @@ struct HomeView: View {
     /// 确认之后才真正写盘。写之前先留一个回滚点。
     private func commitImport(_ pending: PendingImport) {
         repository.makeImportBackup()
-        repository.applyImport(pending.items)
+        repository.applyImport(pending.snapshot)
         let message = SyncMessage(title: "导入完成", body: pending.summary.description)
         // 确认弹窗正在关闭，同一个 runloop 里再挂一个 alert 会被丢掉，等它关完再说
         Task { syncMessage = message }
@@ -419,12 +539,12 @@ struct HomeView: View {
 
     /// 进入排序模式：退出搜索、加载全量草稿顺序。
     ///
-    /// 草稿沿用默认排序（年月从新到旧）而非 `.manual`，因为手动顺序是按组各自重编
-    /// `0…n-1` 的，全局按 `sortIndex` 排会让不同年月组交错、同组不再连续。
+    /// 草稿沿用当前首页显示顺序，手动调整仅限同年月组。
     private func enterSortMode() {
+        cancelCategorySlide()
         isSearchActive = false
         searchText = ""
-        draftItems = MediaSort.homeSorted(repository.items, mode: .default)
+        draftItems = repository.homeItems
         draggedItemID = nil
         blockedMessage = nil
         isSortMode = true
@@ -432,8 +552,7 @@ struct HomeView: View {
 
     /// 提交草稿顺序并退出。
     ///
-    /// 传入全部条目 id：`applyHomeReorder` 会对每个观看年月组各自重编为连续的
-    /// `0…n-1`，组内相对顺序即拖动后的顺序，跨组互不影响。
+    /// 传入全部条目 id，覆盖首页完整顺序。
     private func commitSortMode() {
         repository.applyHomeReorder(draftItems.map(\.id))
         exitSortMode()
@@ -450,6 +569,13 @@ struct HomeView: View {
         draggedItemID = nil
         dragStartSnapshot = []
         blockedMessage = nil
+    }
+
+    private func cancelCategorySlide() {
+        categorySlideTask?.cancel()
+        categorySlideTask = nil
+        outgoingCategory = nil
+        categorySlideProgress = 1
     }
 
     private var searchBar: some View {
@@ -484,14 +610,39 @@ struct HomeView: View {
         .padding(.vertical, 12)
     }
 
-    private var gridContent: some View {
+    @ViewBuilder
+    private func libraryPage(items: [MediaItem], emptyStatus: MediaStatus?) -> some View {
+        if items.isEmpty {
+            EmptyStateView(status: emptyStatus) {
+                sheetTarget = .add
+            }
+            .padding(.top, 80)
+        } else {
+            gridContent(items: items)
+        }
+    }
+
+    private func gridContent(items: [MediaItem]) -> some View {
         AdaptiveGridLayout(availableWidth: gridWidth) {
-            ForEach(filteredItems) { item in
+            ForEach(items) { item in
                 MediaCard(item: item, onOpen: { sheetTarget = .edit(item) })
                     .transition(.opacity)
             }
         }
-        .animation(reduceMotion ? nil : .smooth(duration: 0.25), value: selectedStatus)
+    }
+
+    private func enterTimeMachine() {
+        guard !isSortMode, !isLaunchingTimeMachine, !showsTimeMachine else { return }
+        isLaunchingTimeMachine = true
+        withAnimation(reduceMotion ? nil : .spring(response: 0.3, dampingFraction: 0.48)) {
+            titleScale = 1
+        }
+        Task { @MainActor in
+            if !reduceMotion { try? await Task.sleep(for: .milliseconds(180)) }
+            timeMachineItems = repository.items
+            showsTimeMachine = true
+            isLaunchingTimeMachine = false
+        }
     }
 
     /// 排序模式网格：与正常网格共用 `AdaptiveGridLayout`（列数唯一来源），

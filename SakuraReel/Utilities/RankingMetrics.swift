@@ -39,6 +39,8 @@ struct RankingMetrics {
 
     /// 卡片高度：由高度预算摊分得出（预算取可用高度还是可用宽度见 `init`）
     let cardHeight: CGFloat
+    /// 列表实际可见高度，用于仅让进场时可见的行参与动画。
+    let availableHeight: CGFloat
     /// 整列（卡片 + 左右留白）的总宽度
     let listWidth: CGFloat
 
@@ -53,6 +55,7 @@ struct RankingMetrics {
         let heightBudget = isPadPortrait ? availableSize.width : availableSize.height
         let height = max(heightBudget, 1) / Self.heightBudgetSlots
         cardHeight = height
+        availableHeight = availableSize.height
 
         // 固定宽度、只在计算中途用一次，所以就地算而不是读计算属性
         // （初始化没走完之前不能碰 self）

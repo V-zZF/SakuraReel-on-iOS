@@ -21,6 +21,12 @@ final class MediaRepository {
     static let importBackupFileName = "导入前备份.json"
 
     private(set) var items: [MediaItem] = []
+    private(set) var homeOrder: [UUID] = []
+    private(set) var rankingOrder: [UUID] = []
+
+    var snapshot: LibrarySnapshot { LibrarySnapshot(items: items, homeOrder: homeOrder, rankingOrder: rankingOrder) }
+    var homeItems: [MediaItem] { MediaSort.homeSorted(items, order: homeOrder) }
+    var rankingItems: [MediaItem] { MediaSort.rankingSorted(items, order: rankingOrder) }
 
     private let directoryURL: URL
 
@@ -36,7 +42,10 @@ final class MediaRepository {
     init(seedItems: [MediaItem]? = nil) {
         directoryURL = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
         if let seedItems {
-            items = seedItems
+            let initial = LibrarySnapshot.legacy(seedItems)
+            items = initial.items
+            homeOrder = initial.homeOrder
+            rankingOrder = initial.rankingOrder
         } else {
             load()
         }
@@ -48,17 +57,22 @@ final class MediaRepository {
         try? FileManager.default.createDirectory(at: postersDirectoryURL, withIntermediateDirectories: true)
 
         guard let data = try? Data(contentsOf: libraryURL),
-              let decoded = try? Self.decoder.decode([MediaItem].self, from: data) else {
+              let decoded = try? LibrarySnapshot.decode(data) else {
             // 首次启动：创建空的库文件，让用户能在「文件」App 中看到数据文件
             items = []
             save()
             return
         }
 
-        items = decoded.map { item in
+        homeOrder = decoded.homeOrder
+        rankingOrder = decoded.rankingOrder
+        items = decoded.items.map { item in
             var copy = item
             copy.poster = loadPosterData(for: item.id)
             return copy
+        }
+        if (try? Self.decoder.decode([MediaItem].self, from: data)) != nil {
+            save() // migrate the legacy array to the snapshot format on first load
         }
     }
 
@@ -67,7 +81,7 @@ final class MediaRepository {
     func save() {
         savePosters()
         do {
-            let data = try Self.encoder.encode(items)
+            let data = try snapshot.encoded()
             try data.write(to: libraryURL, options: .atomic)
         } catch {
             print("SakuraReel: 保存库文件失败 \(error)")
@@ -78,67 +92,56 @@ final class MediaRepository {
 
     /// 新增或更新一个条目，并落盘。
     ///
-    /// 新增时分配 `sortIndex = 全局最大 + 1`（Phase 4），保证新条目落在其观看年月组的末尾；
-    /// 编辑（已存在）保留原 `sortIndex`，不因字段修改而改变组内顺序。
-    /// `rankIndex` 同理保留；但若评分变了，旧的组内名次已无意义，清回 nil 让它按观看时间落到新组。
+    /// New entries and entries moved to another date/rating group are inserted into
+    /// that group by the legacy default sort. Existing order elsewhere is preserved.
     func upsert(_ item: MediaItem) {
         if let index = items.firstIndex(where: { $0.id == item.id }) {
             var updated = item
             if items[index].rating != item.rating {
                 updated.rankIndex = nil
             }
+            let old = items[index]
             items[index] = updated
+            if MediaSort.groupKey(of: old) != MediaSort.groupKey(of: updated) {
+                homeOrder.removeAll { $0 == updated.id }
+            }
+            if old.rating != updated.rating {
+                rankingOrder.removeAll { $0 == updated.id }
+            }
         } else {
             var newItem = item
             newItem.sortIndex = (items.map(\.sortIndex).max() ?? -1) + 1
             items.append(newItem)
         }
+        repairOrders()
         save()
     }
 
-    /// 持久化某个观看年月组的手动重排（Phase 4）。
-    ///
-    /// `orderedGroupIDs` 须为该组条目按新顺序排列的全部 id；这些条目被重编为连续的
-    /// `0…n-1` sortIndex，其它条目一律不动。写入后立即落盘。
-    func applyHomeReorder(_ orderedGroupIDs: [UUID]) {
-        let rank = Dictionary(uniqueKeysWithValues: orderedGroupIDs.enumerated().map { ($0.element, $0.offset) })
-        items = items.map { item in
-            guard let r = rank[item.id] else { return item }
-            var copy = item
-            copy.sortIndex = r
-            return copy
-        }
+    private func repairOrders() {
+        let repaired = snapshot
+        homeOrder = repaired.homeOrder
+        rankingOrder = repaired.rankingOrder
+    }
+
+    /// Persist the complete home order independently of item timestamps.
+    func applyHomeReorder(_ orderedIDs: [UUID]) {
+        homeOrder = orderedIDs
+        repairOrders()
         save()
     }
 
-    /// 持久化某个评分组的手动重排（Phase 5）。
-    ///
-    /// `orderedGroupIDs` 须为排行榜条目按新顺序排列的全部 id；这些条目按各自所属的评分组
-    /// 被重编为连续的 `0…n-1` rankIndex，其它条目一律不动。写入后立即落盘。
-    ///
-    /// 与 `applyHomeReorder` 一样按组各自重编：评分组是排行榜的唯一分组，组间互不影响。
-    func applyRankingReorder(_ orderedGroupIDs: [UUID]) {
-        let byID = Dictionary(uniqueKeysWithValues: items.map { ($0.id, $0) })
-        var rank: [UUID: Int] = [:]
-        var counts: [Int: Int] = [:]
-        for id in orderedGroupIDs {
-            guard let item = byID[id] else { continue }
-            let key = MediaSort.rankingGroupKey(of: item)
-            rank[id] = counts[key, default: 0]
-            counts[key, default: 0] += 1
-        }
-        items = items.map { item in
-            guard let r = rank[item.id] else { return item }
-            var copy = item
-            copy.rankIndex = r
-            return copy
-        }
+    /// Persist the complete ranking order independently of content timestamps.
+    func applyRankingReorder(_ orderedIDs: [UUID]) {
+        rankingOrder = orderedIDs
+        repairOrders()
         save()
     }
 
     /// 删除条目，并移除对应的海报文件。
     func delete(_ item: MediaItem) {
         items.removeAll { $0.id == item.id }
+        homeOrder.removeAll { $0 == item.id }
+        rankingOrder.removeAll { $0 == item.id }
         try? FileManager.default.removeItem(at: posterURL(for: item.id))
         save()
     }
@@ -150,9 +153,7 @@ final class MediaRepository {
     /// 用 `Data.write` 而不是 `FileManager.copyItem` —— 后者在目标已存在时会抛错，
     /// 而这里要的正是「覆盖上一次的备份」。
     ///
-    /// 只备份元数据，不含海报：被覆盖的海报是**同一个 id** 的海报（本 App 没有「删掉海报
-    /// 但保留条目」的路径），所以拿回滚点还原之后最坏是某条的海报变成另一台设备的版本，
-    /// 不会串到别的条目上。真正的完整备份是「导出到同步文件夹」这个动作本身。
+    /// 只备份元数据，不含海报。导入覆盖或删除的海报无法通过此文件恢复。
     func makeImportBackup() {
         guard let data = try? Data(contentsOf: libraryURL) else { return }
         do {
@@ -162,16 +163,17 @@ final class MediaRepository {
         }
     }
 
-    /// 用导入合并后的结果整体替换当前库并落盘。
-    ///
-    /// 合并本身在 `LibraryArchive.merge` 里（纯函数，可单测），这里只负责落盘。
-    func applyImport(_ items: [MediaItem]) {
-        // 被换成「没有海报」版本的条目，旧海报文件必须删掉：`loadPosterData` 是按 id 读文件的，
-        // 留在盘上会在下次启动时把这个已经删掉的海报「复活」
-        for item in items where item.poster == nil {
-            try? FileManager.default.removeItem(at: posterURL(for: item.id))
+    /// Replace the complete local snapshot, including order and poster membership.
+    func applyImport(_ incoming: LibrarySnapshot) {
+        let incomingIDs = Set(incoming.items.filter { $0.poster != nil }.map(\.id))
+        let existing = (try? FileManager.default.contentsOfDirectory(at: postersDirectoryURL, includingPropertiesForKeys: nil)) ?? []
+        for url in existing where url.pathExtension.lowercased() == "jpg" {
+            guard let id = UUID(uuidString: url.deletingPathExtension().lastPathComponent), !incomingIDs.contains(id) else { continue }
+            try? FileManager.default.removeItem(at: url)
         }
-        self.items = items
+        items = incoming.items
+        homeOrder = incoming.homeOrder
+        rankingOrder = incoming.rankingOrder
         save()
     }
 

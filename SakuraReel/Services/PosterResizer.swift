@@ -23,15 +23,15 @@ enum PosterResizer {
 
             var drawRect = CGRect(origin: .zero, size: targetSize)
             if imageAspect > targetAspect {
-                // 图片更宽：按宽度铺满，裁剪上下
-                let drawHeight = targetWidth / imageAspect
-                drawRect.origin.y = (targetSize.height - drawHeight) / 2
-                drawRect.size.height = drawHeight
-            } else {
-                // 图片更高：按高度铺满，裁剪左右
+                // 图片更宽：按高度铺满，裁剪左右
                 let drawWidth = targetSize.height * imageAspect
                 drawRect.origin.x = (targetSize.width - drawWidth) / 2
                 drawRect.size.width = drawWidth
+            } else {
+                // 图片更高：按宽度铺满，裁剪上下
+                let drawHeight = targetWidth / imageAspect
+                drawRect.origin.y = (targetSize.height - drawHeight) / 2
+                drawRect.size.height = drawHeight
             }
             image.draw(in: drawRect)
         }

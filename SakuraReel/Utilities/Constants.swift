@@ -2,6 +2,7 @@ import SwiftUI
 
 enum Constants {
     static let accentPink = Color(hex: "F8A5B6")
+    static let brandTitlePink = Color(hex: "C84F70")
     static let cardCornerRadius: CGFloat = 16
     static let cardShadowRadius: CGFloat = 10
     static let libraryBackground = Color(hex: "F5F4F3")
@@ -43,6 +44,27 @@ struct LibraryPressStyle: ButtonStyle {
             .scaleEffect(configuration.isPressed && !reduceMotion ? 0.975 : 1)
             .opacity(configuration.isPressed ? 0.88 : 1)
             .animation(reduceMotion ? nil : .smooth(duration: 0.2), value: configuration.isPressed)
+    }
+}
+
+/// Only rows visible when the ranking page opens take part in its one-time entrance.
+struct RankingEntrance: ViewModifier {
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
+    let index: Int
+    let enabled: Bool
+    let hasEntered: Bool
+
+    func body(content: Content) -> some View {
+        content
+            .opacity(enabled && !reduceMotion && !hasEntered ? 0 : 1)
+            .offset(x: enabled && !reduceMotion && !hasEntered ? 24 : 0, y: 0)
+            .animation(
+                enabled && !reduceMotion
+                    ? .easeOut(duration: 0.64).delay(Double(index) * 0.08)
+                    : nil,
+                value: hasEntered
+            )
     }
 }
 

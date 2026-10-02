@@ -62,12 +62,17 @@ struct AddEditMediaView: View {
 
                 // MARK: - 基本信息
                 Section(header: Text("基本信息")) {
-                    TextField("片名 (必填)", text: $title)
+                    HStack(spacing: 10) {
+                        fieldIcon("film")
+                        TextField("片名 (必填)", text: $title)
+                    }
 
-                    Picker("分类", selection: $status) {
+                    Picker(selection: $status) {
                         ForEach(MediaStatus.allCases, id: \.id) { s in
                             Text(s.displayName).tag(s)
                         }
+                    } label: {
+                        Label("分类", systemImage: "square.grid.2x2")
                     }
 
                     YearMonthPickers(year: $watchYear, month: $watchMonth)
@@ -77,7 +82,7 @@ struct AddEditMediaView: View {
                 Section(header: Text("评价与链接")) {
                     VStack(alignment: .leading, spacing: 8) {
                         HStack {
-                            Text("评分")
+                            Label("评分", systemImage: "star")
                             Spacer()
                             if rating > 0 {
                                 Text("\(rating) 分")
@@ -99,16 +104,19 @@ struct AddEditMediaView: View {
                     }
 
                     VStack(alignment: .leading, spacing: 6) {
-                        Text("短评")
+                        Label("短评", systemImage: "text.bubble")
                             .font(.caption)
                             .foregroundStyle(.secondary)
                         TextEditor(text: $review)
                             .frame(height: 80)
                     }
 
-                    TextField("播放链接 (https://)", text: $playURL)
-                        .keyboardType(.URL)
-                        .textInputAutocapitalization(.never)
+                    HStack(spacing: 10) {
+                        fieldIcon("link")
+                        TextField("播放链接 (https://)", text: $playURL)
+                            .keyboardType(.URL)
+                            .textInputAutocapitalization(.never)
+                    }
                 }
             }
             .navigationTitle(isEditMode ? "编辑内容" : "添加内容")
@@ -153,6 +161,13 @@ struct AddEditMediaView: View {
     }
 
     // MARK: - iOS 原生底部按钮栏
+
+    private func fieldIcon(_ symbol: String) -> some View {
+        Image(systemName: symbol)
+            .foregroundStyle(.secondary)
+            .frame(width: 20)
+            .accessibilityHidden(true)
+    }
 
     private var bottomActionBar: some View {
         HStack(spacing: 12) {

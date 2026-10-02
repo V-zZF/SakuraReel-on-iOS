@@ -14,13 +14,9 @@ struct MediaItem: Codable, Identifiable, Hashable {
     var rating: Int        // 0 = 未评分
     var review: String?
     var playURL: String?
-    /// 首页手动顺序：所属「观看年月」组内的序号，由 `MediaRepository.applyHomeReorder` 重编。
+    /// 旧版首页组内索引；新快照读取旧数组时用于迁移顺序。
     var sortIndex: Int
-    /// 排行榜手动顺序：所属「评分」组内的序号，由 `MediaRepository.applyRankingReorder` 重编。
-    ///
-    /// `nil` = 该评分组从未手动排过，比较时按 0 处理，排序退化为 评分 → 观看时间 → `sortIndex`。
-    /// 用可选类型而非 `Int = 0`：合成的 `init(from:)` 不会对缺失的 key 取属性默认值，
-    /// 非可选属性会让旧库文件直接解码失败；可选属性走 `decodeIfPresent`，旧文件自然得到 `nil`。
+    /// 旧版排行榜组内索引；保留为可选值以兼容缺失此字段的旧文件。
     var rankIndex: Int?
     var createdAt: Date
     var updatedAt: Date

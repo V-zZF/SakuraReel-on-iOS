@@ -10,6 +10,7 @@ struct RankingsView: View {
 
     @State private var isSortMode: Bool = false
     @State private var sheetTarget: SheetTarget?
+    @State private var hasEntered = false
 
     /// 排序模式的草稿顺序：拖动只改这里，点「完成」才落盘，点「✕」直接丢弃即回滚
     @State private var draftItems: [MediaItem] = []
@@ -32,9 +33,9 @@ struct RankingsView: View {
         }
     }
 
-    /// 排行榜顺序：评分 → rankIndex → 观看时间 → sortIndex
+    /// 排行榜顺序：评分 → 独立的完整顺序表
     private var rankedItems: [MediaItem] {
-        MediaSort.rankingSorted(repository.items)
+        repository.rankingItems
     }
 
     private var displayItems: [MediaItem] {
@@ -89,8 +90,13 @@ struct RankingsView: View {
                     .font(.subheadline.weight(.semibold))
                     .foregroundStyle(.primary)
                 } else {
-                    Button("排序") {
+                    Button {
                         enterSortMode()
+                    } label: {
+                        HStack(spacing: 4) {
+                            Image(systemName: "arrow.up.arrow.down")
+                            Text("排序")
+                        }
                     }
                     .font(.subheadline.weight(.medium))
                     .foregroundStyle(.primary)
@@ -113,6 +119,14 @@ struct RankingsView: View {
             Button("好", role: .cancel) { blockedMessage = nil }
         } message: {
             Text(blockedMessage ?? "")
+        }
+        .task {
+            guard !hasEntered else { return }
+            if !reduceMotion {
+                try? await Task.sleep(for: .milliseconds(350))
+                guard !Task.isCancelled else { return }
+            }
+            hasEntered = true
         }
     }
 
@@ -184,15 +198,23 @@ struct RankingsView: View {
 
     private func rankingList(metrics: RankingMetrics) -> some View {
         let ranks = rankByID
+        let visibleRows = max(0, Int(ceil(
+            max(metrics.availableHeight - metrics.listPadding, 0) / (metrics.cardHeight + metrics.gap)
+        )))
         return ScrollView {
             // ScrollView 会把内容按 leading 摆放，**只给固定宽度并不会居中** ——
             // 两侧各垫一个 Spacer 才是真居中；iPhone 上 listWidth 等于全宽，Spacer 自动收成 0
             HStack(spacing: 0) {
                 Spacer(minLength: 0)
                 LazyVStack(spacing: metrics.gap) {
-                    ForEach(displayItems) { item in
+                    ForEach(Array(displayItems.enumerated()), id: \.element.id) { index, item in
                         // 没有 transition 的话，删除时这一行是「瞬间消失」，其余行再补位
                         row(item, rank: ranks[item.id] ?? 0, cardHeight: metrics.cardHeight)
+                            .modifier(RankingEntrance(
+                                index: index,
+                                enabled: !isSortMode && index < visibleRows,
+                                hasEntered: hasEntered
+                            ))
                             .transition(.opacity)
                     }
                 }
@@ -237,7 +259,12 @@ struct RankingsView: View {
     @ViewBuilder
     private func row(_ item: MediaItem, rank: Int, cardHeight: CGFloat) -> some View {
         if isSortMode {
-            RankingRow(rank: rank, item: item, cardHeight: cardHeight)
+            RankingRow(
+                rank: rank,
+                item: item,
+                cardHeight: cardHeight,
+                titleBaseFontSize: isPad ? 15 : 12
+            )
                 // 排序模式下整行不是 Button，不写这一句就会把 `# / 序号 / 片名 / 年月 / 评分`
                 // 拆成五个元素逐个朗读。与正常模式合成同一句话，两种模式读起来才一致；
                 // identifier 同时给 UI 测试一个与元素类型无关的定位点
@@ -265,7 +292,12 @@ struct RankingsView: View {
                 .opacity(draggedItemID == item.id ? Constants.draggedCardOpacity : 1)
         } else {
             Button { sheetTarget = .edit(item) } label: {
-                RankingRow(rank: rank, item: item, cardHeight: cardHeight)
+                RankingRow(
+                    rank: rank,
+                    item: item,
+                    cardHeight: cardHeight,
+                    titleBaseFontSize: isPad ? 15 : 12
+                )
                     .contentShape(Rectangle())
             }
             .buttonStyle(LibraryPressStyle())
@@ -289,10 +321,9 @@ struct RankingsView: View {
 
     /// 进入排序模式：加载全量草稿顺序。
     ///
-    /// 草稿沿用当前**显示顺序**（`rankingSorted`），保证每个评分组都是连续的 ——
-    /// 落盘时按评分组各自重编 `rankIndex` 才不会与其它组交错。
+    /// 草稿沿用当前显示顺序，保证每个评分组连续。
     private func enterSortMode() {
-        draftItems = MediaSort.rankingSorted(repository.items)
+        draftItems = repository.rankingItems
         draggedItemID = nil
         blockedMessage = nil
         isSortMode = true
@@ -300,8 +331,7 @@ struct RankingsView: View {
 
     /// 提交草稿顺序并退出。
     ///
-    /// 传入全部条目 id：`applyRankingReorder` 会对每个评分组各自重编为连续的
-    /// `0…n-1`，组内相对顺序即拖动后的顺序，跨组互不影响。
+    /// 传入全部条目 id，覆盖排行榜完整顺序。
     private func commitSortMode() {
         repository.applyRankingReorder(draftItems.map(\.id))
         exitSortMode()

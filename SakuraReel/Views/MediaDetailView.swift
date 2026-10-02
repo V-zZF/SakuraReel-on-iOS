@@ -5,6 +5,7 @@
 //  Created by OpenAI Codex on behalf of zzf on 2026/10/2.
 //
 import SwiftUI
+import ImageIO
 
 struct MediaDetailView: View {
     @Environment(\.dismiss) private var dismiss
@@ -20,6 +21,10 @@ struct MediaDetailView: View {
     @State private var refreshID = UUID()
     @State private var imported: PresentedImport?
     @State private var error: String?
+    @State private var headerShowsArtwork = true
+    private var leftButtonColor: Color { !headerShowsArtwork || headerContrast.leftIsLight ? .black : .white }
+    private var rightButtonColor: Color { !headerShowsArtwork || headerContrast.rightIsLight ? .black : .white }
+    @State private var headerContrast = HeaderButtonContrast(leftIsLight: true, rightIsLight: true)
     private var item: MediaItem? { repository.items.first { $0.id == itemID } }
     var body: some View {
         NavigationStack {
@@ -45,13 +50,21 @@ struct MediaDetailView: View {
                                 if let error { Text(error).foregroundStyle(.red).font(.footnote) }
                             }.padding(.horizontal).padding(.bottom, 32).frame(maxWidth: 1000).frame(maxWidth: .infinity)
                         }
-                    }.ignoresSafeArea(edges: .top)
+                    }
+                    .onScrollGeometryChange(for: Bool.self) { geometry in
+                        geometry.contentOffset.y + geometry.contentInsets.top < 250
+                    } action: { _, showsArtwork in headerShowsArtwork = showsArtwork }
+                    .ignoresSafeArea(edges: .top)
                 } else { ContentUnavailableView("作品已不存在", systemImage: "film") }
             }
             .background(Constants.libraryBackground)
             .toolbarBackground(.hidden, for: .navigationBar)
             .toolbar {
-                ToolbarItem(placement: .confirmationAction) { Button("完成") { dismiss() } }
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("完成") { dismiss() }
+                        .tint(rightButtonColor)
+                        .foregroundStyle(rightButtonColor)
+                }
                 ToolbarItem(placement: .topBarLeading) {
                     Menu {
                         Button("编辑个人记录", systemImage: "pencil") { editing = true }
@@ -60,6 +73,8 @@ struct MediaDetailView: View {
                         Button("TMDb 设置", systemImage: "gearshape") { settings = true }
                         Button("删除", systemImage: "trash", role: .destructive) { deletion = true }
                     } label: { Label("更多操作", systemImage: "ellipsis.circle") }
+                    .tint(leftButtonColor)
+                    .foregroundStyle(leftButtonColor)
                 }
             }
             .sheet(isPresented: $editing, onDismiss: { if deletedInEditor { dismiss() } }) {
@@ -104,6 +119,15 @@ struct MediaDetailView: View {
                 if let genres = item.metadata?.genres, !genres.isEmpty { Text(genres.joined(separator: " · ")).font(.caption) }
             }.foregroundStyle(.white).padding(.horizontal, 24).padding(.bottom, 26).padding(.top, 100)
         }.frame(width: geometry.size.width, height: 370).clipped()
+        .task(id: HeaderArtworkIdentity(data: item.backdrop ?? item.poster, width: geometry.size.width)) {
+            let data = item.backdrop ?? item.poster
+            let width = geometry.size.width
+            let contrast = await Task.detached(priority: .utility) {
+                HeaderButtonContrast.sample(data: data, displayWidth: width)
+            }.value
+            guard !Task.isCancelled else { return }
+            headerContrast = contrast
+        }
         }.frame(height: 370)
     }
     private func actions(_ item: MediaItem) -> some View {
@@ -144,14 +168,15 @@ struct MediaDetailView: View {
     }
     @ViewBuilder private func credits(_ label: String, entries: [MediaCredit]) -> some View {
         if !entries.isEmpty {
+            let showsPhotos = entries.contains { !($0.imagePath?.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ?? true) }
             VStack(alignment: .leading, spacing: 12) {
                 Text(String(localized: String.LocalizationValue(label))).font(.title3.bold())
                 ScrollView(.horizontal) {
                     LazyHStack(alignment: .top, spacing: 14) {
                         ForEach(entries) { credit in
                             VStack(alignment: .leading, spacing: 5) {
-                                if let path = credit.imagePath, !path.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-                                    TMDbRemoteImage(path: path, role: "profile", width: 185, cachedConfiguration: true)
+                                if showsPhotos {
+                                    TMDbRemoteImage(path: credit.imagePath, role: "profile", width: 185, cachedConfiguration: true)
                                         .frame(width: 88, height: 120).clipShape(RoundedRectangle(cornerRadius: 10))
                                 }
                                 Text(credit.name).font(.caption.bold()); Text(credit.role).font(.caption).foregroundStyle(.secondary)
@@ -212,5 +237,64 @@ struct MediaDetailView: View {
             }
             refreshing = false
         }
+    }
+}
+
+
+private struct HeaderArtworkIdentity: Hashable {
+    let data: Data?
+    let width: CGFloat
+}
+
+/// Samples the visible hero's upper corners off the main thread, including its dark overlay.
+private struct HeaderButtonContrast: Sendable {
+    let leftIsLight: Bool
+    let rightIsLight: Bool
+
+    nonisolated static func sample(data: Data?, displayWidth: CGFloat) -> Self {
+        guard displayWidth > 0, let data,
+              let source = CGImageSourceCreateWithData(data as CFData, nil),
+              let image = CGImageSourceCreateThumbnailAtIndex(source, 0, [
+                kCGImageSourceCreateThumbnailFromImageAlways: true,
+                kCGImageSourceCreateThumbnailWithTransform: true,
+                kCGImageSourceThumbnailMaxPixelSize: 256,
+                kCGImageSourceShouldCacheImmediately: true
+              ] as CFDictionary) else { return Self(leftIsLight: true, rightIsLight: true) }
+        let width = 64
+        let height = max(1, Int(ceil(120 / displayWidth * CGFloat(width))))
+        var pixels = [UInt8](repeating: 255, count: width * height * 4)
+        let sampled = pixels.withUnsafeMutableBytes { buffer -> Bool in
+            guard let context = CGContext(data: buffer.baseAddress, width: width, height: height,
+                                          bitsPerComponent: 8, bytesPerRow: width * 4,
+                                          space: CGColorSpaceCreateDeviceRGB(),
+                                          bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue) else { return false }
+            context.setFillColor(CGColor(gray: 1, alpha: 1))
+            context.fill(CGRect(x: 0, y: 0, width: width, height: height))
+            // UIKit-style top-origin coordinates match the hero's center aspect-fill crop.
+            context.translateBy(x: 0, y: CGFloat(height)); context.scaleBy(x: 1, y: -1)
+            let heroHeight = 370 / displayWidth * CGFloat(width)
+            let scale = max(CGFloat(width) / CGFloat(image.width), heroHeight / CGFloat(image.height))
+            let drawnWidth = CGFloat(image.width) * scale, drawnHeight = CGFloat(image.height) * scale
+            context.draw(image, in: CGRect(x: (CGFloat(width) - drawnWidth) / 2,
+                                          y: (heroHeight - drawnHeight) / 2,
+                                          width: drawnWidth, height: drawnHeight))
+            return true
+        }
+        guard sampled else { return Self(leftIsLight: true, rightIsLight: true) }
+        func isLight(_ columns: Range<Int>) -> Bool {
+            var luminance = 0.0
+            for y in 0..<height {
+                for x in columns {
+                    let offset = (y * width + x) * 4
+                    func linear(_ channel: UInt8) -> Double {
+                        let value = Double(channel) / 255 * 0.85
+                        return value <= 0.04045 ? value / 12.92 : pow((value + 0.055) / 1.055, 2.4)
+                    }
+                    luminance += 0.2126 * linear(pixels[offset]) + 0.7152 * linear(pixels[offset + 1]) + 0.0722 * linear(pixels[offset + 2])
+                }
+            }
+            return luminance / Double(height * columns.count) > 0.179
+        }
+        return Self(leftIsLight: isLight(0..<20), rightIsLight: isLight(44..<64))
     }
 }

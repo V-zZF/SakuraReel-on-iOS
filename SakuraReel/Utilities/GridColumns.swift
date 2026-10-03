@@ -5,7 +5,9 @@ enum GridColumns {
     static let spacing: CGFloat = 16
 
     /// 每张卡片与分摊到它的周围间隙合计占宽，以屏幕像素计。
-    static let cardSlotPixels: CGFloat = 550
+    // iPad Pro 11寸横屏参考宽2388px，均分五个卡片占位。
+    // 这里只定义尺寸基准，实际列数仍由当前窗口宽度计算。
+    static let cardSlotPixels: CGFloat = 2388.0 / 5
 
     static func count(availableWidth: CGFloat, displayScale: CGFloat) -> Int {
         guard availableWidth.isFinite, availableWidth > 0,

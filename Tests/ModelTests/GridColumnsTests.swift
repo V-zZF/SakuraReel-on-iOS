@@ -2,10 +2,10 @@ import CoreGraphics
 import Foundation
 
 func runGridColumnsTests() {
-    print("\n— 550像素卡片占宽自适应网格 —")
+    print("\n— iPad Pro 11寸横屏五张参考自适应网格 —")
     let cases: [(CGFloat, CGFloat, Int)] = [
-        (393, 3, 2), (852, 3, 4),
-        (834, 2, 3), (1024, 2, 3), (1210, 2, 4), (1366, 2, 4),
+        (393, 3, 2), (852, 3, 5),
+        (834, 2, 3), (1024, 2, 4), (1194, 2, 5), (1210, 2, 5), (1366, 2, 5),
         (320, 2, 1), (556, 2, 2), (1650, 2, 6),
         (1100, 1, 2)
     ]
@@ -17,7 +17,7 @@ func runGridColumnsTests() {
         for columns in 2...8 {
             let threshold = CGFloat(columns) * GridColumns.cardSlotPixels / scale
             expectEqual(GridColumns.count(availableWidth: threshold, displayScale: scale), columns,
-                        "550px门槛包含等号")
+                        "卡片占宽门槛包含等号")
             expectEqual(GridColumns.count(availableWidth: threshold - 1, displayScale: scale), columns - 1,
                         "门槛前1pt减列")
         }

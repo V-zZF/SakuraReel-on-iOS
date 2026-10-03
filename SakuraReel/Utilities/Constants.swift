@@ -1,5 +1,70 @@
 import SwiftUI
 
+private struct PopupDismissKey: EnvironmentKey {
+    static let defaultValue: (@MainActor () -> Void)? = nil
+}
+
+extension EnvironmentValues {
+    fileprivate var popupDismiss: (@MainActor () -> Void)? {
+        get { self[PopupDismissKey.self] }
+        set { self[PopupDismissKey.self] = newValue }
+    }
+}
+
+/// Fall back to native dismissal outside a library-managed sheet.
+struct LibraryPopupDismiss: DynamicProperty {
+    @Environment(\.dismiss) private var nativeDismiss
+    @Environment(\.popupDismiss) private var popupDismiss
+
+    @MainActor func callAsFunction() {
+        if let popupDismiss { popupDismiss() } else { nativeDismiss() }
+    }
+}
+
+private struct PopupFade: ViewModifier {
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    let close: @MainActor () -> Void
+    @State private var visible = false
+    @State private var closing = false
+
+    func body(content: Content) -> some View {
+        content
+            .opacity(reduceMotion || visible ? 1 : 0)
+            .allowsHitTesting(!closing)
+            .environment(\.popupDismiss, {
+                guard !closing else { return }
+                closing = true
+                guard !reduceMotion else { close(); return }
+                withAnimation(.easeOut(duration: 0.16)) { visible = false }
+                Task { @MainActor in
+                    try? await Task.sleep(for: .milliseconds(160))
+                    close()
+                }
+            })
+            .task {
+                guard !visible, !closing else { return }
+                await Task.yield()
+                withAnimation(reduceMotion ? nil : .easeOut(duration: 0.24)) { visible = true }
+            }
+    }
+}
+
+extension View {
+    func librarySheet<Content: View>(isPresented: Binding<Bool>, onDismiss: (() -> Void)? = nil,
+                                    @ViewBuilder content: @escaping () -> Content) -> some View {
+        sheet(isPresented: isPresented, onDismiss: onDismiss) {
+            content().modifier(PopupFade(close: { isPresented.wrappedValue = false }))
+        }
+    }
+
+    func librarySheet<Item: Identifiable, Content: View>(item: Binding<Item?>, onDismiss: (() -> Void)? = nil,
+                                                       @ViewBuilder content: @escaping (Item) -> Content) -> some View {
+        sheet(item: item, onDismiss: onDismiss) { selection in
+            content(selection).modifier(PopupFade(close: { item.wrappedValue = nil }))
+        }
+    }
+}
+
 enum Constants {
     static let brandTitlePink = Color(hex: "E07894")
     static let accentPink = brandTitlePink

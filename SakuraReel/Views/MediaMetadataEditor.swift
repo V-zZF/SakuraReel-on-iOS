@@ -8,7 +8,8 @@ import SwiftUI
 import PhotosUI
 
 struct MediaMetadataEditor: View {
-    @Environment(\.dismiss) private var dismiss
+    private var dismiss = LibraryPopupDismiss()
+    let onClose: (() -> Void)?
     let initialItem: MediaItem
     let onSave: (MediaItem) async throws -> Void
     @State private var isSaving = false
@@ -17,12 +18,15 @@ struct MediaMetadataEditor: View {
     @State private var numbers: [MetadataField: String]
     @State private var discard = false
     @State private var error: String?
-    init(initialItem: MediaItem, onSave: @escaping (MediaItem) async throws -> Void) {
+    init(initialItem: MediaItem, onClose: (() -> Void)? = nil, onSave: @escaping (MediaItem) async throws -> Void) {
+        self.onClose = onClose
         self.initialItem = initialItem; self.onSave = onSave
         _item = State(initialValue: initialItem)
         _metadata = State(initialValue: initialItem.metadata ?? MediaMetadata())
         _numbers = State(initialValue: Dictionary(uniqueKeysWithValues: [.runtimeMinutes, .episodeCount, .tmdbRating].map { ($0, $0.value(in: initialItem)) }))
     }
+    private func close() { if let onClose { onClose() } else { dismiss() } }
+
     private var dirty: Bool {
         item != initialItem || metadata != (initialItem.metadata ?? MediaMetadata()) ||
         numbers != Dictionary(uniqueKeysWithValues: [.runtimeMinutes, .episodeCount, .tmdbRating].map { ($0, $0.value(in: initialItem)) })
@@ -71,13 +75,13 @@ struct MediaMetadataEditor: View {
             }
             .navigationTitle("编辑作品资料").navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                ToolbarItem(placement: .cancellationAction) { Button("取消") { if dirty { discard = true } else { dismiss() } } }
+                ToolbarItem(placement: .cancellationAction) { Button("取消") { if dirty { discard = true } else { close() } } }
                 ToolbarItem(placement: .confirmationAction) { Button("保存") { Task { await save() } } }
             }
             .disabled(isSaving)
             .modifier(UnsavedDismissGuard(isDirty: dirty, onAttempt: { discard = true }))
             .alert("放弃修改？", isPresented: $discard) {
-                Button("放弃修改", role: .destructive) { dismiss() }; Button("继续编辑", role: .cancel) {}
+                Button("放弃修改", role: .destructive) { close() }; Button("继续编辑", role: .cancel) {}
             }
             .tint(Constants.accentPink)
         }
@@ -139,7 +143,7 @@ struct MediaMetadataEditor: View {
             }
             item.title = item.title.trimmingCharacters(in: .whitespacesAndNewlines)
             item.metadata = metadata
-            try await onSave(item); dismiss()
+            try await onSave(item); close()
         } catch { self.error = error.localizedDescription }
     }
 }

@@ -5,6 +5,7 @@ import SwiftUI
 struct MediaDetailTracking: View {
     @Binding var record: PersonalRecord
     @State private var expanded = true
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     private var year: Binding<Int?> {
         Binding(get: { record.watchedAt?.year }, set: { value in
@@ -37,6 +38,7 @@ struct MediaDetailTracking: View {
                         ratingStar(star)
                     }
                 }.frame(maxWidth: .infinity).padding(.vertical, 8)
+                .animation(reduceMotion ? nil : .easeInOut(duration: 0.18), value: record.rating)
                 .accessibilityElement(children: .ignore)
                 .accessibilityLabel("个人评分")
                 .accessibilityValue(record.rating == 0 ? "未评分" : "\(record.rating) 分，满分 10 分")
@@ -59,7 +61,7 @@ struct MediaDetailTracking: View {
                     Image(systemName: "chevron.down").font(.footnote.bold()).foregroundStyle(.secondary)
                         .rotationEffect(.degrees(expanded ? 180 : 0))
                 }.contentShape(Rectangle())
-            }.buttonStyle(.plain).accessibilityValue(expanded ? "已展开" : "已折叠")
+            }.buttonStyle(LibraryPressStyle()).accessibilityValue(expanded ? "已展开" : "已折叠")
             if expanded { editor }
         }
         .padding(18).modifier(MediaDetailPanel())
@@ -113,7 +115,8 @@ struct MediaDetailTracking: View {
 
 /// Own the draft inside the editing sheet; the detail itself remains read-only.
 struct MediaDetailPersonalEditor: View {
-    @Environment(\.dismiss) private var dismiss
+    private var dismiss = LibraryPopupDismiss()
+    let onClose: (() -> Void)?
     let initialRecord: PersonalRecord
     let onSave: (PersonalRecord) async throws -> Void
     @State private var record: PersonalRecord
@@ -121,11 +124,14 @@ struct MediaDetailPersonalEditor: View {
     @State private var confirmDiscard = false
     @State private var saveError: String?
 
-    init(initialRecord: PersonalRecord, onSave: @escaping (PersonalRecord) async throws -> Void) {
+    init(initialRecord: PersonalRecord, onClose: (() -> Void)? = nil, onSave: @escaping (PersonalRecord) async throws -> Void) {
+        self.onClose = onClose
         self.initialRecord = initialRecord
         self.onSave = onSave
         _record = State(initialValue: initialRecord)
     }
+
+    private func close() { if let onClose { onClose() } else { dismiss() } }
 
     private var isDirty: Bool { record != initialRecord }
 
@@ -141,7 +147,7 @@ struct MediaDetailPersonalEditor: View {
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("取消") {
-                        if isDirty { confirmDiscard = true } else { dismiss() }
+                        if isDirty { confirmDiscard = true } else { close() }
                     }.disabled(saving)
                 }
                 ToolbarItem(placement: .confirmationAction) {
@@ -151,7 +157,7 @@ struct MediaDetailPersonalEditor: View {
             .disabled(saving)
             .overlay { if saving { ProgressView("正在保存").padding().background(.regularMaterial, in: RoundedRectangle(cornerRadius: 12)) } }
             .confirmationDialog("有未保存的修改", isPresented: $confirmDiscard, titleVisibility: .visible) {
-                Button("放弃修改", role: .destructive) { dismiss() }
+                Button("放弃修改", role: .destructive) { close() }
                 Button("继续编辑", role: .cancel) {}
             }
             .alert("无法保存", isPresented: Binding(get: { saveError != nil }, set: { if !$0 { saveError = nil } })) {
@@ -166,11 +172,11 @@ struct MediaDetailPersonalEditor: View {
 
     private func save() {
         guard !saving else { return }
-        guard isDirty else { dismiss(); return }
+        guard isDirty else { close(); return }
         let draft = record
         saving = true
         Task {
-            do { try await onSave(draft); dismiss() }
+            do { try await onSave(draft); close() }
             catch { saveError = error.localizedDescription }
             saving = false
         }

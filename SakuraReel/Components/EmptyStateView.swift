@@ -10,15 +10,7 @@ struct EmptyStateView: View {
         } description: {
             Text(description)
         } actions: {
-            Button(action: action) {
-                Text("添加作品")
-                    .font(.subheadline.weight(.semibold))
-                    .foregroundStyle(.white)
-                    .padding(.horizontal, 20)
-                    .padding(.vertical, 10)
-            }
-            .sakuraGlassBackground(shape: Capsule())
-            .clipShape(Capsule())
+            LibraryAddCapsule(title: "添加作品", action: action)
         }
     }
 
@@ -33,6 +25,25 @@ struct EmptyStateView: View {
         case .wantToWatch: return "想看列表是空的，把想看的作品记下来。"
         default: return "试试其他关键词，或添加一部新作品。"
         }
+    }
+}
+
+/// Shared capsule appearance for library and manual-add entry points.
+struct LibraryAddCapsule: View {
+    let title: LocalizedStringKey
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            Text(title)
+                .font(.subheadline.weight(.semibold))
+                .foregroundStyle(.white)
+                .padding(.horizontal, 20)
+                .padding(.vertical, 10)
+                .sakuraGlassBackground(shape: Capsule())
+                .clipShape(Capsule())
+        }
+        .buttonStyle(LibraryPressStyle())
     }
 }
 

@@ -8,7 +8,8 @@ import SwiftUI
 
 /// Owns the unsaved item across onboarding, search and the existing manual form.
 struct AddMediaFlowView: View {
-    @Environment(\.dismiss) private var dismiss
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    private var dismiss = LibraryPopupDismiss()
     let onSave: (MediaItem) async throws -> Void
     private enum Stage { case guidance, search, form }
     @State private var stage: Stage = TMDbEnvironment.shared.settings.hasKey ? .search : .guidance
@@ -19,19 +20,24 @@ struct AddMediaFlowView: View {
     private var hasEnteredKey: Bool { !apiKey.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }
 
     var body: some View {
-        Group {
-            switch stage {
-            case .guidance:
-                guidance
-            case .search:
-                TMDbSearchView(existing: draft, onManualAdd: { stage = .form },
-                               onImportFinished: { stage = .form }) { imported, fields in
-                    draft = imported.merging(into: draft, fields: fields)
+        ZStack {
+            Group {
+                switch stage {
+                case .guidance:
+                    guidance
+                case .search:
+                    TMDbSearchView(existing: draft, onManualAdd: { stage = .form },
+                                   onImportFinished: { stage = .form }) { imported, fields in
+                        draft = imported.merging(into: draft, fields: fields)
+                    }
+                case .form:
+                    AddEditMediaView(initialItem: nil, initialDraft: draft, onSave: onSave, onDelete: nil)
                 }
-            case .form:
-                AddEditMediaView(initialItem: nil, initialDraft: draft, onSave: onSave, onDelete: nil)
             }
+            .id(stage)
+            .transition(.opacity)
         }
+        .animation(reduceMotion ? nil : .easeInOut(duration: 0.24), value: stage)
         .tint(Constants.brandTitlePink)
     }
 

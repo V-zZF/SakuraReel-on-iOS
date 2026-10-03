@@ -6,7 +6,7 @@ import SwiftUI
 /// 通过 `onSave` / `onDelete` 与上层（HomeView）交互，由上层调用 `MediaRepository` 完成持久化。
 struct AddEditMediaView: View {
     @Environment(MediaRepository.self) private var repository
-    @Environment(\.dismiss) private var dismiss
+    private var dismiss = LibraryPopupDismiss()
 
     let initialItem: MediaItem?
     var initialDraft: MediaItem? = nil
@@ -179,13 +179,13 @@ struct AddEditMediaView: View {
             }
             .onAppear(perform: populateFields)
             .modifier(UnsavedDismissGuard(isDirty: isDirty, onAttempt: { showUnsavedAlert = true }))
-            .sheet(isPresented: $showsTMDbSearch) {
+            .librarySheet(isPresented: $showsTMDbSearch) {
                 TMDbSearchView(existing: currentDraft) { draft, fields in
                     adoptMetadata(draft.merging(into: currentDraft, fields: fields))
                 }.environment(repository)
             }
-            .sheet(item: $existingDetail) { MediaDetailView(itemID: $0.id).environment(repository) }
-            .sheet(isPresented: $showsMetadataEditor) {
+            .librarySheet(item: $existingDetail) { MediaDetailView(itemID: $0.id).environment(repository) }
+            .librarySheet(isPresented: $showsMetadataEditor) {
                 MediaMetadataEditor(initialItem: currentDraft) { adoptMetadata($0) }
             }
             .alert("保存失败", isPresented: Binding(get: { saveError != nil }, set: { if !$0 { saveError = nil } })) {

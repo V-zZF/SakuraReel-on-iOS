@@ -8,7 +8,7 @@ import SwiftUI
 
 struct TMDbImportPreview: View {
     @Environment(MediaRepository.self) private var repository
-    @Environment(\.dismiss) private var dismiss
+    private var dismiss = LibraryPopupDismiss()
     let existing: MediaItem
     var onApply: (TMDbImportDraft, Set<MetadataField>) async throws -> Void
     @State private var draft: TMDbImportDraft
@@ -38,7 +38,7 @@ struct TMDbImportPreview: View {
                                         TMDbRemoteImage(path: path).frame(width: 88, height: 132)
                                             .clipShape(RoundedRectangle(cornerRadius: 12))
                                             .overlay { RoundedRectangle(cornerRadius: 12).stroke(selectedPoster == path ? Constants.brandTitlePink : .clear, lineWidth: 3) }
-                                    }.buttonStyle(.plain).accessibilityLabel("选择海报")
+                                    }.buttonStyle(LibraryPressStyle()).accessibilityLabel("选择海报")
                                     .accessibilityAddTraits(selectedPoster == path ? .isSelected : [])
                                 }
                             }
@@ -99,7 +99,7 @@ struct TMDbImportPreview: View {
                     }
                 }.disabled(loadingPoster) }
             }
-            .sheet(item: $duplicateDetail) { MediaDetailView(itemID: $0.id).environment(repository) }
+            .librarySheet(item: $duplicateDetail) { MediaDetailView(itemID: $0.id).environment(repository) }
             .disabled(applying)
             .onDisappear { posterTask?.cancel(); posterRequest = UUID(); loadingPoster = false }
             .tint(Constants.brandTitlePink)

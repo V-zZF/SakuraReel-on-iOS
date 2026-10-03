@@ -155,7 +155,7 @@ struct CoverFlowStage<Item: Identifiable, Artwork: View, Caption: View>: View wh
             .frame(width: side, height: captionHeight + side * 1.32, alignment: .top)
             .contentShape(Rectangle())
         }
-        .buttonStyle(.plain)
+        .buttonStyle(LibraryPressStyle())
         .accessibilityLabel(accessibilityText(item))
         .accessibilityValue(selectedID == item.id ? "中央" : "侧面")
         .accessibilityHint(selectedID == item.id ? selectedHint(item) : "移到中央")

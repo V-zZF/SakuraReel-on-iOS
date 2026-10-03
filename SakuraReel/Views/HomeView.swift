@@ -30,6 +30,8 @@ struct HomeView: View {
     @State private var draftItems: [MediaItem] = []
     @State private var sortStatus: MediaStatus = .watched
     @State private var lastReorderTargetID: UUID?
+    @State private var pendingReorderTargetID: UUID?
+    @State private var reorderHoverTask: Task<Void, Never>?
     @State private var draggedItemID: UUID?
     /// 本次拖动开始前的草稿顺序快照，用于跨年月被拒时回滚
     @State private var dragStartSnapshot: [MediaItem] = []
@@ -140,72 +142,81 @@ struct HomeView: View {
         NavigationStack {
             GeometryReader { viewport in
                 let gridWidth = viewport.size.width
+                let bottomInset = viewport.safeAreaInsets.bottom
                 ZStack(alignment: .bottomTrailing) {
                     ScrollViewReader { scrollProxy in
                         ScrollView {
-                            if isSortMode {
-                                // 排序模式：显示全部条目（无筛选），保证每个「同年同月」组都是完整的，
-                                // 完整顺序表必须覆盖全部条目，不受分类筛选影响
-                                sortGrid(availableWidth: gridWidth)
-                            } else {
-                                VStack(spacing: 0) {
-                                    // 分类选择器 + 搜索按钮，位于标题下方
-                                    HStack(spacing: 8) {
-                                        syncMenu
-                                            .frame(width: 44, height: 44)
-                                        CategorySegmentedControl(selectedStatus: categorySelection, isSearchActive: $isSearchActive)
-                                    }
-                                    .id("libraryTop")
-                                    .frame(maxWidth: .infinity)
-                                    .padding(.horizontal, 16)
-                                    .padding(.vertical, 8)
-
-                                    if isSearchActive {
-                                        searchBar
-                                            .transition(.asymmetric(
-                                                insertion: .move(edge: .top).combined(with: .opacity),
-                                                removal: .move(edge: .top).combined(with: .opacity)
-                                            ))
-                                    }
-
-                                    if isSearchActive {
-                                        libraryPage(items: filteredItems, emptyStatus: nil, availableWidth: gridWidth)
-                                    } else {
-                                        ZStack(alignment: .top) {
-                                            if let outgoingCategory {
-                                                libraryPage(
-                                                    items: outgoingCategory.items,
-                                                    emptyStatus: outgoingCategory.status, availableWidth: gridWidth
-                                                )
-                                                .frame(width: gridWidth > 0 ? gridWidth : nil)
-                                                .offset(x: (movingToLaterStatus ? -1 : 1) * gridWidth * categorySlideProgress)
-                                                .opacity(1 - categorySlideProgress)
-                                                .allowsHitTesting(false)
-                                            }
-                                            if let status = selectedStatus {
-                                                libraryPage(
-                                                    items: allItems.filter { $0.status == status },
-                                                    emptyStatus: status, availableWidth: gridWidth
-                                                )
-                                                .frame(width: gridWidth > 0 ? gridWidth : nil)
-                                                .offset(x: outgoingCategory == nil
-                                                    ? 0
-                                                    : (movingToLaterStatus ? 1 : -1) * gridWidth * (1 - categorySlideProgress))
-                                                .opacity(outgoingCategory == nil ? 1 : categorySlideProgress)
-                                                .allowsHitTesting(outgoingCategory == nil)
-                                            }
+                            VStack(spacing: 0) {
+                                if isSortMode {
+                                    // 排序模式：显示全部条目（无筛选），保证每个「同年同月」组都是完整的，
+                                    // 完整顺序表必须覆盖全部条目，不受分类筛选影响
+                                    sortGrid(availableWidth: gridWidth)
+                                } else {
+                                    VStack(spacing: 0) {
+                                        // 分类选择器 + 搜索按钮，位于标题下方
+                                        HStack(spacing: 8) {
+                                            syncMenu
+                                                .frame(width: 44, height: 44)
+                                            CategorySegmentedControl(selectedStatus: categorySelection, isSearchActive: $isSearchActive)
                                         }
-                                        .frame(maxWidth: .infinity, alignment: .top)
-                                        .clipped()
+                                        .id("libraryTop")
+                                        .frame(maxWidth: .infinity)
+                                        .padding(.horizontal, 16)
+                                        .padding(.vertical, 8)
+
+                                        if isSearchActive {
+                                            searchBar
+                                                .transition(.asymmetric(
+                                                    insertion: .move(edge: .top).combined(with: .opacity),
+                                                    removal: .move(edge: .top).combined(with: .opacity)
+                                                ))
+                                        }
+
+                                        if isSearchActive {
+                                            libraryPage(items: filteredItems, emptyStatus: nil, availableWidth: gridWidth)
+                                        } else {
+                                            ZStack(alignment: .top) {
+                                                if let outgoingCategory {
+                                                    libraryPage(
+                                                        items: outgoingCategory.items,
+                                                        emptyStatus: outgoingCategory.status, availableWidth: gridWidth
+                                                    )
+                                                    .frame(width: gridWidth > 0 ? gridWidth : nil)
+                                                    .offset(x: (movingToLaterStatus ? -1 : 1) * gridWidth * categorySlideProgress)
+                                                    .opacity(1 - categorySlideProgress)
+                                                    .allowsHitTesting(false)
+                                                }
+                                                if let status = selectedStatus {
+                                                    libraryPage(
+                                                        items: allItems.filter { $0.status == status },
+                                                        emptyStatus: status, availableWidth: gridWidth
+                                                    )
+                                                    .frame(width: gridWidth > 0 ? gridWidth : nil)
+                                                    .offset(x: outgoingCategory == nil
+                                                        ? 0
+                                                        : (movingToLaterStatus ? 1 : -1) * gridWidth * (1 - categorySlideProgress))
+                                                    .opacity(outgoingCategory == nil ? 1 : categorySlideProgress)
+                                                    .allowsHitTesting(outgoingCategory == nil)
+                                                }
+                                            }
+                                            .frame(maxWidth: .infinity, alignment: .top)
+                                            .clipped()
+                                        }
                                     }
+                                    .animation(reduceMotion ? nil : .spring(response: 0.32, dampingFraction: 0.9), value: isSearchActive)
                                 }
-                                .animation(reduceMotion ? nil : .spring(response: 0.32, dampingFraction: 0.9), value: isSearchActive)
                             }
+                            .padding(.bottom, bottomInset)
                         }
+                        // Keep the scroll origin below the native navigation bar.
+                        // Only extend the bottom; scrollTo must never place the picker behind the title.
+                        .frame(height: viewport.size.height + bottomInset)
+                        .clipped()
                         // 兜底：手指在卡片之间的空隙、或最后一行下方的空白处松开时，没有任何卡片的
                         // `.onDrop` 会被触发，`draggedItemID` 就永远留着 —— 卡片会一直挂着「抬起」的透明态。
                         // 返回 false，不抢内层卡片的落点
                         .onDrop(of: [.text], isTargeted: nil) { _ in
+                            cancelReorderHover()
                             lastReorderTargetID = nil
                             draggedItemID = nil
                             return false
@@ -221,6 +232,7 @@ struct HomeView: View {
                             if active { cancelCategorySlide() }
                         }
                     }
+                    .frame(height: viewport.size.height, alignment: .top)
 
                     if !isSortMode {
                         AddButton {
@@ -231,9 +243,12 @@ struct HomeView: View {
                 }
                 // GeometryReader owns the viewport size independently of the grid's old width.
                 .frame(width: viewport.size.width, height: viewport.size.height)
-                .clipped()
             }
             .background(Constants.libraryBackground)
+            .onChange(of: draggedItemID) { _, id in
+                if id == nil { cancelReorderHover() }
+            }
+            .onDisappear { cancelReorderHover() }
             .sensoryFeedback(.selection, trigger: selectedStatus)
             .sensoryFeedback(.selection, trigger: isSearchActive)
             // 同步相关的弹窗挂在这一层，与 NavigationStack 上那个「无法移动」分属不同节点，
@@ -344,9 +359,9 @@ struct HomeView: View {
             .navigationDestination(isPresented: $showsRankings) {
                 RankingsView()
             }
-            .toolbarBackground(.visible, for: .navigationBar)
-            .sheet(isPresented: $tmdbSettings) { TMDbSettingsView() }
-            .sheet(item: $sheetTarget, onDismiss: commitPendingDelete) { target in
+            .toolbarBackground(.hidden, for: .navigationBar)
+            .librarySheet(isPresented: $tmdbSettings) { TMDbSettingsView() }
+            .librarySheet(item: $sheetTarget, onDismiss: commitPendingDelete) { target in
                 switch target {
                 case .add:
                     AddMediaFlowView(onSave: { try await repository.upsert($0) })
@@ -572,12 +587,19 @@ struct HomeView: View {
     }
 
     private func exitSortMode() {
+        cancelReorderHover()
         isSortMode = false
         draftItems = []
         lastReorderTargetID = nil
         draggedItemID = nil
         dragStartSnapshot = []
         blockedMessage = nil
+    }
+
+    private func cancelReorderHover() {
+        reorderHoverTask?.cancel()
+        reorderHoverTask = nil
+        pendingReorderTargetID = nil
     }
 
     private func cancelCategorySlide() {
@@ -661,6 +683,7 @@ struct HomeView: View {
             ForEach(draftItems) { item in
                 MediaCard(item: item, isInteractive: false)
                     .onDrag {
+                        cancelReorderHover()
                         lastReorderTargetID = nil
                         dragStartSnapshot = draftItems
                         draggedItemID = item.id
@@ -675,6 +698,8 @@ struct HomeView: View {
                             dragStartSnapshot: $dragStartSnapshot,
                             blockedMessage: $blockedMessage,
                             lastReorderTargetID: $lastReorderTargetID,
+                            pendingTargetID: $pendingReorderTargetID,
+                            hoverTask: $reorderHoverTask,
                             reduceMotion: reduceMotion
                         )
                     )

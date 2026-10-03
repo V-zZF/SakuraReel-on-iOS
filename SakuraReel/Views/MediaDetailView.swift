@@ -1,7 +1,8 @@
 import SwiftUI
 
 struct MediaDetailView: View {
-    @Environment(\.dismiss) private var dismiss
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    private var dismiss = LibraryPopupDismiss()
     @Environment(MediaRepository.self) private var repository
     let itemID: UUID
     @State private var editingMetadata = false
@@ -17,6 +18,14 @@ struct MediaDetailView: View {
     @State private var personalEditor: PersonalEditorSelection?
     @State private var saving = false
     private let episodesTarget = "detailEpisodes"
+    private var isMac: Bool { ProcessInfo.processInfo.isiOSAppOnMac }
+    private var showsMacEditor: Bool { isMac && (personalEditor != nil || editingMetadata) }
+    private var personalSheet: Binding<PersonalEditorSelection?> {
+        Binding(get: { isMac ? nil : personalEditor }, set: { personalEditor = $0 })
+    }
+    private var metadataSheet: Binding<Bool> {
+        Binding(get: { !isMac && editingMetadata }, set: { editingMetadata = $0 })
+    }
 
     private var item: MediaItem? {
         guard let current = repository.items.first(where: { $0.id == itemID }) else { return nil }
@@ -44,12 +53,20 @@ struct MediaDetailView: View {
                                 MediaDetailHeader(item: item)
                                 VStack(alignment: .leading, spacing: 20) {
                                     actions(item).padding(.top, -20).padding(.bottom, 4)
-                                    MediaDetailStatistics(item: item)
-                                    MediaDetailSection(title: "短评", symbol: "text.bubble") {
-                                        Text(item.review.flatMap { $0.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? nil : $0 } ?? "暂无短评")
-                                            .font(.body).lineSpacing(4).textSelection(.enabled)
-                                            .frame(maxWidth: .infinity, alignment: .leading)
-                                    }
+                                    MediaDetailStatistics(item: item) {
+                                        personalEditor = PersonalEditorSelection(record: item.personal)
+                                    }.disabled(saving)
+                                    Button {
+                                        personalEditor = PersonalEditorSelection(record: item.personal)
+                                    } label: {
+                                        MediaDetailSection(title: "短评", symbol: "text.bubble") {
+                                            Text(item.review.flatMap { $0.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? nil : $0 } ?? "暂无短评")
+                                                .font(.body).lineSpacing(4)
+                                                .frame(maxWidth: .infinity, alignment: .leading)
+                                        }.contentShape(Rectangle())
+                                    }.buttonStyle(LibraryPressStyle()).disabled(saving)
+                                        .accessibilityElement(children: .combine)
+                                        .accessibilityHint("编辑个人记录")
                                     MediaDetailSection(title: "简介", symbol: "text.alignleft") {
                                         Text(item.metadata?.overview.flatMap { $0.isEmpty ? nil : $0 } ?? "暂无简介")
                                             .font(.body).lineSpacing(4).textSelection(.enabled)
@@ -77,6 +94,7 @@ struct MediaDetailView: View {
                         }
                         .coordinateSpace(name: MediaDetailHeader.coordinateSpace)
                         .ignoresSafeArea(edges: .top)
+                        .modifier(DetailScrollEdgeStyle())
                     }
                 } else { ContentUnavailableView("作品已不存在", systemImage: "film") }
             }
@@ -89,16 +107,16 @@ struct MediaDetailView: View {
                         .disabled(saving)
                 }
             }
-            .sheet(item: $personalEditor) { selection in
+            .librarySheet(item: personalSheet) { selection in
                 MediaDetailPersonalEditor(initialRecord: selection.record) { record in
                     try await repository.updatePersonalRecord(record, for: itemID)
                 }.environment(repository)
             }
-            .sheet(isPresented: $editingMetadata) {
+            .librarySheet(isPresented: metadataSheet) {
                 if let item { MediaMetadataEditor(initialItem: item) { try await saveMetadata($0) } }
             }
-            .sheet(isPresented: $settings) { TMDbSettingsView() }
-            .sheet(item: $imported) { selection in
+            .librarySheet(isPresented: $settings) { TMDbSettingsView() }
+            .librarySheet(item: $imported) { selection in
                 if let item {
                     TMDbImportPreview(draft: selection.draft, existing: item) { draft, fields in
                         try await repository.applyMetadata(draft, fields: fields, to: itemID)
@@ -120,9 +138,52 @@ struct MediaDetailView: View {
             .onChange(of: TMDbEnvironment.shared.settings.generation) { refreshTask?.cancel(); refreshID = UUID(); refreshing = false }
             .tint(Constants.accentPink)
         }
+        .allowsHitTesting(!showsMacEditor)
+        .accessibilityHidden(showsMacEditor)
+        .overlay {
+            ZStack {
+                if showsMacEditor {
+                    Color.black.opacity(0.12).ignoresSafeArea()
+                        .transition(.opacity.animation(reduceMotion ? nil : .easeInOut(duration: 0.28)))
+                }
+                if showsMacEditor {
+                    Group {
+                        if let selection = personalEditor {
+                            MediaDetailPersonalEditor(initialRecord: selection.record, onClose: { personalEditor = nil }) { record in
+                                try await repository.updatePersonalRecord(record, for: itemID)
+                            }
+                        } else if editingMetadata, let item {
+                            MediaMetadataEditor(initialItem: item, onClose: { editingMetadata = false }) {
+                                try await saveMetadata($0)
+                            }
+                        }
+                    }
+                    .environment(repository)
+                    .frame(maxWidth: 700, maxHeight: .infinity)
+                    .clipShape(RoundedRectangle(cornerRadius: 24))
+                    .shadow(color: .black.opacity(0.12), radius: 24, y: 8)
+                    .padding(24)
+                    .transition(editorTransition)
+                }
+            }
+        }
+        .animation(reduceMotion ? nil : .spring(duration: 0.46, bounce: 0), value: showsMacEditor)
         .presentationDragIndicator(.visible)
-        .interactiveDismissDisabled(saving)
+        .interactiveDismissDisabled(saving || showsMacEditor)
         .preferredColorScheme(.light)
+    }
+
+    private var editorTransition: AnyTransition {
+        guard !reduceMotion else { return .identity }
+        return .asymmetric(
+            insertion: .offset(y: 64)
+                .combined(with: .scale(scale: 0.985, anchor: .bottom))
+                .combined(with: .opacity)
+                .animation(.spring(duration: 0.46, bounce: 0)),
+            removal: .offset(y: 24)
+                .combined(with: .opacity)
+                .animation(.easeOut(duration: 0.22))
+        )
     }
 
     private func actions(_ item: MediaItem) -> some View {
@@ -251,4 +312,15 @@ struct MediaDetailView: View {
 private struct PersonalEditorSelection: Identifiable {
     let id = UUID()
     let record: PersonalRecord
+}
+
+/// The artwork stays clear beneath the native toolbar; button glass is independent.
+private struct DetailScrollEdgeStyle: ViewModifier {
+    func body(content: Content) -> some View {
+        if #available(iOS 26, *) {
+            content.scrollEdgeEffectHidden(true, for: .top)
+        } else {
+            content
+        }
+    }
 }

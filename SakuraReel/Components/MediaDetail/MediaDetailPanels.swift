@@ -57,7 +57,7 @@ struct MediaDetailDisclosure<Content: View>: View {
                         .rotationEffect(.degrees(expanded ? 180 : 0))
                 }.contentShape(Rectangle())
             }
-            .buttonStyle(.plain)
+            .buttonStyle(LibraryPressStyle())
             .accessibilityValue(expanded ? "已展开" : "已折叠")
             if expanded { content.frame(maxWidth: .infinity, alignment: .leading) }
         }

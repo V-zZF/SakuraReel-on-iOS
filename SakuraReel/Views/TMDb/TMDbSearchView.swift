@@ -7,7 +7,7 @@
 import SwiftUI
 
 struct TMDbSearchView: View {
-    @Environment(\.dismiss) private var dismiss
+    private var dismiss = LibraryPopupDismiss()
     @Environment(MediaRepository.self) private var repository
     let existing: MediaItem
     var onManualAdd: (() -> Void)? = nil
@@ -54,17 +54,18 @@ struct TMDbSearchView: View {
                         .padding(.vertical, 8)
                 }
                 .id(category)
+                .contentMargins(.bottom, 80, for: .scrollContent)
+                .ignoresSafeArea(.container, edges: .bottom)
 
             }
             .searchable(text: $query, placement: .navigationBarDrawer(displayMode: .always), prompt: "搜索片名")
             .scrollDismissesKeyboard(.interactively)
-            .safeAreaInset(edge: .bottom) {
-                Button("手动添加", systemImage: "square.and.pencil") {
+            .overlay(alignment: .bottom) {
+                LibraryAddCapsule(title: "手动添加") {
                     cancelSelection(); model.invalidate()
                     if let onManualAdd { onManualAdd() } else { dismiss() }
                 }
-                .buttonStyle(.bordered).frame(maxWidth: .infinity).padding()
-                .background(.bar)
+                .padding(.bottom, 16)
             }
             .background(Constants.libraryBackground)
             .navigationTitle("搜索作品").navigationBarTitleDisplayMode(.inline)
@@ -77,8 +78,8 @@ struct TMDbSearchView: View {
                 await model.search(query: query, language: language, category: category)
             }
             .onDisappear { cancelSelection(); model.invalidate() }
-            .sheet(isPresented: $settings) { TMDbSettingsView() }
-            .sheet(item: $selected, onDismiss: {
+            .librarySheet(isPresented: $settings) { TMDbSettingsView() }
+            .librarySheet(item: $selected, onDismiss: {
                 if didApply {
                     didApply = false
                     if let onImportFinished { onImportFinished() } else { dismiss() }
@@ -92,25 +93,17 @@ struct TMDbSearchView: View {
                     didApply = true
                 }.environment(repository)
             }
-            .sheet(item: $seasonSelection, onDismiss: {
+            .librarySheet(item: $seasonSelection, onDismiss: {
                 if let source = pendingSeasonSource {
                     pendingSeasonSource = nil
                     select(source)
                 }
             }) { selection in
-                NavigationStack {
-                    ScrollView {
-                        TMDbResultRow(result: selection.result, disabled: selecting) { source in
-                            pendingSeasonSource = source
-                            seasonSelection = nil
-                        }.padding()
-                    }
-                    .navigationTitle("按季选择").navigationBarTitleDisplayMode(.inline)
-                    .toolbar { ToolbarItem(placement: .cancellationAction) { Button("关闭") { seasonSelection = nil } } }
-                    .tint(Constants.brandTitlePink)
+                SeasonSelectionSheet(result: selection.result, disabled: selecting) { source in
+                    pendingSeasonSource = source
                 }
             }
-            .sheet(item: $detail) { MediaDetailView(itemID: $0.id).environment(repository) }
+            .librarySheet(item: $detail) { MediaDetailView(itemID: $0.id).environment(repository) }
             .alert("收藏库已有此作品", isPresented: Binding(get: { duplicate != nil }, set: { if !$0 { duplicate = nil } })) {
                 Button("打开已有条目") { detail = duplicate; duplicate = nil }
                 Button("取消", role: .cancel) { duplicate = nil }
@@ -178,7 +171,7 @@ private struct TMDbSearchCard: View {
                 TMDbRemoteImage(path: result.posterPath)
                     .frame(width: posterWidth, height: posterWidth / Constants.posterAspectRatio)
                     .clipShape(RoundedRectangle(cornerRadius: 6))
-            }.buttonStyle(.plain)
+            }.buttonStyle(LibraryPressStyle())
                 .accessibilityLabel("选择作品：\(result.title)")
             VStack(alignment: .leading, spacing: 6) {
                 HStack(alignment: .top, spacing: 12) {
@@ -187,7 +180,7 @@ private struct TMDbSearchCard: View {
                             .multilineTextAlignment(.leading)
                             .frame(maxWidth: .infinity, alignment: .leading)
                             .contentShape(Rectangle())
-                    }.buttonStyle(.plain)
+                    }.buttonStyle(LibraryPressStyle())
                         .accessibilityLabel("选择作品：\(result.title)")
                     if result.source.mediaType == .series {
                         Button("单季", action: onSeason)
@@ -211,7 +204,7 @@ private struct TMDbSearchCard: View {
                         }
                     }.frame(maxWidth: .infinity, alignment: .leading)
                         .contentShape(Rectangle())
-                }.buttonStyle(.plain)
+                }.buttonStyle(LibraryPressStyle())
                     .accessibilityLabel("选择作品：\(result.title)")
             }.frame(maxWidth: .infinity, alignment: .leading)
         }
@@ -267,7 +260,7 @@ private struct TMDbResultRow: View {
                             .contentShape(Rectangle())
                         }
                         // List's automatic style treats multiple buttons as one row action.
-                        .buttonStyle(.plain)
+                        .buttonStyle(LibraryPressStyle())
                         .disabled(disabled)
                         .accessibilityLabel("选择季度：\(season.title)")
                     }
@@ -292,4 +285,26 @@ private struct TMDbResultRow: View {
 private struct SearchSelection: Identifiable {
     let result: TMDbSearchResult
     var id: String { result.id }
+}
+
+
+private struct SeasonSelectionSheet: View {
+    private var dismiss = LibraryPopupDismiss()
+    let result: TMDbSearchResult
+    let disabled: Bool
+    let onSelect: (MediaSource) -> Void
+
+    var body: some View {
+        NavigationStack {
+            ScrollView {
+                TMDbResultRow(result: result, disabled: disabled) { source in
+                    onSelect(source)
+                    dismiss()
+                }.padding()
+            }
+            .navigationTitle("按季选择").navigationBarTitleDisplayMode(.inline)
+            .toolbar { ToolbarItem(placement: .cancellationAction) { Button("关闭") { dismiss() } } }
+            .tint(Constants.brandTitlePink)
+        }
+    }
 }

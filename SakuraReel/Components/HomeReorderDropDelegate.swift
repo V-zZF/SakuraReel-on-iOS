@@ -16,22 +16,53 @@ struct HomeReorderDropDelegate: DropDelegate {
     /// 跨组被阻止时写入的提示文案（nil = 不提示）
     @Binding var blockedMessage: String?
     @Binding var lastReorderTargetID: UUID?
+    @Binding var pendingTargetID: UUID?
+    @Binding var hoverTask: Task<Void, Never>?
     var reduceMotion: Bool = false
 
     /// 跨年月拖动时显示的提示文案
     static let blockedText = "只能调整相同观看年月内的作品顺序。"
 
     func dropEntered(info: DropInfo) {
+        hoverTask?.cancel()
+        pendingTargetID = nil
+        guard let draggedID = draggedItemID,
+              draggedID != targetItem.id,
+              lastReorderTargetID != targetItem.id,
+              let from = items.firstIndex(where: { $0.id == draggedID }),
+              items.contains(where: { $0.id == targetItem.id }),
+              MediaSort.groupKey(of: items[from]) == MediaSort.groupKey(of: targetItem)
+        else { return } // 跨组悬停：不做任何移动
+
+        pendingTargetID = targetItem.id
+        hoverTask = Task { @MainActor in
+            do { try await Task.sleep(for: .milliseconds(180)) }
+            catch { return }
+            guard !Task.isCancelled, draggedItemID == draggedID,
+                  pendingTargetID == targetItem.id else { return }
+            moveToTarget()
+            pendingTargetID = nil
+            hoverTask = nil
+        }
+    }
+
+    func dropExited(info: DropInfo) {
+        guard pendingTargetID == targetItem.id else { return }
+        hoverTask?.cancel()
+        hoverTask = nil
+        pendingTargetID = nil
+    }
+
+    private func moveToTarget() {
         guard let draggedID = draggedItemID,
               draggedID != targetItem.id,
               lastReorderTargetID != targetItem.id,
               let from = items.firstIndex(where: { $0.id == draggedID }),
               let to = items.firstIndex(where: { $0.id == targetItem.id }),
               MediaSort.groupKey(of: items[from]) == MediaSort.groupKey(of: targetItem)
-        else { return } // 跨组悬停：不做任何移动
-
+        else { return }
         lastReorderTargetID = targetItem.id
-        withAnimation(reduceMotion ? nil : .easeInOut(duration: 0.18)) {
+        withAnimation(reduceMotion ? nil : .easeInOut(duration: 0.26)) {
             MediaSort.moveWithinGroup(&items, from: from, to: to, ranking: false)
         }
     }
@@ -41,6 +72,9 @@ struct HomeReorderDropDelegate: DropDelegate {
     }
 
     func performDrop(info: DropInfo) -> Bool {
+        hoverTask?.cancel()
+        hoverTask = nil
+        pendingTargetID = nil
         defer {
             lastReorderTargetID = nil
             draggedItemID = nil
@@ -50,7 +84,10 @@ struct HomeReorderDropDelegate: DropDelegate {
         guard let draggedID = draggedItemID,
               let from = items.firstIndex(where: { $0.id == draggedID }),
               MediaSort.groupKey(of: items[from]) != MediaSort.groupKey(of: targetItem)
-        else { return true }
+        else {
+            moveToTarget()
+            return true
+        }
 
         // 跨年月：拒绝落点。拖动途中经过同组卡片时已经发生过重排，这里必须整体回滚，
         // 否则一次被拒绝的跨组拖动会顺带把卡片挪到本组的另一处。

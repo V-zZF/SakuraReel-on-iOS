@@ -140,6 +140,7 @@ struct TimeMachineView: View {
             .accessibilityLabel("关闭时光机")
             .disabled(isReturningToQuarters)
         }
+        .buttonStyle(LibraryPressStyle())
         .font(.system(size: 18, weight: .medium))
         .foregroundStyle(.white.opacity(0.88))
         .padding(.horizontal, 18)
@@ -257,7 +258,7 @@ struct TimeMachineView: View {
                 .accessibilityIdentifier("timeMachineCount")
 
             if let item = moment.rankedItems.first(where: { $0.id == selectedItemID }) {
-                HStack(alignment: .firstTextBaseline, spacing: 12) {
+                HStack(alignment: .center, spacing: 12) {
                     VStack(alignment: .leading, spacing: 5) {
                         Text(item.title)
                             .font(.title3.weight(.semibold))
@@ -372,6 +373,7 @@ private struct MemoryFlipArtwork: View {
                             .textSelection(.enabled)
                     }
                     .scrollIndicators(.hidden)
+                    .modifier(MemoryReviewScrollEdgeStyle())
                 }
                 .padding(geometry.size.width * 0.09)
                 .frame(width: geometry.size.width, height: geometry.size.height, alignment: .topLeading)
@@ -396,6 +398,18 @@ private struct MemoryFlipArtwork: View {
         }
         .accessibilityElement(children: .combine)
         .accessibilityLabel(isFlipped ? "短评：\(review)" : "海报")
+    }
+}
+
+/// The review is inside a flipping card, rather than beneath system bars.
+/// Automatic scroll-edge blur can obscure its first lines after the transform.
+private struct MemoryReviewScrollEdgeStyle: ViewModifier {
+    func body(content: Content) -> some View {
+        if #available(iOS 26.0, *) {
+            content.scrollEdgeEffectHidden(true, for: .all)
+        } else {
+            content
+        }
     }
 }
 

@@ -106,7 +106,7 @@ struct RankingsView: View {
                 }
             }
         }
-        .sheet(item: $sheetTarget, onDismiss: commitPendingDelete) { target in
+        .librarySheet(item: $sheetTarget, onDismiss: commitPendingDelete) { target in
             switch target {
             case .edit(let item):
                 MediaDetailView(itemID: item.id).environment(repository)

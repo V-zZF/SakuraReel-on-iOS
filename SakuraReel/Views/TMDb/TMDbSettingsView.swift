@@ -10,7 +10,7 @@ struct TMDbSettingsView: View {
     var onSaved: (() -> Void)? = nil
     var onSkip: (() throws -> Void)? = nil
     var onManualAdd: (() -> Void)? = nil
-    @Environment(\.dismiss) private var dismiss
+    private var dismiss = LibraryPopupDismiss()
     private let environment = TMDbEnvironment.shared
     @State private var language = "zh-CN"
     @State private var originalLanguage = "zh-CN"

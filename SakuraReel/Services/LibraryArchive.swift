@@ -245,132 +245,107 @@ enum LibraryArchive {
                              deletedCount: local.items.filter { !cloudIDs.contains($0.id) }.count)
     }
 
-    private static func writeSnapshot(_ snapshot: LibrarySnapshot, to folder: URL) throws {
-        let manager = FileManager.default
-        try manager.createDirectory(at: folder, withIntermediateDirectories: true)
-        let postersFolder = folder.appendingPathComponent(LibraryFiles.postersDirectoryName, isDirectory: true)
-        try manager.createDirectory(at: postersFolder, withIntermediateDirectories: true)
-        let artwork = folder.appendingPathComponent(LibraryFiles.artworkDirectoryName, isDirectory: true)
-        try manager.createDirectory(at: artwork, withIntermediateDirectories: true)
-        for item in snapshot.items {
-            for kind in AttachmentKind.allCases where item.attachments[kind] != nil {
-                let destination = folder.appendingPathComponent(kind.path(for: item.id))
-                try manager.createDirectory(at: destination.deletingLastPathComponent(), withIntermediateDirectories: true)
-                if let bytes = item[kind] { try writeCoordinated(bytes, to: destination) }
-                else if let source = snapshot.attachmentDirectory?.appendingPathComponent(kind.path(for: item.id)), manager.fileExists(atPath: source.path) {
-                    // A declared but unreadable file must fail the save, never become a silent deletion.
-                    try writeCoordinated(readCoordinated(source), to: destination)
-                }
-            }
-        }
-        try writeCoordinated(snapshot.encoded(), to: folder.appendingPathComponent(LibraryFiles.libraryFileName))
-    }
-
     static func read(from folder: URL, hydrate: Bool = true) throws -> LibrarySnapshot {
-        let lock = transactionLocks.lock(for: folder); lock.lock(); defer { lock.unlock() }
-        try recoverPendingCommits(in: folder)
-        let url = folder.appendingPathComponent(LibraryFiles.libraryFileName)
-        guard FileManager.default.fileExists(atPath: url.path) else { throw LibraryArchiveError.missingLibraryFile }
-        var snapshot = try LibraryDocument.decode(readCoordinated(url))
-        snapshot.attachmentDirectory = folder
-        for index in snapshot.items.indices {
-            let manifest = snapshot.items[index].attachments
-            for kind in AttachmentKind.allCases where manifest[kind] != nil {
-                let file = folder.appendingPathComponent(kind.path(for: snapshot.items[index].id))
-                if !FileManager.default.fileExists(atPath: file.path) {
-                    snapshot.warnings.append("\(snapshot.items[index].title)：缺少\(kind.rawValue)附件。")
-                } else if hydrate { snapshot.items[index][kind] = try readCoordinated(file) }
+        return try withTransaction(in: folder) {
+            try recoverPendingCommits(in: folder)
+            let url = folder.appendingPathComponent(LibraryFiles.libraryFileName)
+            guard FileManager.default.fileExists(atPath: url.path) else { throw LibraryArchiveError.missingLibraryFile }
+            var snapshot = try LibraryDocument.decode(readCoordinated(url))
+            snapshot.attachmentDirectory = folder
+            for index in snapshot.items.indices {
+                let manifest = snapshot.items[index].attachments
+                for kind in AttachmentKind.allCases where manifest[kind] != nil {
+                    let file = folder.appendingPathComponent(kind.path(for: snapshot.items[index].id))
+                    if !FileManager.default.fileExists(atPath: file.path) {
+                        snapshot.warnings.append("\(snapshot.items[index].title)：缺少\(kind.rawValue)附件。")
+                    } else if hydrate { snapshot.items[index][kind] = try readCoordinated(file) }
+                }
+                snapshot.items[index].attachments = manifest
             }
-            snapshot.items[index].attachments = manifest
+            return snapshot
         }
-        return snapshot
     }
     static func attachment(_ kind: AttachmentKind, id: UUID, from folder: URL) throws -> Data? {
-        let lock = transactionLocks.lock(for: folder); lock.lock(); defer { lock.unlock() }
-        let url = folder.appendingPathComponent(kind.path(for: id))
-        guard FileManager.default.fileExists(atPath: url.path) else { return nil }
-        return try readCoordinated(url)
+        return try withTransaction(in: folder) {
+            let url = folder.appendingPathComponent(kind.path(for: id))
+            guard FileManager.default.fileExists(atPath: url.path) else { return nil }
+            return try readCoordinated(url)
+        }
     }
 
     static func export(_ snapshot: LibrarySnapshot, to folder: URL) throws {
         try commit(snapshot, to: folder)
     }
 
-    /// A recoverable file transaction keeps a full rollback until JSON and every attachment install.
-    static func commit(_ snapshot: LibrarySnapshot, to folder: URL) throws {
-        try LibraryValidator.validate(snapshot)
+    /// Only changed files are staged; unchanged images keep their original URLs and bytes.
+    static func commit(_ snapshot: LibrarySnapshot, to folder: URL, replacingUnreadable: Bool = false) throws {
+        try LibrarySyncDisk.commitLocal(snapshot, to: folder, replacingUnreadable: replacingUnreadable)
+    }
+
+    private static let coordinatorKey = "SakuraReel.transactionCoordinator"
+    private static var activeCoordinator: NSFileCoordinator? {
+        Thread.current.threadDictionary[coordinatorKey] as? NSFileCoordinator
+    }
+    static func withTransaction<T>(in folder: URL, _ body: () throws -> T) throws -> T {
         let lock = transactionLocks.lock(for: folder); lock.lock(); defer { lock.unlock() }
-        let manager = FileManager.default
-        try manager.createDirectory(at: folder, withIntermediateDirectories: true)
-        try recoverPendingCommits(in: folder)
-        let staging = folder.appendingPathComponent(".staging-" + UUID().uuidString)
-        let rollback = folder.appendingPathComponent(".rollback-" + UUID().uuidString)
-        defer { try? manager.removeItem(at: staging) }
-        try writeSnapshot(snapshot, to: staging)
-        try manager.createDirectory(at: rollback, withIntermediateDirectories: true)
-        let names = [LibraryFiles.postersDirectoryName, LibraryFiles.artworkDirectoryName, LibraryFiles.libraryFileName]
-        var originals: [String] = []
-        do {
-            for name in names where manager.fileExists(atPath: folder.appendingPathComponent(name).path) {
-                try manager.copyItem(at: folder.appendingPathComponent(name), to: rollback.appendingPathComponent(name))
-                originals.append(name)
-            }
-            try JSONEncoder().encode(originals).write(to: rollback.appendingPathComponent("originals.json"), options: .atomic)
-            for name in names {
-                let destination = folder.appendingPathComponent(name)
-                try coordinateMutation(at: destination) { url in
-                    if manager.fileExists(atPath: url.path) { try manager.removeItem(at: url) }
-                    try manager.moveItem(at: staging.appendingPathComponent(name), to: url)
-                }
-            }
-            try Data().write(to: rollback.appendingPathComponent("committed"), options: .atomic)
-        } catch {
-            try recoverPendingCommits(in: folder)
-            throw error
+        if activeCoordinator != nil { return try body() }
+        let coordinator = NSFileCoordinator()
+        var coordinationError: NSError?
+        var result: Result<T, Error>?
+        // Lock the small JSON, not its parent directory: do not materialize every cloud image.
+        coordinator.coordinate(writingItemAt: folder.appendingPathComponent(LibraryFiles.libraryFileName), options: .forMerging, error: &coordinationError) { _ in
+            Thread.current.threadDictionary[coordinatorKey] = coordinator
+            defer { Thread.current.threadDictionary.removeObject(forKey: coordinatorKey) }
+            result = Result { try body() }
         }
-        try? manager.removeItem(at: rollback)
+        if let coordinationError { throw coordinationError }
+        guard let result else { throw CocoaError(.fileReadUnknown) }
+        return try result.get()
     }
 
     /// Recover an interrupted save before reading or writing the library. Backups stay until recovery succeeds.
     static func recoverPendingCommits(in folder: URL) throws {
-        let lock = transactionLocks.lock(for: folder); lock.lock(); defer { lock.unlock() }
-        let manager = FileManager.default
-        let children = (try? manager.contentsOfDirectory(at: folder, includingPropertiesForKeys: nil)) ?? []
-        let names = [LibraryFiles.postersDirectoryName, LibraryFiles.artworkDirectoryName, LibraryFiles.libraryFileName]
-        for rollback in children where rollback.lastPathComponent.hasPrefix(".rollback-") && UUID(uuidString: String(rollback.lastPathComponent.dropFirst(10))) != nil {
-            let manifest = rollback.appendingPathComponent("originals.json")
-            if !manager.fileExists(atPath: rollback.appendingPathComponent("committed").path), manager.fileExists(atPath: manifest.path) {
-                let originals = try JSONDecoder().decode([String].self, from: Data(contentsOf: manifest))
-                guard Set(originals).isSubset(of: Set(names)) else { throw LibraryArchiveError.unreadableLibraryFile }
-                for name in names {
-                    try coordinateMutation(at: folder.appendingPathComponent(name)) { destination in
-                        if manager.fileExists(atPath: destination.path) { try manager.removeItem(at: destination) }
-                        if originals.contains(name) { try manager.copyItem(at: rollback.appendingPathComponent(name), to: destination) }
+        guard FileManager.default.fileExists(atPath: folder.path) else { return }
+        return try withTransaction(in: folder) {
+            let manager = FileManager.default
+            let children = (try? manager.contentsOfDirectory(at: folder, includingPropertiesForKeys: nil)) ?? []
+            let names = [LibraryFiles.postersDirectoryName, LibraryFiles.artworkDirectoryName, LibraryFiles.libraryFileName]
+            for rollback in children where rollback.lastPathComponent.hasPrefix(".rollback-") && UUID(uuidString: String(rollback.lastPathComponent.dropFirst(10))) != nil {
+                let manifest = rollback.appendingPathComponent("originals.json")
+                if !manager.fileExists(atPath: rollback.appendingPathComponent("committed").path), manager.fileExists(atPath: manifest.path) {
+                    let originals = try JSONDecoder().decode([String].self, from: Data(contentsOf: manifest))
+                    guard Set(originals).isSubset(of: Set(names)) else { throw LibraryArchiveError.unreadableLibraryFile }
+                    for name in names {
+                        try coordinateMutation(at: folder.appendingPathComponent(name)) { destination in
+                            if manager.fileExists(atPath: destination.path) { try manager.removeItem(at: destination) }
+                            if originals.contains(name) { try manager.copyItem(at: rollback.appendingPathComponent(name), to: destination) }
+                        }
                     }
                 }
+                try manager.removeItem(at: rollback)
             }
-            try manager.removeItem(at: rollback)
-        }
-        for staging in children where staging.lastPathComponent.hasPrefix(".staging-") && UUID(uuidString: String(staging.lastPathComponent.dropFirst(9))) != nil {
-            try? manager.removeItem(at: staging)
+            try LibraryFileTransaction.recover(in: folder)
+            for staging in children where staging.lastPathComponent.hasPrefix(".staging-") && UUID(uuidString: String(staging.lastPathComponent.dropFirst(9))) != nil {
+                try? manager.removeItem(at: staging)
+            }
         }
     }
 
-    private static func coordinateMutation(at url: URL, body: (URL) throws -> Void) throws {
+    static func coordinateMutation(at url: URL, body: (URL) throws -> Void) throws {
         var coordinationError: NSError?
         var operationError: Error?
-        NSFileCoordinator().coordinate(writingItemAt: url, options: .forReplacing, error: &coordinationError) { coordinated in
+        (activeCoordinator ?? NSFileCoordinator()).coordinate(writingItemAt: url, options: .forReplacing, error: &coordinationError) { coordinated in
             do { try body(coordinated) } catch { operationError = error }
         }
         if let coordinationError { throw coordinationError }
         if let operationError { throw operationError }
     }
 
-    private static func readCoordinated(_ url: URL) throws -> Data {
+    static func readCoordinated(_ url: URL) throws -> Data {
         var coordinationError: NSError?
         var readError: Error?
         var result: Data?
-        NSFileCoordinator().coordinate(readingItemAt: url, options: [], error: &coordinationError) { readURL in
+        (activeCoordinator ?? NSFileCoordinator()).coordinate(readingItemAt: url, options: [], error: &coordinationError) { readURL in
             do { result = try Data(contentsOf: readURL) } catch { readError = error }
         }
         if let coordinationError { throw coordinationError }
@@ -379,10 +354,10 @@ enum LibraryArchive {
         return result
     }
 
-    private static func writeCoordinated(_ data: Data, to url: URL) throws {
+    static func writeCoordinated(_ data: Data, to url: URL) throws {
         var coordinationError: NSError?
         var writeError: Error?
-        NSFileCoordinator().coordinate(writingItemAt: url, options: [], error: &coordinationError) { writeURL in
+        (activeCoordinator ?? NSFileCoordinator()).coordinate(writingItemAt: url, options: [], error: &coordinationError) { writeURL in
             do { try data.write(to: writeURL, options: .atomic) } catch { writeError = error }
         }
         if let coordinationError { throw coordinationError }

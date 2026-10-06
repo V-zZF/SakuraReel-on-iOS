@@ -17,14 +17,14 @@ actor LibraryStorage {
         }
         return try LibraryArchive.read(from: directory, hydrate: false)
     }
-    func commit(_ document: LibraryDocument, expected: LibraryDocument? = nil) throws {
+    func commit(_ document: LibraryDocument, expected: LibraryDocument? = nil, replacingUnreadable: Bool = false) throws {
         if let expected {
             let disk = try LibraryArchive.read(from: directory, hydrate: false)
-            guard disk.libraryID == expected.libraryID && disk.revision == expected.revision else {
+            guard disk.libraryID == expected.libraryID, disk.revision == expected.revision, try disk.encoded() == expected.encoded() else {
                 throw LibraryArchiveError.invalid("资料库文件已被修改，请重新读取后再保存。")
             }
         }
-        try LibraryArchive.commit(document, to: directory)
+        try LibraryArchive.commit(document, to: directory, replacingUnreadable: replacingUnreadable)
         cache.removeAll(); cacheBytes = 0
     }
     func readAttachment(_ kind: AttachmentKind, id: UUID, revision: UInt64) throws -> Data? {
@@ -47,16 +47,24 @@ actor LibraryStorage {
         copy.attachmentDirectory = nil
         return copy
     }
+    func prepareSync(remote: URL) throws -> LibrarySyncPreparation {
+        try LibrarySyncCoordinator.prepare(local: directory, remote: remote)
+    }
+    func applySync(_ preparation: LibrarySyncPreparation, choices: [String: Bool], progress: @Sendable (String) -> Void) throws -> (LibraryDocument, LibrarySyncReport) {
+        let result = try LibrarySyncCoordinator.apply(preparation, choices: choices, progress: progress)
+        cache.removeAll(); cacheBytes = 0
+        return result
+    }
     func backup(_ document: LibraryDocument, unreadable: Bool) throws {
         if unreadable {
             let folder = directory.appendingPathComponent("读取失败备份-" + UUID().uuidString)
             try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
-            for name in [LibraryFiles.libraryFileName, LibraryFiles.postersDirectoryName, LibraryFiles.artworkDirectoryName] {
+            for name in [LibraryFiles.libraryFileName, LibrarySyncState.fileName, LibraryFiles.postersDirectoryName, LibraryFiles.artworkDirectoryName] {
                 let source = directory.appendingPathComponent(name)
                 if FileManager.default.fileExists(atPath: source.path) { try FileManager.default.copyItem(at: source, to: folder.appendingPathComponent(name)) }
             }
         } else {
-            try LibraryArchive.commit(hydrated(document), to: directory.appendingPathComponent("导入前完整备份"))
+            try LibrarySyncDisk.copyArchive(from: directory, to: directory.appendingPathComponent("导入前完整备份"))
         }
     }
 }
@@ -200,6 +208,28 @@ final class MediaRepository {
         await waitUntilLoaded(); await acquire(); defer { release() }
         var next = document; try next.remove(item.id); try await commit(next)
     }
+    func prepareSynchronization(remote: URL) async throws -> LibrarySyncPreparation {
+        await waitUntilLoaded(); await acquire(); defer { release() }
+        guard !loadFailed, !isPreview else { throw LibraryArchiveError.unreadableLibraryFile }
+        let prepared = try await storage.prepareSync(remote: remote)
+        guard prepared.local.document.libraryID == document.libraryID && prepared.local.document.revision == document.revision else { throw LibrarySyncError.changed }
+        return prepared
+    }
+    func commitSynchronization(_ prepared: LibrarySyncPreparation, choices: [String: Bool], progress: @escaping @Sendable (String) -> Void = { _ in }) async throws -> LibrarySyncReport {
+        await waitUntilLoaded(); await acquire(); defer { release() }
+        guard !loadFailed, prepared.local.document.libraryID == document.libraryID, prepared.local.document.revision == document.revision else { throw LibrarySyncError.changed }
+        do {
+            let (saved, report) = try await storage.applySync(prepared, choices: choices, progress: progress)
+            publish(saved); lastError = nil
+            return report
+        } catch {
+            // A bookkeeping failure can happen after the local installation succeeded.
+            // Keep observable state aligned with the recovered disk before reporting it.
+            if let saved = try? await storage.load() { publish(saved) }
+            lastError = error.localizedDescription
+            throw error
+        }
+    }
     func exportSnapshot() async throws -> LibrarySnapshot {
         await waitUntilLoaded(); await acquire(); defer { release() }
         guard !loadFailed else { throw LibraryArchiveError.unreadableLibraryFile }
@@ -217,7 +247,7 @@ final class MediaRepository {
         var next = incoming
         guard max(document.revision, incoming.revision) < UInt64.max else { throw LibraryArchiveError.invalid("资料库版本计数已达上限。") }
         next.revision = max(document.revision, incoming.revision) + 1
-        if !isPreview { try await storage.commit(next) }
+        if !isPreview { try await storage.commit(next, replacingUnreadable: loadFailed && replacingUnreadable) }
         loadFailed = false; publish(next)
         lastError = incoming.warnings.isEmpty ? nil : incoming.warnings.joined(separator: "\n")
     }

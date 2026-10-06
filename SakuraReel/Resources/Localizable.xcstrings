@@ -268,6 +268,9 @@
     "TMDb 页面" : {
 
     },
+    "一端删除了作品，另一端修改了它。请选择保留或删除，确认前不会提交同步。" : {
+
+    },
     "上一张" : {
       "localizations" : {
         "zh-Hans" : {
@@ -580,6 +583,12 @@
         }
       }
     },
+    "保留作品" : {
+
+    },
+    "修改时间" : {
+
+    },
     "元数据" : {
       "localizations" : {
         "zh-Hans" : {
@@ -739,6 +748,9 @@
         }
       }
     },
+    "删除作品" : {
+
+    },
     "删除后不可恢复，确定要删除吗？" : {
       "localizations" : {
         "zh-Hans" : {
@@ -748,6 +760,9 @@
           }
         }
       }
+    },
+    "删除时间" : {
+
     },
     "制作中" : {
       "localizations" : {
@@ -902,6 +917,15 @@
         }
       }
     },
+    "同步" : {
+
+    },
+    "同步「%@」" : {
+
+    },
+    "同步冲突" : {
+
+    },
     "同步文件夹的授权已失效（文件夹被删除、移动或改名，或 App 被重装过），请重新选择。" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -1005,6 +1029,9 @@
         }
       }
     },
+    "处理方式" : {
+
+    },
     "夏" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -1087,6 +1114,7 @@
       }
     },
     "导入" : {
+      "extractionState" : "stale",
       "localizations" : {
         "zh-Hans" : {
           "stringUnit" : {
@@ -2283,7 +2311,11 @@
         }
       }
     },
+    "确认同步" : {
+
+    },
     "确认导入" : {
+      "extractionState" : "stale",
       "localizations" : {
         "zh-Hans" : {
           "stringUnit" : {
@@ -2673,6 +2705,9 @@
         }
       }
     },
+    "请选择" : {
+
+    },
     "读取失败备份-" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -2685,6 +2720,7 @@
       }
     },
     "资料库文件" : {
+      "extractionState" : "stale",
       "localizations" : {
         "zh-Hans" : {
           "stringUnit" : {

@@ -405,6 +405,49 @@ actor ProducerProbe {
             let preserved = try Data(contentsOf: diskFile)
             expect(preserved == unknown && transactions.document.revision == 21, "external unsupported file is preserved and not overwritten")
         }
+        // Public sync facade: publication, optimistic versions, and conflict cancellation.
+        let syncLocalFolder = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        let syncPeerFolder = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        defer {
+            try? FileManager.default.removeItem(at: syncLocalFolder)
+            try? FileManager.default.removeItem(at: syncPeerFolder)
+            try? FileManager.default.removeItem(at: LibrarySyncCoordinator.bookkeeping(local: syncLocalFolder, remote: syncPeerFolder))
+        }
+        let syncLocal = MediaRepository(directory: syncLocalFolder), syncPeer = MediaRepository(directory: syncPeerFolder)
+        await syncLocal.waitUntilLoaded(); await syncPeer.waitUntilLoaded()
+        let syncingItem = MediaItem(title: "syncing", poster: Data([1, 2]), status: .watched, rating: 6)
+        try await syncLocal.upsert(syncingItem)
+        let originalSyncLibraryID = syncLocal.document.libraryID
+        let preparedSync = try await syncLocal.prepareSynchronization(remote: syncPeerFolder)
+        let initialSync = try await syncLocal.commitSynchronization(preparedSync, choices: [:])
+        expect(initialSync.transferred == 1 && syncLocal.items[0].poster == nil, "sync publishes lightweight items after commit")
+        expect(syncLocal.document.libraryID == originalSyncLibraryID, "fresh empty peer adopts the established library identity")
+        await syncPeer.load()
+        var localRecord = syncLocal.items[0].personal; localRecord.rating = 9
+        var peerRecord = syncPeer.items[0].personal; peerRecord.review = "peer review"
+        try await syncLocal.updatePersonalRecord(localRecord, for: syncingItem.id)
+        try await syncPeer.updatePersonalRecord(peerRecord, for: syncingItem.id)
+        let textSync = try await syncLocal.prepareSynchronization(remote: syncPeerFolder)
+        let textReport = try await syncLocal.commitSynchronization(textSync, choices: [:])
+        expect(syncLocal.items[0].rating == 9 && syncLocal.items[0].review == "peer review", "repository sync merges independent fields")
+        expect(textReport.readBytes == 0 && textReport.writtenBytes == 0, "repository text sync does not open images")
+        let syncAttachment = await syncLocal.attachment(.poster, for: syncingItem.id)
+        expect(syncAttachment == Data([1, 2]), "attachment remains lazily readable after synchronization")
+        let staleSync = try await syncLocal.prepareSynchronization(remote: syncPeerFolder)
+        localRecord = syncLocal.items[0].personal; localRecord.review = "local later"
+        try await syncLocal.updatePersonalRecord(localRecord, for: syncingItem.id)
+        do { _ = try await syncLocal.commitSynchronization(staleSync, choices: [:]); expect(false, "stale local preview should fail") }
+        catch { expect(syncLocal.items[0].review == "local later", "stale sync preserves latest repository publication") }
+        let finalSync = try await syncLocal.prepareSynchronization(remote: syncPeerFolder)
+        _ = try await syncLocal.commitSynchronization(finalSync, choices: [:])
+        let idleSync = try await syncLocal.prepareSynchronization(remote: syncPeerFolder)
+        let idleReport = try await syncLocal.commitSynchronization(idleSync, choices: [:])
+        expect(idleReport.unchanged, "public repository sync converges to a no-op")
+        // Copying a full backup must preserve clocks, aliases, and deletion history exactly.
+        try await syncLocal.makeImportBackup()
+        let originalState = try LibrarySyncDisk.read(from: syncLocalFolder).state
+        let backupState = try LibrarySyncDisk.read(from: syncLocalFolder.appendingPathComponent("导入前完整备份")).state
+        expect(originalState == backupState, "full backup preserves exact synchronization history")
         // Detail drafts must merge into the latest work without replacing artwork or ordering.
         let detailFolder = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
         defer { try? FileManager.default.removeItem(at: detailFolder) }

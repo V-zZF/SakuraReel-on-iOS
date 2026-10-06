@@ -41,18 +41,10 @@ struct HomeView: View {
     /// 已记住的同步文件夹名（nil = 还没选过）
     @State private var syncFolderName: String? = SyncFolder.displayName
     /// 正在读 / 写同步文件夹。云盘上的文件可能要先下载，这段时间会卡住，所以禁掉菜单入口
-    @State private var isSyncing = false
+    @State private var synchronizer = LibrarySyncController()
+    private var isSyncing: Bool { synchronizer.isRunning }
     @State private var isChoosingSyncFolder = false
-    /// 待确认的导入：云端快照已经读好，等用户点「导入」才写盘（nil = 无）
-    @State private var pendingImport: PendingImport?
-    /// 同步的结果 / 失败提示（nil = 不提示）
     @State private var syncMessage: SyncMessage?
-
-    /// 云端快照已读好、等确认的一次导入
-    private struct PendingImport {
-        let snapshot: LibrarySnapshot
-        let summary: ImportSummary
-    }
 
     /// 同步操作结束后给用户看的一句话
     private struct SyncMessage {
@@ -260,15 +252,33 @@ struct HomeView: View {
             ) { result in
                 handleFolderSelection(result)
             }
-            .alert(
-                "确认导入",
-                isPresented: pendingImportPresented,
-                presenting: pendingImport
-            ) { pending in
-                Button("导入") { commitImport(pending) }
-                Button("取消", role: .cancel) {}
-            } message: { pending in
-                Text(pending.summary.description + "\n\n导入前会保存完整备份，包含资料、海报、背景图和 Logo。")
+            .sheet(item: Binding(get: { sheetTarget == nil && !tmdbSettings && !isChoosingSyncFolder ? synchronizer.conflictRequest : nil }, set: { value in
+                if value == nil { synchronizer.cancelConflict() }
+            })) { request in
+                SyncConflictSheet(request: request) { choices in
+                    synchronizer.resolve(choices, repository: repository)
+                }
+            }
+            .onChange(of: synchronizer.isRunning) { _, running in
+                if !running { syncFolderName = SyncFolder.displayName }
+            }
+            .onChange(of: synchronizer.message?.title) { _, _ in
+                if let message = synchronizer.message {
+                    syncMessage = SyncMessage(title: message.title, body: message.body)
+                    synchronizer.message = nil
+                }
+            }
+            .safeAreaInset(edge: .bottom) {
+                if isSyncing && synchronizer.conflictRequest == nil {
+                    HStack(spacing: 10) {
+                        ProgressView()
+                        Text(synchronizer.phase).font(.footnote).foregroundStyle(.secondary)
+                    }
+                    .padding(12)
+                    .frame(maxWidth: .infinity)
+                    .background(.regularMaterial)
+                    .accessibilityIdentifier("syncProgress")
+                }
             }
             .alert(syncMessage?.title ?? "", isPresented: syncMessagePresented) {
                 Button("好", role: .cancel) {}
@@ -408,12 +418,13 @@ struct HomeView: View {
         )
     }
 
-    // MARK: - 同步（导出 / 导入）
+    // MARK: - 双向增量同步
 
     /// 工具栏的「···」菜单
     private var syncMenu: some View {
         Menu {
             Button("TMDb 设置", systemImage: "gearshape") { tmdbSettings = true }
+                .disabled(isSyncing)
             Divider()
             Button {
                 isChoosingSyncFolder = true
@@ -421,24 +432,18 @@ struct HomeView: View {
                 Label(syncFolderName == nil ? "选择同步文件夹" : "更换同步文件夹", systemImage: "folder")
             }
             .accessibilityIdentifier("syncChooseFolder")
+            .disabled(isSyncing)
 
             Divider()
 
             Button {
-                exportLibrary()
+                synchronizer.start(repository: repository)
             } label: {
-                Label(exportTitle, systemImage: "square.and.arrow.up")
+                Label(syncFolderName.map { "同步「\($0)」" } ?? "同步", systemImage: "arrow.triangle.2.circlepath")
             }
-            .accessibilityIdentifier("syncExport")
+            .accessibilityIdentifier("syncLibrary")
             .disabled(syncFolderName == nil || isSyncing)
-
-            Button {
-                prepareImport()
-            } label: {
-                Label(importTitle, systemImage: "square.and.arrow.down")
-            }
-            .accessibilityIdentifier("syncImport")
-            .disabled(syncFolderName == nil || isSyncing)
+            if isSyncing { Text(synchronizer.phase) }
         } label: {
             if isSyncing {
                 ProgressView()
@@ -450,18 +455,7 @@ struct HomeView: View {
         }
         .tint(Constants.accentPink)
         .accessibilityIdentifier("syncMenu")
-        .accessibilityLabel("资料库文件")
-    }
-
-    /// 菜单里带上文件夹名，让用户能确认导出 / 导入的到底是哪儿
-    private var exportTitle: String {
-        guard let syncFolderName else { return "导出到此文件夹" }
-        return "导出到「\(syncFolderName)」"
-    }
-
-    private var importTitle: String {
-        guard let syncFolderName else { return "从此文件夹导入" }
-        return "从「\(syncFolderName)」导入"
+        .accessibilityLabel(isSyncing ? synchronizer.phase : "资料库同步")
     }
 
     /// 用户在系统选择器里选好文件夹。
@@ -476,77 +470,14 @@ struct HomeView: View {
             SyncFolder.remember(folder)
             syncFolderName = SyncFolder.displayName
             syncMessage = SyncMessage(title: "已记住同步文件夹",
-                                      body: "以后「导出」「导入」用的都是这个文件夹。")
+                                      body: "以后会与这个文件夹双向同步，只更新变化的图片文件。")
         case .failure(let error):
             syncMessage = SyncMessage(title: "没法使用这个文件夹", body: error.localizedDescription)
         }
     }
 
-    /// 本机 → 同步文件夹，全量覆盖。
-    private func exportLibrary() {
-        guard !isSyncing else { return }
-        isSyncing = true
-        Task {
-            do {
-                let snapshot = try await repository.exportSnapshot()
-                try await SyncFolder.withAccess { folder in
-                    // 云盘上的文件可能要等系统下载，协调读写会阻塞 —— 别占主线程
-                    try await Task.detached(priority: .userInitiated) {
-                        try LibraryArchive.export(snapshot, to: folder)
-                    }.value
-                }
-                syncMessage = SyncMessage(
-                    title: "导出完成",
-                    body: "已把 \(snapshot.items.count) 部作品写进「\(SyncFolder.displayName ?? "")」。"
-                )
-            } catch {
-                syncMessage = SyncMessage(title: "导出失败", body: error.localizedDescription)
-            }
-            syncFolderName = SyncFolder.displayName
-            isSyncing = false
-        }
-    }
-
-    /// 同步文件夹 → 本机：先读取快照并提示覆盖范围，再整体替换。
-    private func prepareImport() {
-        guard !isSyncing else { return }
-        isSyncing = true
-        let local = repository.snapshot
-        Task {
-            do {
-                let incoming = try await SyncFolder.withAccess { folder in
-                    try await Task.detached(priority: .userInitiated) {
-                        try LibraryArchive.read(from: folder)
-                    }.value
-                }
-                let summary = LibraryArchive.summary(incoming: incoming, local: local)
-                pendingImport = PendingImport(snapshot: incoming, summary: summary)
-            } catch {
-                syncMessage = SyncMessage(title: "导入失败", body: error.localizedDescription)
-            }
-            syncFolderName = SyncFolder.displayName
-            isSyncing = false
-        }
-    }
-
-    /// 确认之后才真正写盘。写之前先留一个回滚点。
-    private func commitImport(_ pending: PendingImport) {
-        Task {
-            isSyncing = true
-            defer { isSyncing = false }
-            do {
-                try await repository.applyImport(pending.snapshot, replacingUnreadable: true, backup: true)
-                syncMessage = SyncMessage(title: "导入完成", body: pending.summary.description)
-            } catch { syncMessage = SyncMessage(title: "导入失败", body: error.localizedDescription) }
-        }
-    }
-
     private var syncMessagePresented: Binding<Bool> {
         Binding(get: { syncMessage != nil }, set: { if !$0 { syncMessage = nil } })
-    }
-
-    private var pendingImportPresented: Binding<Bool> {
-        Binding(get: { pendingImport != nil }, set: { if !$0 { pendingImport = nil } })
     }
 
     // MARK: - 排序模式

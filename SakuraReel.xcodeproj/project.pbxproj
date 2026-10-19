@@ -60,6 +60,7 @@
 		FFCEFE1347AAFAE174840F2D /* TMDbSearchView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3DF4ED3B8C7429997720B294; };
 		AB317570FFCE1235E2F8DE49 /* Localizable.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = 3BB79F772D4F269494634AA9; };
 		45D14CE9B0E7EB1B0AC871D2 /* ThirdPartyNotices.txt in Resources */ = {isa = PBXBuildFile; fileRef = A7A92B2760297C5829F77818; };
+		5EED0B0F1A2B3C4D5E6F7081 /* SeedLibrary in Resources */ = {isa = PBXBuildFile; fileRef = 5EED0F0F1A2B3C4D5E6F7081; };
 		FDE000000000000000000002 /* AddMediaFlowView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FDE000000000000000000001; };
 		BD247EAD23264BEE8ACDA5DB /* MediaDetailPanels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4A32874CBC5E44DF923D09A6; };
 		4E9AC464F9A6447591604654 /* MediaDetailHeader.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3E0CCEEDE3414052AD0146AE; };
@@ -126,6 +127,7 @@
 		04C2472951DB0AD2994077A0 /* TMDbImportPreview.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "SakuraReel/Views/TMDb/TMDbImportPreview.swift"; sourceTree = SOURCE_ROOT; };
 		3DF4ED3B8C7429997720B294 /* TMDbSearchView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "SakuraReel/Views/TMDb/TMDbSearchView.swift"; sourceTree = SOURCE_ROOT; };
 		3BB79F772D4F269494634AA9 /* Localizable.xcstrings */ = {isa = PBXFileReference; lastKnownFileType = text.json.xcstrings; path = "SakuraReel/Resources/Localizable.xcstrings"; sourceTree = SOURCE_ROOT; };
+		5EED0F0F1A2B3C4D5E6F7081 /* SeedLibrary */ = {isa = PBXFileReference; lastKnownFileType = folder; path = "SakuraReel/Resources/SeedLibrary"; sourceTree = SOURCE_ROOT; };
 		A7A92B2760297C5829F77818 /* ThirdPartyNotices.txt */ = {isa = PBXFileReference; lastKnownFileType = text; path = "SakuraReel/Resources/ThirdPartyNotices.txt"; sourceTree = SOURCE_ROOT; };
 		FDE000000000000000000001 /* AddMediaFlowView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "SakuraReel/Views/TMDb/AddMediaFlowView.swift"; sourceTree = SOURCE_ROOT; };
 		FDE000000000000000000003 /* TMDb.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = "Configuration/TMDb.xcconfig"; sourceTree = SOURCE_ROOT; };
@@ -224,6 +226,7 @@
 			isa = PBXGroup;
 			children = (
 				A7A92B2760297C5829F77818 /* ThirdPartyNotices.txt */,
+				5EED0F0F1A2B3C4D5E6F7081 /* SeedLibrary */,
 				3BB79F772D4F269494634AA9 /* Localizable.xcstrings */,
 				0CFE60C3A03F04198D9B12B2 /* SakuraReelApp.swift */,
 				7B594B6DB375E1BF3F23CDD6 /* Info.plist */,
@@ -358,6 +361,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				45D14CE9B0E7EB1B0AC871D2 /* ThirdPartyNotices.txt in Resources */,
+				5EED0B0F1A2B3C4D5E6F7081 /* SeedLibrary in Resources */,
 				AB317570FFCE1235E2F8DE49 /* Localizable.xcstrings in Resources */,
 				AB448BACB6278B84EC78240E /* Assets.xcassets in Resources */,
 				382BF0C8031F4D95B855F94237F89369 /* AppIcon.icon in Resources */,
@@ -525,8 +529,8 @@
 				PRODUCT_BUNDLE_IDENTIFIER = com.yourdomain.SakuraReel;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = iphoneos;
-				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
-				SUPPORTS_MACCATALYST = NO;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator macosx";
+				SUPPORTS_MACCATALYST = YES;
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_VERSION = 6.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
@@ -561,8 +565,8 @@
 				PRODUCT_BUNDLE_IDENTIFIER = com.yourdomain.SakuraReel;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = iphoneos;
-				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
-				SUPPORTS_MACCATALYST = NO;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator macosx";
+				SUPPORTS_MACCATALYST = YES;
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_VERSION = 6.0;
 				TARGETED_DEVICE_FAMILY = "1,2";

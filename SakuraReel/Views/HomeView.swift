@@ -5,7 +5,13 @@ struct HomeView: View {
     @Environment(MediaRepository.self) private var repository
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
-    @State private var selectedStatus: MediaStatus? = .watched
+    @State private var selectedStatus: MediaStatus? = Self.launchStatus
+    /// 首次启动停在「想看」（内置初始片单所在），之后每次启动都回到默认的「看过」。进程内只算一次
+    private static let launchStatus: MediaStatus = {
+        let key = "hasOpenedHomeBefore"
+        defer { UserDefaults.standard.set(true, forKey: key) }
+        return UserDefaults.standard.bool(forKey: key) ? .watched : .wantToWatch
+    }()
     @State private var movingToLaterStatus = true
     @State private var outgoingCategory: CategorySnapshot?
     @State private var categorySlideProgress: CGFloat = 1

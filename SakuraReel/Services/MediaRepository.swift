@@ -12,8 +12,18 @@ actor LibraryStorage {
         try LibraryArchive.recoverPendingCommits(in: directory)
         let file = directory.appendingPathComponent(LibraryFiles.libraryFileName)
         if !FileManager.default.fileExists(atPath: file.path) {
-            let empty = LibraryDocument()
-            try LibraryArchive.commit(empty, to: directory)
+            if let seed = Bundle.main.url(forResource: "SeedLibrary", withExtension: nil) {
+                // 首次启动：把内置的初始「想看」资料库（元数据 + 海报 + 背景图）铺进 Documents
+                for name in [LibraryFiles.postersDirectoryName, LibraryFiles.artworkDirectoryName] {
+                    let target = directory.appendingPathComponent(name)
+                    let source = seed.appendingPathComponent(name)
+                    guard FileManager.default.fileExists(atPath: source.path), !FileManager.default.fileExists(atPath: target.path) else { continue }
+                    try FileManager.default.copyItem(at: source, to: target)
+                }
+                try FileManager.default.copyItem(at: seed.appendingPathComponent(LibraryFiles.libraryFileName), to: file)
+            } else {
+                try LibraryArchive.commit(LibraryDocument(), to: directory)
+            }
         }
         return try LibraryArchive.read(from: directory, hydrate: false)
     }

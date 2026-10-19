@@ -6,6 +6,15 @@
 ![Platform](https://img.shields.io/badge/platform-iOS%20%2F%20iPadOS%2018%2B-black)
 ![Swift](https://img.shields.io/badge/Swift-6-orange)
 
+![SakuraReel](docs/showcase/01-intro.jpg)
+
+**[图文介绍 →](docs/showcase/README.md)**：首页、iCloud 同步、TMDB 搜索录入、详情、排行榜、时光机。
+
+| | |
+|---|---|
+| ![首页](docs/showcase/02-home.jpg) | ![排行榜](docs/showcase/07-ranking.jpg) |
+| ![时光机](docs/showcase/09-time-machine.jpg) | ![翻面短评](docs/showcase/10-review-flip.jpg) |
+
 ## 功能
 
 - **个人收藏**：海报、片名、看过 / 在看 / 想看、观看年月、整数评分、短评与播放链接。

@@ -6,9 +6,9 @@
 ![Platform](https://img.shields.io/badge/platform-iOS%20%2F%20iPadOS%2018%2B-black)
 ![Swift](https://img.shields.io/badge/Swift-6-orange)
 
-![SakuraReel](docs/showcase/01-intro.jpg)
+[![SakuraReel 宣传片](docs/showcase/01-intro.jpg)](https://www.bilibili.com/video/BV15CJR6cEvr/)
 
-**[图文介绍 →](docs/showcase/README.md)**：首页、iCloud 同步、TMDB 搜索录入、详情、排行榜、时光机。
+**[▶ 观看宣传片（哔哩哔哩）](https://www.bilibili.com/video/BV15CJR6cEvr/)**：首页、iCloud 同步、TMDB 搜索录入、详情、排行榜、时光机。
 
 | | |
 |---|---|
